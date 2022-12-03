@@ -25,7 +25,6 @@ const CLICKING_STYLE:UiStyle = new UiStyleBuilder()
 const GROUP_STYLE:UiStyle = new UiStyleBuilder()
 	.backgroundColor(Colors.GREEN)
 	.borderSize("0px")
-	.borderColor(Colors.GREEN)
 	.build();	
 
 export class TestApplication extends UiApplication {

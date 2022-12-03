@@ -8,8 +8,6 @@ export type VerticalAlign = "top"|"bottom"|"middle";
 
 /**
  * UiStyle
- * 
- * TODO Immutableにする
  */
 export class UiStyle {
 
@@ -99,45 +97,57 @@ export class UiStyle {
 	private static _counter:number = 0;
 
 	/** 空スタイル */
-	public static EMPTY:UiStyle = new UiStyle(UiStyle.EMPTY_STYLE_ID);
+	public static EMPTY:UiStyle = new UiStyle();
 
-	public constructor(specialId?:number) {
-		if (specialId != undefined) {
-			this._id = specialId;
+	public constructor(builder?:UiStyleBuilder) {
+		if (builder == undefined) {
+			this._id = UiStyle.EMPTY_STYLE_ID;
+			this._basedOn = null;
+			this._inherits = [];
+			this._childrenOrdered = false;
+			this._conditionName = null;
+			this._conditionParam = null;
+			this._textColor = null;
+			this._backgroundColor = null;
+			this._backgroundImage = null;
+			this._borderLeft = null;
+			this._borderTop = null;
+			this._borderRight = null;
+			this._borderBottom = null;
+			this._borderColor = null;
+			this._borderImage = null;
+			this._fontSize = null;
+			this._fontFamily = null;
+			this._lineHeight = null;
+			this._textAlign = null;
+			this._verticalAlign = null;
 		} else {
 			UiStyle._counter++;
 			this._id = UiStyle._counter;
+			this._basedOn = null;
+			this._inherits = [];
+			this._childrenOrdered = false;
+			this._conditionName = builder.getConditionName();
+			this._conditionParam = builder.getConditionParam();
+			this._textColor = builder.getTextColor();
+			this._backgroundColor = builder.getBackgroundColor();
+			this._backgroundImage = builder.getBackgroundImage();
+			this._borderLeft = builder.getBorderLeft();
+			this._borderTop = builder.getBorderTop();
+			this._borderRight = builder.getBorderRight();
+			this._borderBottom = builder.getBorderBottom();
+			this._borderColor = builder.getBorderColor();
+			this._borderImage = builder.getBorderImage();
+			this._fontSize = builder.getFontSize();
+			this._fontFamily = builder.getFontFamily();
+			this._lineHeight = builder.getLineHeight();
+			this._textAlign = builder.getTextAlign();
+			this._verticalAlign = builder.getVerticalAlign();
+			this.setBasedOn(builder.getBasedOn());
 		}
-		this._basedOn = null;
-		this._inherits = [];
-		this._childrenOrdered = false;
-		this._conditionName = null;
-		this._conditionParam = null;
-		this._textColor = null;
-		this._backgroundColor = null;
-		this._backgroundImage = null;
-		this._borderLeft = null;
-		this._borderTop = null;
-		this._borderRight = null;
-		this._borderBottom = null;
-		this._borderColor = null;
-		this._borderImage = null;
-		this._fontSize = null;
-		this._fontFamily = null;
-		this._lineHeight = null;
-		this._textAlign = null;
-		this._verticalAlign = null;
 	}
 
-	public get id():number {
-		return this._id;
-	}
-
-	public get basedOn():UiStyle|null {
-		return this._basedOn;	
-	}
-
-	public set basedOn(parent:UiStyle|null) {
+	private setBasedOn(parent:UiStyle|null):void {
 		if (this._basedOn != parent) {
 			if (this._basedOn != null) {
 				this._basedOn.removeInherits(this);
@@ -157,6 +167,14 @@ export class UiStyle {
 	private removeInherits(child:UiStyle):void {
 		let index = this._inherits.indexOf(child);
 		this._inherits.splice(index, 1);
+	}
+
+	public get id():number {
+		return this._id;
+	}
+
+	public get basedOn():UiStyle|null {
+		return this._basedOn;
 	}
 
 	public getEffectiveStyle(node:UiNode):UiStyle {
@@ -345,176 +363,250 @@ export class UiStyle {
 		return cssName + ":" + str.toString() + ";";
 	}
 
-	public set conditionName(value:UiStyleCondition|null) {
-		this._conditionName = value;
-	}
-
-	public set conditionParam(value:string|null) {
-		this._conditionParam = value;
-	}
-
-	public set textColor(value:Color|null) {
-		this._textColor = value;
-	}
-
-	public set backgroundColor(value:Color|null) {
-		this._backgroundColor = value;
-	}
-
-	public set backgroundImage(value:string|null) {
-		this._backgroundImage = value;
-	}
-
-	public set borderLeft(str:string|null) {
-		let value:CssLength|null = (str == null ? null : new CssLength(str));
-		this._borderLeft = value;
-	}
-
-	public set borderTop(str:string|null) {
-		let value:CssLength|null = (str == null ? null : new CssLength(str));
-		this._borderTop = value;
-	}
-
-	public set borderRight(str:string|null) {
-		let value:CssLength|null = (str == null ? null : new CssLength(str));
-		this._borderRight = value;
-	}
-
-	public set borderBottom(str:string|null) {
-		let value:CssLength|null = (str == null ? null : new CssLength(str));
-		this._borderBottom = value;
-	}
-
-	public set borderColor(value:Color|null) {
-		this._borderColor = value;
-	}
-
-	public set borderImage(value:string|null) {
-		this._borderImage = value;
-	}
-
-	public set fontSize(str:string|null) {
-		let value:CssLength|null = (str == null ? null : new CssLength(str));
-		this._fontSize = value;
-	}
-
-	public set fontFamily(value:string|null) {
-		this._fontFamily = value;
-	}
-
-	public set lineHeight(str:string|null) {
-		let value:CssLength|null = (str == null ? null : new CssLength(str));
-		this._lineHeight = value;
-	}
-
-	public set textAlign(value:TextAlign|null) {
-		this._textAlign = value;
-	}
-
-	public set verticalAlign(value:VerticalAlign|null) {
-		this._verticalAlign = value;
-	}
-
 }
 
 export class UiStyleBuilder {
 
-	private _style:UiStyle;
+	/** 基底スタイル */
+	private _basedOn: UiStyle | null;
+
+	private _childrenOrdered: boolean;
+
+	private _conditionName: UiStyleCondition|null;
+
+	private _conditionParam: string|null;
+
+	/** 前景色 */
+	private _textColor: Color|null;
+
+	/** 背景色 */
+	private _backgroundColor: Color|null;
+
+	/** 背景画像URL */
+	private _backgroundImage: string|null;
+
+	/** ボーダーサイズ(Length)（左） */
+	private _borderLeft: CssLength|null;
+
+	/** ボーダーサイズ(Length)（上） */
+	private _borderTop: CssLength|null;
+
+	/** ボーダーサイズ(Length)（右） */
+	private _borderRight: CssLength|null;
+
+	/** ボーダーサイズ(Length)（下） */
+	private _borderBottom: CssLength|null;
+
+	/** ボーダー色 */
+	private _borderColor: Color|null;
+
+	/** ボーダー画像URL */
+	private _borderImage: string|null;
+
+	/** フォントサイズ(Length) */
+	private _fontSize: CssLength|null;
+
+	/** フォントの種類 */
+	private _fontFamily: string|null;
+
+	/** 行の高さ(Length) */
+	private _lineHeight: CssLength|null;
+
+	/** 行の揃え位置 */
+	private _textAlign: TextAlign|null;
+
+	/** 縦方向の揃え位置 */
+	private _verticalAlign: VerticalAlign|null;
+
+	private static _counter:number = 0;
 
 	public constructor() {
-		this._style = new UiStyle();
+		this._basedOn = null;
+		this._childrenOrdered = false;
+		this._conditionName = null;
+		this._conditionParam = null;
+		this._textColor = null;
+		this._backgroundColor = null;
+		this._backgroundImage = null;
+		this._borderLeft = null;
+		this._borderTop = null;
+		this._borderRight = null;
+		this._borderBottom = null;
+		this._borderColor = null;
+		this._borderImage = null;
+		this._fontSize = null;
+		this._fontFamily = null;
+		this._lineHeight = null;
+		this._textAlign = null;
+		this._verticalAlign = null;
 	}
 
 	public basedOn(parent:UiStyle|null):UiStyleBuilder {
-		this._style.basedOn = parent;
+		this._basedOn = parent;
 		return this;
 	}
 
 	public condition(name:UiStyleCondition|null, param:string|null = null):UiStyleBuilder {
-		this._style.conditionName = name;
-		this._style.conditionParam = param;
+		this._conditionName = name;
+		this._conditionParam = param;
 		return this;
 	}
 
 	public textColor(value:Color|null):UiStyleBuilder {
-		this._style.textColor = value;
+		this._textColor = value;
 		return this;
 	}
 
 	public backgroundColor(value:Color|null):UiStyleBuilder {
-		this._style.backgroundColor = value;
+		this._backgroundColor = value;
 		return this;
 	}
 
 	public backgroundImage(value:string|null):UiStyleBuilder {
-		this._style.backgroundImage = value;
-		return this;
-	}
-	public borderSize(value:string|null):UiStyleBuilder {
-		this._style.borderLeft = value;
-		this._style.borderTop = value;
-		this._style.borderRight = value;
-		this._style.borderBottom = value;
+		this._backgroundImage = value;
 		return this;
 	}
 
-	public borderLeft(value:string|null):UiStyleBuilder {
-		this._style.borderLeft = value;
+	public borderSize(str:string|null):UiStyleBuilder {
+		let value:CssLength|null = (str == null ? null : new CssLength(str));
+		this._borderLeft = value;
+		this._borderTop = value;
+		this._borderRight = value;
+		this._borderBottom = value;
 		return this;
 	}
 
-	public borderTop(value:string|null):UiStyleBuilder {
-		this._style.borderTop = value;
+	public borderLeft(str:string|null):UiStyleBuilder {
+		let value:CssLength|null = (str == null ? null : new CssLength(str));
+		this._borderLeft = value;
 		return this;
 	}
 
-	public borderRight(value:string|null):UiStyleBuilder {
-		this._style.borderRight = value;
+	public borderTop(str:string|null):UiStyleBuilder {
+		let value:CssLength|null = (str == null ? null : new CssLength(str));
+		this._borderTop = value;
 		return this;
 	}
 
-	public borderBottom(value:string|null):UiStyleBuilder {
-		this._style.borderBottom = value;
+	public borderRight(str:string|null):UiStyleBuilder {
+		let value:CssLength|null = (str == null ? null : new CssLength(str));
+		this._borderRight = value;
+		return this;
+	}
+
+	public borderBottom(str:string|null):UiStyleBuilder {
+		let value:CssLength|null = (str == null ? null : new CssLength(str));
+		this._borderBottom = value;
 		return this;
 	}
 
 	public borderColor(value:Color|null):UiStyleBuilder {
-		this._style.borderColor = value;
+		this._borderColor = value;
 		return this;
 	}
 
 	public borderImage(value:string|null):UiStyleBuilder {
-		this._style.borderImage = value;
+		this._borderImage = value;
 		return this;
 	}
 
-	public fontSize(value:string|null):UiStyleBuilder {
-		this._style.fontSize = value;
+	public fontSize(str:string|null):UiStyleBuilder {
+		let value:CssLength|null = (str == null ? null : new CssLength(str));
+		this._fontSize = value;
 		return this;
 	}
 
 	public fontFamily(value:string|null):UiStyleBuilder {
-		this._style.fontFamily = value;
+		this._fontFamily = value;
 		return this;
 	}
 
-	public lineHeight(value:string|null):UiStyleBuilder {
-		this._style.lineHeight = value;
+	public lineHeight(str:string|null):UiStyleBuilder {
+		let value:CssLength|null = (str == null ? null : new CssLength(str));
+		this._lineHeight = value;
 		return this;
 	}
 
 	public textAlign(value:TextAlign|null):UiStyleBuilder {
-		this._style.textAlign = value;
+		this._textAlign = value;
 		return this;
 	}
 
 	public verticalAlign(value:VerticalAlign|null):UiStyleBuilder {
-		this._style.verticalAlign = value;
+		this._verticalAlign = value;
 		return this;
 	}
 
 	public build():UiStyle {
-		return this._style;
+		return new UiStyle(this);
+	}
+
+	public getBasedOn(): UiStyle | null {
+		return this._basedOn;
+	}
+
+	public getConditionName(): UiStyleCondition|null {
+		return this._conditionName;
+	}
+
+	public getConditionParam(): string|null {
+		return this._conditionParam;
+	}
+
+	public getTextColor(): Color|null {
+		return this._textColor;
+	}
+
+	public getBackgroundColor(): Color|null {
+		return this._backgroundColor;
+	}
+
+	public getBackgroundImage(): string|null {
+		return this._backgroundImage;
+	}
+
+	public getBorderLeft(): CssLength|null {
+		return this._borderLeft;
+	}
+
+	public getBorderTop(): CssLength|null {
+		return this._borderTop;
+	}
+
+	public getBorderRight(): CssLength|null {
+		return this._borderRight;
+	}
+
+	public getBorderBottom(): CssLength|null {
+		return this._borderBottom;
+	}
+
+	public getBorderColor(): Color|null {
+		return this._borderColor;
+	}
+
+	public getBorderImage(): string|null {
+		return this._borderImage;
+	}
+
+	public getFontSize(): CssLength|null {
+		return this._fontSize;
+	}
+
+	public getFontFamily(): string|null {
+		return this._fontFamily;
+	}
+
+	public getLineHeight(): CssLength|null {
+		return this._lineHeight;
+	}
+
+	public getTextAlign(): TextAlign|null {
+		return this._textAlign;
+	}
+
+	public getVerticalAlign(): VerticalAlign|null {
+		return this._verticalAlign;
 	}
 
 }
