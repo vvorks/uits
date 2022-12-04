@@ -239,7 +239,7 @@ export class UiNode {
 	public get bottom():string|null {
 		return (this._bottom == null ? null : this._bottom.toString());
 	}
-	
+
 	public set bottom(str:string|null) {
 		let value:CssLength|null = (str == null ? null : new CssLength(str));
 		if (this._bottom != value) {
@@ -294,7 +294,7 @@ export class UiNode {
 		let value:CssLength|null = (str == null ? null : new CssLength(str));
 		if (this._scrollLeft != value) {
 			this._scrollLeft = value;
-			this.onScrollChanged();	
+			this.onScrollChanged();
 		}
 	}
 
@@ -306,7 +306,7 @@ export class UiNode {
 		let value:CssLength|null = (str == null ? null : new CssLength(str));
 		if (this._scrollTop != value) {
 			this._scrollTop = value;
-			this.onScrollChanged();	
+			this.onScrollChanged();
 		}
 	}
 
@@ -318,7 +318,7 @@ export class UiNode {
 		let value:CssLength|null = (str == null ? null : new CssLength(str));
 		if (this._scrollWidth != value) {
 			this._scrollWidth = value;
-			this.onScrollChanged();	
+			this.onScrollChanged();
 		}
 	}
 
@@ -330,7 +330,7 @@ export class UiNode {
 		let value:CssLength|null = (str == null ? null : new CssLength(str));
 		if (this._scrollHeight != value) {
 			this._scrollHeight = value;
-			this.onScrollChanged();	
+			this.onScrollChanged();
 		}
 	}
 
@@ -400,6 +400,17 @@ export class UiNode {
 		if (page != null) {
 			this.setChanged(Changed.STYLE, true);
 		}
+	}
+
+	/**
+	 * 非矩形形状のノードの場合、指定位置が自ノードに含まれているかを判定する
+	 *
+	 * @param x X位置（自ノード座標系[但し、ボーダー含む]）
+	 * @param y Y位置（自ノード座標系[但し、ボーダー含む]）
+	 * @returns 指定位置が自ノードに含まれている場合、真
+	 */
+	 protected hitTest(x:number, y:number):boolean {
+		return true;
 	}
 
 	public getRect():Rect {
@@ -497,9 +508,9 @@ export class UiNode {
 		return this.getRectOn(null);
 	}
 
-	public getRectOn(a:UiNode|null):Rect {
+	public getRectOn(ans:UiNode|null):Rect {
 		let result = new Rect(this.getRect());
-		return this.translateOn(result, a);
+		return this.translateOn(result, ans);
 	}
 
 	public translateOn(result:Rect, a:UiNode|null):Rect {
@@ -512,19 +523,8 @@ export class UiNode {
 	}
 
 	/**
-	 * 非矩形形状のノードの場合、指定位置が自ノードに含まれているかを判定する
-	 * 
-	 * @param x X位置（自ノード座標系[但し、ボーダー含む]）
-	 * @param y Y位置（自ノード座標系[但し、ボーダー含む]）
-	 * @returns 指定位置が自ノードに含まれている場合、真
-	 */
-	protected hitTest(x:number, y:number):boolean {
-		return true;
-	}
-
-	/**
 	 * 座標基準位置の変換
-	 * 
+	 *
 	 * @param result 座標
 	 * @param sig 変換方向（-1:末端方向、+1:ルート方向）
 	 * @returns 座標（変換後）
@@ -546,8 +546,82 @@ export class UiNode {
 		rect.width = this.innerWidth;
 		rect.height = this.innerHeight;
 		rect.x = (this._scrollLeft != null ? this._scrollLeft.toPixel(() => rect.width ) : 0);
-		rect.y = (this._scrollTop != null  ? this._scrollTop.toPixel (() => rect.height) : 0); 
+		rect.y = (this._scrollTop != null  ? this._scrollTop.toPixel (() => rect.height) : 0);
 		return rect;
+	}
+
+	protected getWrappedRect():Rect {
+		let parent = this.parent as UiNode;
+		Asserts.assume(parent != null);
+		let rParent = parent.getScrollRect();
+		let rMe = new Rect(this.getRect());
+		let x1 = 0;
+		let x2 = rParent.width;
+		let y1 = 0;
+		let y2 = rParent.height;
+		let rUnion = new Rect();
+		for (let sibling of parent._children) {
+			let rSibling = sibling.getRect();
+			rUnion = rUnion.union(rSibling);
+			if (sibling != this) {
+				if (!(rSibling.bottom < rMe.top || rMe.bottom <= rSibling.top)) {
+					if (rSibling.right < rMe.left) {
+						x1 = Math.max(x1, rSibling.right);
+					} else if (rSibling.left >= rMe.right) {
+						x2 = Math.min(x2, rSibling.left);
+					}
+				}
+				if (!(rSibling.right < rMe.left || rMe.right <= rSibling.left)) {
+					if (rSibling.bottom < rMe.top) {
+						y1 = Math.max(y1, rSibling.bottom);
+					} else if (rSibling.top >= rMe.bottom) {
+						y2 = Math.min(y2, rSibling.top);
+					}
+				}
+			}
+		}
+		let dLeft = Math.min(rMe.left - x1, rUnion.left);
+		let dRight = Math.min(x2 - rMe.right, rParent.width - rUnion.right);
+		let dTop = Math.min(rMe.top - y1, rUnion.top);
+		let dBottom = Math.min(y2 - rMe.bottom, rParent.height - rUnion.bottom);
+		return rMe.inflate(dLeft, dTop, dRight, dBottom);
+	}
+
+	protected getWrappedRectOn(ans:UiNode):Rect {
+		let result = this.getWrappedRect();
+		return this.translateOn(result, ans);
+	}
+
+	public scrollFor(target:UiNode):UiResult {
+		if (!this.isAncestorOf(target)) {
+			return UiResult.IGNORED;
+		}
+		let result:UiResult = UiResult.IGNORED;
+		let r = target.getWrappedRectOn(this);
+		let s = this.getViewRect();
+		let dx;
+		let dy;
+		if (r.left < s.left) {
+			dx = -(s.left - r.left + 0);
+		} else if (r.right > s.right) {
+			dx = +(r.right - s.right + 0);
+		} else {
+			dx = 0;
+		}
+		if (r.top < s.top) {
+			dy = -(s.top - r.top + 0);
+		} else if (r.bottom > s.bottom) {
+			dy = +(r.bottom - s.bottom + 0);
+		} else {
+			dy = 0;
+		}
+		if (dx != 0 || dy != 0) {
+			this.scrollLeft = `${s.left + dx}px`;
+			this.scrollTop = `${s.top + dy}px`;
+			Logs.dump(this);
+			result |= UiResult.AFFECTED;
+		}
+		return result;
 	}
 
 	public get visible():boolean {
@@ -703,7 +777,7 @@ export class UiNode {
 
 	/**
 	 * 最終共通祖先(Last Universal Common Ancestor)を取得する。
-	 * 
+	 *
 	 * @param other 比較対象ノード
 	 * @returns 最終共通祖先ノード。但し、両者が上下関係の場合、上位側ノードを返す。
 	 */
@@ -873,46 +947,44 @@ export class UiNode {
 		if (!this.isChanged(Changed.SCROLL)) {
 			return;
 		}
-		//処理準備
-		let viewWidth = this.innerWidth;
-		let viewHeight = this.innerHeight;
-		let surround:Rect;
-		if (this._scrollWidth == null || this._scrollHeight == null) {
-			surround = this.getSurroundRect();
-		} else {
-			surround = new Rect();
-		}
-		//水平方向のスクロール位置計算
-		let scrollLeft = (this._scrollLeft != null ? this._scrollLeft.toPixel(() => viewWidth) : 0); 
-		let scrollWidth:number;
-		if (this._scrollWidth != null) {
-			scrollWidth = this._scrollWidth.toPixel(() => viewWidth);
-		} else {
-			scrollWidth = surround.right > viewWidth ? surround.left + surround.right : viewWidth;
-		}
-		scrollWidth = Math.max(scrollWidth, viewWidth);
-		scrollLeft = Math.min(Math.max(0, scrollLeft), scrollWidth - viewWidth);
-		//垂直方向のスクロール位置計算
-		let scrollTop = (this._scrollTop != null ? this._scrollTop.toPixel(() => viewWidth) : 0); 
-		let scrollHeight = 0;
-		if (this._scrollHeight != null) {
-			scrollHeight = this._scrollHeight.toPixel(() => viewHeight);
-		} else {
-			scrollHeight = surround.bottom > viewHeight ? surround.top + surround.bottom : viewHeight;
-		}
-		scrollHeight = Math.max(scrollHeight, viewHeight);
-		scrollTop = Math.min(Math.max(0, scrollTop), scrollHeight - viewHeight);
-		//スクロール領域設定
-		this.setScrollBounds(scrollLeft, scrollTop, scrollWidth, scrollHeight);
+		let rect = this.getScrollRect();
+		this.setScrollBounds(rect.left, rect.top, rect.width, rect.height);
 		this.setChanged(Changed.LOCATION, false);
 	}
 
-	protected getSurroundRect():Rect {
+	protected getChildrenRect():Rect {
 		let childrenRect = new Rect();
 		for (let c of this._children) {
 			childrenRect = childrenRect.union(c.getRect());
 		}
 		return childrenRect;
+	}
+
+	protected getScrollRect():Rect {
+		let rect:Rect = new Rect();
+		let viewWidth = this.innerWidth;
+		let viewHeight = this.innerHeight;
+		let surround:Rect;
+		if (this._scrollWidth == null || this._scrollHeight == null) {
+			surround = this.getChildrenRect();
+		} else {
+			surround = (null as unknown as Rect);
+		}
+		if (this._scrollWidth != null) {
+			rect.width = Math.max(viewWidth, this._scrollWidth.toPixel(() => viewWidth));
+		} else {
+			rect.width = surround.right > viewWidth ? surround.left + surround.right : viewWidth;
+		}
+		let scrollLeft = (this._scrollLeft != null ? this._scrollLeft.toPixel(() => viewWidth) : 0);
+		rect.x = Math.min(Math.max(0, scrollLeft), rect.width - viewWidth);
+		if (this._scrollHeight != null) {
+			rect.height = Math.max(viewHeight, this._scrollHeight.toPixel(() => viewHeight));
+		} else {
+			rect.height = surround.bottom > viewHeight ? surround.top + surround.bottom : viewHeight;
+		}
+		let scrollTop = (this._scrollTop != null ? this._scrollTop.toPixel(() => viewWidth) : 0);
+		rect.y = Math.min(Math.max(0, scrollTop), rect.height - viewHeight);
+		return rect;
 	}
 
 	protected setScrollBounds(scrollLeft:number, scrollTop:number, scrollWidth:number, scrollHeight:number):void {
@@ -921,7 +993,7 @@ export class UiNode {
 		let viewHeight = this.innerHeight;
 		if (scrollWidth > viewWidth || scrollHeight > viewHeight) {
 			if (this._endElement == null) {
-				this._endElement = document.createElement("div"); 
+				this._endElement = document.createElement("div");
 				dom.appendChild(this._endElement);
 			}
 			let style = this._endElement.style;

@@ -147,7 +147,7 @@ export class UiApplication {
 	private _clientWidth:number;
 
 	private _clientHeight:number;
-	
+
 public constructor(selector:string) {
 		this._selector = selector;
 		this._rootElement = null;
@@ -189,7 +189,7 @@ public constructor(selector:string) {
 		let root = this._rootElement;
 		//メトリックス計測
 		Metrics.getInstance().measure(root);
-		let docElement = document.documentElement; 
+		let docElement = document.documentElement;
 		this._clientWidth = docElement.clientWidth;
 		this._clientHeight = docElement.clientHeight;
 		//イベントハンドラ設定
@@ -261,11 +261,14 @@ public constructor(selector:string) {
 		this.rootNode.removeChild(pageNode);
 	}
 
-	public setFocus(node:UiNode, axis:UiAxis):void {
+	public setFocus(node:UiNode, axis:UiAxis):UiResult {
 		let page = this.getLivePageOf(node);
+		let result = UiResult.IGNORED;
 		if (page != null) {
 			page.focus(node, axis);
+			result |= UiResult.AFFECTED;
 		}
+		return result;
 	}
 
 	public getFocus():UiNode|null {
@@ -302,6 +305,7 @@ public constructor(selector:string) {
 	}
 
 	public sync() {
+		Logs.info("sync");
 		this.rootNode.sync();
 	}
 
@@ -571,7 +575,7 @@ public constructor(selector:string) {
 
 	/**
 	 * 指定位置に存在するノードを探索する
-	 * 
+	 *
 	 * @param pt 指定位置
 	 * @returns 指定位置に存在するノード。また、副次的ptは返却するノードの座標系に変更される
 	 */
@@ -697,15 +701,26 @@ public constructor(selector:string) {
 				if (dom != null) {
 					Logs.debug("%s dom  %4d,%4d,%4d,%4d", node.name,
 						dom.offsetLeft, dom.offsetTop, dom.offsetWidth, dom.offsetHeight);
-				}	
+				}
 			}
 		default:
 			break;
 		}
 		if (next != null) {
-			//TODO スクロール位置の設定　scrollFor(next);
-			this.setFocus(next, axis);
-			result |= UiResult.AFFECTED;
+			result |= this.scrollFor(next);
+			result |= this.setFocus(next, axis);
+		}
+		return result;
+	}
+
+	public scrollFor(node:UiNode):UiResult {
+		let result = UiResult.IGNORED;
+		let target = node;
+		let parent = node.parent;
+		while (parent != null) {
+			result |= parent.scrollFor(target);
+			target = parent;
+			parent = target.parent;
 		}
 		return result;
 	}

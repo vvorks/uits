@@ -5,8 +5,8 @@ import { UiApplication } from "./UiApplication";
 export class CssLength {
 
 	private static UNITS = [
-		"rem", "rex", "%", "in", "cm", "mm", "pt", "pc", "px", "em", "ex"
-	]; 
+		"px", "pt", "rem", "rex", "%", "in", "cm", "mm", "pc", "em", "ex"
+	];
 
 	public static ZERO:CssLength = new CssLength("0px");
 

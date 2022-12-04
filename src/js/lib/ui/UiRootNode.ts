@@ -28,9 +28,13 @@ export class UiRootNode extends UiNode {
 		}
 		return this._domElement;
 	}
-	
+
 	protected createDomElement(tag:string):HTMLElement {
 		return document.createElement(tag);
+	}
+
+	protected getWrappedRect():Rect {
+		return new Rect(this.getRect());
 	}
 
 	protected syncStyle():void {
@@ -50,7 +54,7 @@ export class UiRootNode extends UiNode {
 		this.setStyleNode("COMMON", sb);
 		this.setChanged(Changed.STYLE, false);
 	}
-	
+
 	protected syncStyleClass():void {
 		return;
 	}

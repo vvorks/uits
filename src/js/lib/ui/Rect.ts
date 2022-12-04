@@ -1,6 +1,6 @@
 /**
  * Rect
- * 
+ *
  * TODO Immutableにすべき？
  */
  export class Rect {
@@ -85,7 +85,7 @@
 	}
 
 	public get empty():boolean {
-		return this._width <= 0 || this._height <= 0; 
+		return this._width <= 0 || this._height <= 0;
 	}
 
 	public containsPoint(x:number, y:number):boolean {
@@ -136,7 +136,7 @@
 		this._height = height;
 		return this;
 	}
-	
+
 	public move(dx:number, dy:number):Rect {
 		this._x += dx;
 		this._y += dy;
@@ -149,11 +149,11 @@
 		return this;
 	}
 
-	public inflate(ix:number, iy:number = ix):Rect {
-		this._x -= ix;
-		this._y -= iy;
-		this._width += ix * 2;
-		this._height += iy * 2;
+	public inflate(left:number, top:number = left, right:number = left, bottom:number = top):Rect {
+		this._x -= left;
+		this._y -= top;
+		this._width += left + right;
+		this._height += top + bottom;
 		return this;
 	}
 
@@ -225,9 +225,9 @@
 			h:this._height
 		};
 	}
-	
+
 	public toString():string {
 		return JSON.stringify(this.toJson());
 	}
- 
+
 }
