@@ -31,7 +31,7 @@ export class Logs {
 		return result;
 	}
 
-	public static log(type:string, format:string, args:any[]) {
+	public static message(type:string, format:string, args:any[]):string {
 		let now = new Date();
 		let message = sprintf("%02d/%02d %02d:%02d:%02d.%03d %s %s at %s",
 			//now.getFullYear(),
@@ -45,32 +45,31 @@ export class Logs {
 			vsprintf(format, args),
 			Logs.getCaller()
 		);
-		//console.log(message);
-		setTimeout(window.console.log.bind(window.console, message));
+		return message;
 	}
 
 	public static error(format:string, ...args: any[]):void {
-		Logs.log("E", format, args);	
+		console.error(Logs.message("E", format, args));
 	}
 
 	public static warn(format:string, ...args: any[]):void {
-		Logs.log("W", format, args);	
+		console.warn(Logs.message("W", format, args));
 	}
 
 	public static info(format:string, ...args: any[]):void {
-		Logs.log("I", format, args);	
+		console.info(Logs.message("I", format, args));
 	}
 
 	public static debug(format:string, ...args: any[]):void {
-		Logs.log("D", format, args);	
+		console.debug(Logs.message("D", format, args));
 	}
 
 	public static verbose(format:string, ...args: any[]):void {
-		Logs.log("V", format, args);	
+		console.log(Logs.message("V", format, args));
 	}
 
 	public static dump(obj:Object):void {
-		console.log(obj);	
+		console.log(obj);
 	}
 
 }
