@@ -3,6 +3,14 @@ import { Changed, Flags, UiNode } from "./UiNode";
 
 export class UiRootNode extends UiNode {
 
+	public clone():UiRootNode {
+		return new UiRootNode(this);
+	}
+
+	public get className():string {
+		return "UiRootNode";
+	}
+
 	public getPageNode():UiNode|null {
 		return null;
 	}

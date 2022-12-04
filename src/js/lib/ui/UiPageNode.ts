@@ -2,7 +2,15 @@ import { Changed, UiNode } from "./UiNode";
 import { UiStyle } from "./UiStyle";
 
 export class UiPageNode extends UiNode {
-	
+
+	public clone():UiPageNode {
+		return new UiPageNode(this);
+	}
+
+	public get className():string {
+		return "UiPageNode";
+	}
+
 	public getPageNode():UiNode|null {
 		return this;
 	}

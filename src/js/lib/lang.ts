@@ -10,5 +10,10 @@ export {Types};
 import {Logs} from "./lang/Logs";
 export {Logs}
 
-import { Properties as RawProperties } from "./lang/Properties";
-export interface Properties<T> extends RawProperties<T> {}
+export interface Properties<T> {
+	[prop: string]: T;
+}
+
+export interface Clonable<T extends Clonable<T>> {
+	clone():T;
+}

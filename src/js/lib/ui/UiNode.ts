@@ -1,7 +1,7 @@
 import {Rect} from "./Rect";
 import {CssLength} from "./CssLength"
 import { UiStyle } from "./UiStyle"
-import { Asserts, Logs } from "../lang";
+import { Asserts, Clonable } from "../lang";
 import type { UiApplication } from "./UiApplication";
 
  /**
@@ -82,7 +82,7 @@ export enum UiResult {
 /**
  * UiNode
  */
-export class UiNode {
+export class UiNode implements Clonable<UiNode> {
 
 	protected _application:UiApplication;
 
@@ -112,17 +112,17 @@ export class UiNode {
 
 	protected _scrollHeight:CssLength|null;
 
+	protected _style:UiStyle;
+
+	protected _stylePrefix:string;
+
+	protected _styleClassName:string;
+
 	protected _rect:Rect|null;
 
 	protected _parent:UiNode|null;
 
 	protected _children:UiNode[];
-
-	protected _style:UiStyle;
-
-	protected _stylePrefix:string;
-
-	protected _styleClassName: string;
 
 	protected _flags: Flags;
 
@@ -134,32 +134,77 @@ export class UiNode {
 
 	private static _counter:number = 0;
 
-	public constructor(app:UiApplication, name?:string) {
-		UiNode._counter++;
-		this._application = app;
-		this._id = UiNode._counter;
-		this._name = (name != null ? name : this.className + this._id);
-		this._content = "";
-		this._left = null;
-		this._top = null;
-		this._right = null;
-		this._bottom = null;
-		this._width = null;
-		this._height = null;
-		this._scrollLeft = null;
-		this._scrollTop = null;
-		this._scrollWidth = null;
-		this._scrollHeight = null;
-		this._rect = null;
-		this._parent = null;
-		this._children = [];
-		this._style = UiStyle.EMPTY;
-		this._stylePrefix = "";
-		this._styleClassName = "";
-		this._flags = Flags.INITIAL;
-		this._changed = Changed.ALL;
-		this._domElement = null;
-		this._endElement = null;
+	private static issue():number {
+		return ++UiNode._counter;
+	}
+
+	public clone():UiNode {
+		return new UiNode(this);
+	}
+
+	public get className():string {
+		return "UiNode";
+	}
+
+	constructor(app:UiApplication, name?:string);
+	constructor(src:UiNode);
+	public constructor(param:any, name?:string) {
+		if (param instanceof UiNode) {
+			let src = param as UiNode;
+			this._application = src._application;
+			this._id = UiNode.issue();
+			this._name = src._name;
+			this._content = src._content;
+			this._left = src._left;
+			this._top = src._top;
+			this._right = src._right;
+			this._bottom = src._bottom;
+			this._width = src._width;
+			this._height = src._height;
+			this._scrollLeft = src._scrollLeft;
+			this._scrollTop = src._scrollTop;
+			this._scrollWidth = src._scrollWidth;
+			this._scrollHeight = src._scrollHeight;
+			this._style = src._style;
+			this._stylePrefix = src._stylePrefix;
+			this._styleClassName = src._styleClassName;
+			this._rect = null;
+			this._parent = null;
+			this._children = [];
+			for (let c of src._children) {
+				this.appendChild(c.clone());
+			}
+			this._flags = Flags.INITIAL;
+			this._changed = Changed.ALL;
+			this._domElement = null;
+			this._endElement = null;
+		} else {
+			let app = param as UiApplication;
+			this._application = app;
+			this._id = UiNode.issue();
+			this._name = (name != null ? name : this.className + this._id);
+			this._content = "";
+			this._left = null;
+			this._top = null;
+			this._right = null;
+			this._bottom = null;
+			this._width = null;
+			this._height = null;
+			this._scrollLeft = null;
+			this._scrollTop = null;
+			this._scrollWidth = null;
+			this._scrollHeight = null;
+			this._style = UiStyle.EMPTY;
+			this._stylePrefix = "";
+			this._styleClassName = "";
+			this._rect = null;
+			this._parent = null;
+			this._children = [];
+			this._flags = Flags.INITIAL;
+			this._changed = Changed.ALL;
+			this._domElement = null;
+			this._endElement = null;
+		}
 	}
 
 	/**
@@ -171,10 +216,6 @@ export class UiNode {
 
 	public get id():number {
 		return this._id;
-	}
-
-	public get className():string {
-		return "UiNode";
 	}
 
 	public get application():UiApplication {
