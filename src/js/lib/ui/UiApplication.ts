@@ -148,6 +148,8 @@ export class UiApplication {
 
 	private _clientHeight:number;
 
+	private _busy:boolean = false;
+
 public constructor(selector:string) {
 		this._selector = selector;
 		this._rootElement = null;
@@ -307,10 +309,20 @@ public constructor(selector:string) {
 	public sync() {
 		Logs.info("sync");
 		this.rootNode.sync();
+		this._busy = true;
+		window.requestAnimationFrame((t:number) => {
+			this._busy = false;
+		});
+
 	}
 
 	private processKeyDown(evt:KeyboardEvent):void {
-		//TODO busyチェック
+		//busyチェック
+		if (this._busy) {
+			Logs.warn("BUSY");
+			this.postProcessEvent(evt, UiResult.CONSUMED);
+			return;
+		}
 		//イベント情報取得
 		let key = evt.keyCode;
 		let ch = evt.charCode;
@@ -348,7 +360,6 @@ public constructor(selector:string) {
 	}
 
 	private processKeyPress(evt:KeyboardEvent):void {
-		//TODO busyチェック
 		//イベント情報取得
 		let key = evt.keyCode;
 		let ch = evt.charCode;
@@ -386,7 +397,6 @@ public constructor(selector:string) {
 	}
 
 	private processKeyUp(evt:KeyboardEvent):void {
-		//TODO busyチェック
 		//イベント情報取得
 		let key = evt.keyCode;
 		let ch = evt.charCode;
@@ -432,6 +442,12 @@ public constructor(selector:string) {
 	}
 
 	private processMouseMove(evt:MouseEvent):void {
+		//busyチェック
+		if (this._busy) {
+			Logs.warn("BUSY");
+			this.postProcessEvent(evt, UiResult.CONSUMED);
+			return;
+		}
 		let x = evt.clientX;
 		let y = evt.clientY;
 		let mod = this.getMouseModifier(evt);
@@ -454,6 +470,12 @@ public constructor(selector:string) {
 	}
 
 	private processMouseDown(evt:MouseEvent):void {
+		//busyチェック
+		if (this._busy) {
+			Logs.warn("BUSY");
+			this.postProcessEvent(evt, UiResult.CONSUMED);
+			return;
+		}
 		let x = evt.clientX;
 		let y = evt.clientY;
 		let mod = this.getMouseModifier(evt);

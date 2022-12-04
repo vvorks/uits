@@ -618,7 +618,6 @@ export class UiNode {
 		if (dx != 0 || dy != 0) {
 			this.scrollLeft = `${s.left + dx}px`;
 			this.scrollTop = `${s.top + dy}px`;
-			Logs.dump(this);
 			result |= UiResult.AFFECTED;
 		}
 		return result;

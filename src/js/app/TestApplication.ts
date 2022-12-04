@@ -25,7 +25,7 @@ const CLICKING_STYLE:UiStyle = new UiStyleBuilder()
 const GROUP_STYLE:UiStyle = new UiStyleBuilder()
 	.backgroundColor(Colors.GREEN)
 	.borderSize("0px")
-	.build();	
+	.build();
 
 export class TestApplication extends UiApplication {
 
@@ -38,16 +38,14 @@ export class TestApplication extends UiApplication {
 		let page:UiPageNode = new UiPageNode(this);
 		let b = new UiNodeBuilder(page, "1rem");
 		b.inset(1).style(GROUP_STYLE);
-		for (let i = 0; i < 100; i++) {
-			b.enter(new UiNode(this));
-			b.lw(1, 10).th(i * 3 + 1, 2).style(DEFAULT_STYLE);
-			b.focusable(true);
-			b.content(`ITEM[${i}]`);
-			b.leave();
-			b.enter(new UiNode(this));
-			b.lr(12, 1).th(i * 3 + 1, 2).style(DEFAULT_STYLE);
-			b.focusable(true);
-			b.leave();
+		for (let row = 0; row < 100; row++) {
+			for (let col = 0; col < 100; col++) {
+				b.enter(new UiNode(this));
+				b.th(row * 3 + 1, 2).lw(col * 16 + 1, 14).style(DEFAULT_STYLE);
+				b.focusable(true);
+				b.content(`ITEM[${row},${col}]`);
+				b.leave();
+			}
 		}
 		return page;
 	}
