@@ -18,6 +18,8 @@ enum PageType {
 	TOAST,
 }
 
+type Runnable = ()=>void;
+
 class LivePage {
 
 	private _pageNode:UiPageNode;
@@ -150,6 +152,8 @@ export class UiApplication {
 
 	private _busy:boolean = false;
 
+	private _finallyTasks: Runnable[];
+
 public constructor(selector:string) {
 		this._selector = selector;
 		this._rootElement = null;
@@ -159,6 +163,7 @@ public constructor(selector:string) {
 		this._captureNode = null;
 		this._clientWidth = 0;
 		this._clientHeight = 0;
+		this._finallyTasks = [];
 		window.onload = (evt:Event) => {this.onLoad(evt)};
 	}
 
@@ -240,15 +245,21 @@ public constructor(selector:string) {
 		return !e.deleted && e.visible && e.enable && e.focusable;
 	}
 
+	protected isFocusableFirst(e:UiNode):boolean {
+		return this.isFocusable(e) && e.getBlockerNode() == null;
+	}
+
 	public call(pageNode:UiPageNode):void {
 		let page = new LivePage(pageNode);
 		this._pageStack.push(page);
 		this.rootNode.appendChild(pageNode);
 		pageNode.onMount();
 		if (page.focusNode == null) {
-			let list = pageNode.getDescendantsIf(this.isFocusable, [], 1);
+			let list = pageNode.getDescendantsIf((e)=>this.isFocusableFirst(e), [], 1);
 			if (list.length > 0) {
 				page.focus(list[0], UiAxis.XY);
+			} else {
+				Logs.warn("FOCUS NOTHING");
 			}
 		}
 	}
@@ -316,121 +327,143 @@ public constructor(selector:string) {
 
 	}
 
-	private processKeyDown(evt:KeyboardEvent):void {
-		//busyチェック
-		if (this._busy) {
-			Logs.warn("BUSY");
-			this.postProcessEvent(evt, UiResult.CONSUMED);
-			return;
+	public runFinally(task:Runnable):void {
+		this._finallyTasks.push(task);
+	}
+
+	protected flushFinally():void {
+		while (this._finallyTasks.length > 0) {
+			(this._finallyTasks.shift() as Runnable)();
 		}
-		//イベント情報取得
-		let key = evt.keyCode;
-		let ch = evt.charCode;
-		let mod = this.getKeyModifier(evt);
-		let at = evt.timeStamp;
-		Logs.info("keyDown key=0x%x ch=0x%x mod=0x%x", key, ch, mod);
-		//UINodeへのキーディスパッチ
-		let result:UiResult = UiResult.IGNORED;
-		let depth = this._pageStack.length;
-		let target = this.getFocus();
-		for (let i = depth - 1; i >= 0; i--) {
-			let page = this._pageStack[i];
-			let node:UiNode|null = page.focusOrPage;
-			while (node != null) {
-				result = node.onKeyDown(target, key, ch, mod, at);
-				if (result & UiResult.CONSUMED) {
+	}
+
+	private processKeyDown(evt:KeyboardEvent):void {
+		try {
+			//busyチェック
+			if (this._busy) {
+				Logs.warn("BUSY");
+				this.postProcessEvent(evt, UiResult.CONSUMED);
+				return;
+			}
+			//イベント情報取得
+			let key = evt.keyCode;
+			let ch = evt.charCode;
+			let mod = this.getKeyModifier(evt);
+			let at = evt.timeStamp;
+			Logs.info("keyDown key=0x%x ch=0x%x mod=0x%x", key, ch, mod);
+			//UINodeへのキーディスパッチ
+			let result:UiResult = UiResult.IGNORED;
+			let depth = this._pageStack.length;
+			let target = this.getFocus();
+			for (let i = depth - 1; i >= 0; i--) {
+				let page = this._pageStack[i];
+				let node:UiNode|null = page.focusOrPage;
+				while (node != null) {
+					result = node.onKeyDown(target, key, ch, mod, at);
+					if (result & UiResult.CONSUMED) {
+						break;
+					}
+					node = node.parent;
+				}
+				if ((result & UiResult.CONSUMED) || !page.isToast()) {
 					break;
 				}
-				node = node.parent;
 			}
-			if ((result & UiResult.CONSUMED) || !page.isToast()) {
-				break;
+			//UiApplicationのデフォルト処理呼び出し
+			if (!(result & UiResult.CONSUMED)) {
+				//UiNode側の処理でフォーカスが変化している場合があるので、再取得
+				target = this.getFocus();
+				if (target != null) {
+					result = this.onKeyDown(target, key, ch, mod, at);
+				}
 			}
+			//後処理
+			this.postProcessEvent(evt, result);
+		} finally {
+			this.flushFinally();
 		}
-		//UiApplicationのデフォルト処理呼び出し
-		if (!(result & UiResult.CONSUMED)) {
-			//UiNode側の処理でフォーカスが変化している場合があるので、再取得
-			target = this.getFocus();
-			if (target != null) {
-				result = this.onKeyDown(target, key, ch, mod, at);
-			}
-		}
-		//後処理
-		this.postProcessEvent(evt, result);
 	}
 
 	private processKeyPress(evt:KeyboardEvent):void {
-		//イベント情報取得
-		let key = evt.keyCode;
-		let ch = evt.charCode;
-		let mod = this.getKeyModifier(evt);
-		let at = evt.timeStamp;
-		Logs.info("keyPress key=0x%x ch=0x%x mod=0x%x", key, ch, mod);
-		//UINodeへのキーディスパッチ
-		let result:UiResult = UiResult.IGNORED;
-		let depth = this._pageStack.length;
-		let target = this.getFocus();
-		for (let i = depth - 1; i >= 0; i--) {
-			let page = this._pageStack[i];
-			let node:UiNode|null = page.focusOrPage;
-			while (node != null) {
-				result = node.onKeyPress(target, key, ch, mod, at);
-				if (result & UiResult.CONSUMED) {
+		try {
+			//イベント情報取得
+			let key = evt.keyCode;
+			let ch = evt.charCode;
+			let mod = this.getKeyModifier(evt);
+			let at = evt.timeStamp;
+			Logs.info("keyPress key=0x%x ch=0x%x mod=0x%x", key, ch, mod);
+			//UINodeへのキーディスパッチ
+			let result:UiResult = UiResult.IGNORED;
+			let depth = this._pageStack.length;
+			let target = this.getFocus();
+			for (let i = depth - 1; i >= 0; i--) {
+				let page = this._pageStack[i];
+				let node:UiNode|null = page.focusOrPage;
+				while (node != null) {
+					result = node.onKeyPress(target, key, ch, mod, at);
+					if (result & UiResult.CONSUMED) {
+						break;
+					}
+					node = node.parent;
+				}
+				if ((result & UiResult.CONSUMED) || !page.isToast()) {
 					break;
 				}
-				node = node.parent;
 			}
-			if ((result & UiResult.CONSUMED) || !page.isToast()) {
-				break;
+			//UiApplicationのデフォルト処理呼び出し
+			if (!(result & UiResult.CONSUMED)) {
+				//UiNode側の処理でフォーカスが変化している場合があるので、再取得
+				target = this.getFocus();
+				if (target != null) {
+					result = this.onKeyPress(target, key, ch, mod, at);
+				}
 			}
+			//後処理
+			this.postProcessEvent(evt, result);
+		} finally {
+			this.flushFinally();
 		}
-		//UiApplicationのデフォルト処理呼び出し
-		if (!(result & UiResult.CONSUMED)) {
-			//UiNode側の処理でフォーカスが変化している場合があるので、再取得
-			target = this.getFocus();
-			if (target != null) {
-				result = this.onKeyPress(target, key, ch, mod, at);
-			}
-		}
-		//後処理
-		this.postProcessEvent(evt, result);
 	}
 
 	private processKeyUp(evt:KeyboardEvent):void {
-		//イベント情報取得
-		let key = evt.keyCode;
-		let ch = evt.charCode;
-		let mod = this.getKeyModifier(evt);
-		let at = evt.timeStamp;
-		Logs.info("keyUp key=0x%x ch=0x%x mod=0x%x", key, ch, mod);
-		//UINodeへのキーディスパッチ
-		let result:UiResult = UiResult.IGNORED;
-		let depth = this._pageStack.length;
-		let target = this.getFocus();
-		for (let i = depth - 1; i >= 0; i--) {
-			let page = this._pageStack[i];
-			let node:UiNode|null = page.focusOrPage;
-			while (node != null) {
-				result = node.onKeyUp(target, key, ch, mod, at);
-				if (result & UiResult.CONSUMED) {
+		try {
+			//イベント情報取得
+			let key = evt.keyCode;
+			let ch = evt.charCode;
+			let mod = this.getKeyModifier(evt);
+			let at = evt.timeStamp;
+			Logs.info("keyUp key=0x%x ch=0x%x mod=0x%x", key, ch, mod);
+			//UINodeへのキーディスパッチ
+			let result:UiResult = UiResult.IGNORED;
+			let depth = this._pageStack.length;
+			let target = this.getFocus();
+			for (let i = depth - 1; i >= 0; i--) {
+				let page = this._pageStack[i];
+				let node:UiNode|null = page.focusOrPage;
+				while (node != null) {
+					result = node.onKeyUp(target, key, ch, mod, at);
+					if (result & UiResult.CONSUMED) {
+						break;
+					}
+					node = node.parent;
+				}
+				if ((result & UiResult.CONSUMED) || !page.isToast()) {
 					break;
 				}
-				node = node.parent;
 			}
-			if ((result & UiResult.CONSUMED) || !page.isToast()) {
-				break;
+			//UiApplicationのデフォルト処理呼び出し
+			if (!(result & UiResult.CONSUMED)) {
+				//UiNode側の処理でフォーカスが変化している場合があるので、再取得
+				target = this.getFocus();
+				if (target != null) {
+					result = this.onKeyUp(target, key, ch, mod, at);
+				}
 			}
+			//後処理
+			this.postProcessEvent(evt, result);
+		} finally {
+			this.flushFinally();
 		}
-		//UiApplicationのデフォルト処理呼び出し
-		if (!(result & UiResult.CONSUMED)) {
-			//UiNode側の処理でフォーカスが変化している場合があるので、再取得
-			target = this.getFocus();
-			if (target != null) {
-				result = this.onKeyUp(target, key, ch, mod, at);
-			}
-		}
-		//後処理
-		this.postProcessEvent(evt, result);
 	}
 
 	private getKeyModifier(evt:KeyboardEvent):number {
@@ -442,149 +475,173 @@ public constructor(selector:string) {
 	}
 
 	private processMouseMove(evt:MouseEvent):void {
-		//busyチェック
-		if (this._busy) {
-			Logs.warn("BUSY");
-			this.postProcessEvent(evt, UiResult.CONSUMED);
-			return;
+		try {
+			//busyチェック
+			if (this._busy) {
+				Logs.warn("BUSY");
+				this.postProcessEvent(evt, UiResult.CONSUMED);
+				return;
+			}
+			let x = evt.clientX;
+			let y = evt.clientY;
+			let mod = this.getMouseModifier(evt);
+			let at = evt.timeStamp;
+			//Logs.info("mouseMove x=%d y=%d mod=0x%x", x, y, mod);
+			let pt:Rect = new Rect().locate(x, y, 1, 1,);
+			let target:UiNode = this.getMouseTarget(pt);
+			let node:UiNode = target;
+			let result = node.onMouseMove(target, pt.x, pt.y, mod, at);
+			while (!(result & UiResult.CONSUMED) && node.parent != null) {
+				node.translate(pt, +1);
+				node = node.parent;
+				result |= node.onMouseMove(target, pt.x, pt.y, mod, at);
+			}
+			if (!(result & UiResult.CONSUMED)) {
+				result |= this.onMouseMove(target, pt.x, pt.y, mod, at);
+			}
+			//後処理
+			this.postProcessEvent(evt, result);
+		} finally {
+			this.flushFinally();
 		}
-		let x = evt.clientX;
-		let y = evt.clientY;
-		let mod = this.getMouseModifier(evt);
-		let at = evt.timeStamp;
-		//Logs.info("mouseMove x=%d y=%d mod=0x%x", x, y, mod);
-		let pt:Rect = new Rect().locate(x, y, 1, 1,);
-		let target:UiNode = this.getMouseTarget(pt);
-		let node:UiNode = target;
-		let result = node.onMouseMove(target, pt.x, pt.y, mod, at);
-		while (!(result & UiResult.CONSUMED) && node.parent != null) {
-			node.translate(pt, +1);
-			node = node.parent;
-			result |= node.onMouseMove(target, pt.x, pt.y, mod, at);
-		}
-		if (!(result & UiResult.CONSUMED)) {
-			result |= this.onMouseMove(target, pt.x, pt.y, mod, at);
-		}
-		//後処理
-		this.postProcessEvent(evt, result);
 	}
 
 	private processMouseDown(evt:MouseEvent):void {
-		//busyチェック
-		if (this._busy) {
-			Logs.warn("BUSY");
-			this.postProcessEvent(evt, UiResult.CONSUMED);
-			return;
+		try {
+			//busyチェック
+			if (this._busy) {
+				Logs.warn("BUSY");
+				this.postProcessEvent(evt, UiResult.CONSUMED);
+				return;
+			}
+			let x = evt.clientX;
+			let y = evt.clientY;
+			let mod = this.getMouseModifier(evt);
+			let at = evt.timeStamp;
+			Logs.info("mouseDown x=%d y=%d mod=0x%x", x, y, mod);
+			let pt:Rect = new Rect().locate(x, y, 1, 1,);
+			let target:UiNode = this.getMouseTarget(pt);
+			let node:UiNode = target;
+			let result = node.onMouseDown(target, pt.x, pt.y, mod, at);
+			while (!(result & UiResult.CONSUMED) && node.parent != null) {
+				node.translate(pt, +1);
+				node = node.parent;
+				result |= node.onMouseDown(target, pt.x, pt.y, mod, at);
+			}
+			if (!(result & UiResult.CONSUMED)) {
+				result |= this.onMouseDown(target, pt.x, pt.y, mod, at);
+			}
+			//後処理
+			this.postProcessEvent(evt, result);
+		} finally {
+			this.flushFinally();
 		}
-		let x = evt.clientX;
-		let y = evt.clientY;
-		let mod = this.getMouseModifier(evt);
-		let at = evt.timeStamp;
-		Logs.info("mouseDown x=%d y=%d mod=0x%x", x, y, mod);
-		let pt:Rect = new Rect().locate(x, y, 1, 1,);
-		let target:UiNode = this.getMouseTarget(pt);
-		let node:UiNode = target;
-		let result = node.onMouseDown(target, pt.x, pt.y, mod, at);
-		while (!(result & UiResult.CONSUMED) && node.parent != null) {
-			node.translate(pt, +1);
-			node = node.parent;
-			result |= node.onMouseDown(target, pt.x, pt.y, mod, at);
-		}
-		if (!(result & UiResult.CONSUMED)) {
-			result |= this.onMouseDown(target, pt.x, pt.y, mod, at);
-		}
-		//後処理
-		this.postProcessEvent(evt, result);
 	}
 
 	private processMouseUp(evt:MouseEvent):void {
-		let x = evt.clientX;
-		let y = evt.clientY;
-		let mod = this.getMouseModifier(evt);
-		let at = evt.timeStamp;
-		Logs.info("mouseUp x=%d y=%d mod=0x%x", x, y, mod);
-		let pt:Rect = new Rect().locate(x, y, 1, 1,);
-		let target:UiNode = this.getMouseTarget(pt);
-		let node:UiNode = target;
-		let result = node.onMouseUp(target, pt.x, pt.y, mod, at);
-		while (!(result & UiResult.CONSUMED) && node.parent != null) {
-			node.translate(pt, +1);
-			node = node.parent;
-			result |= node.onMouseUp(target, pt.x, pt.y, mod, at);
+		try {
+			let x = evt.clientX;
+			let y = evt.clientY;
+			let mod = this.getMouseModifier(evt);
+			let at = evt.timeStamp;
+			Logs.info("mouseUp x=%d y=%d mod=0x%x", x, y, mod);
+			let pt:Rect = new Rect().locate(x, y, 1, 1,);
+			let target:UiNode = this.getMouseTarget(pt);
+			let node:UiNode = target;
+			let result = node.onMouseUp(target, pt.x, pt.y, mod, at);
+			while (!(result & UiResult.CONSUMED) && node.parent != null) {
+				node.translate(pt, +1);
+				node = node.parent;
+				result |= node.onMouseUp(target, pt.x, pt.y, mod, at);
+			}
+			if (!(result & UiResult.CONSUMED)) {
+				result |= this.onMouseUp(target, pt.x, pt.y, mod, at);
+			}
+			//後処理
+			this.postProcessEvent(evt, result);
+		} finally {
+			this.flushFinally();
 		}
-		if (!(result & UiResult.CONSUMED)) {
-			result |= this.onMouseUp(target, pt.x, pt.y, mod, at);
-		}
-		//後処理
-		this.postProcessEvent(evt, result);
 	}
 
 	private processMouseClick(evt:MouseEvent):void {
-		let x = evt.clientX;
-		let y = evt.clientY;
-		let mod = this.getMouseModifier(evt);
-		let at = evt.timeStamp;
-		Logs.info("mouseClick x=%d y=%d mod=0x%x", x, y, mod);
-		let pt:Rect = new Rect().locate(x, y, 1, 1,);
-		let target:UiNode = this.getMouseTarget(pt);
-		let node:UiNode = target;
-		let result = node.onMouseClick(target, pt.x, pt.y, mod, at);
-		while (!(result & UiResult.CONSUMED) && node.parent != null) {
-			node.translate(pt, +1);
-			node = node.parent;
-			result |= node.onMouseClick(target, pt.x, pt.y, mod, at);
+		try {
+			let x = evt.clientX;
+			let y = evt.clientY;
+			let mod = this.getMouseModifier(evt);
+			let at = evt.timeStamp;
+			Logs.info("mouseClick x=%d y=%d mod=0x%x", x, y, mod);
+			let pt:Rect = new Rect().locate(x, y, 1, 1,);
+			let target:UiNode = this.getMouseTarget(pt);
+			let node:UiNode = target;
+			let result = node.onMouseClick(target, pt.x, pt.y, mod, at);
+			while (!(result & UiResult.CONSUMED) && node.parent != null) {
+				node.translate(pt, +1);
+				node = node.parent;
+				result |= node.onMouseClick(target, pt.x, pt.y, mod, at);
+			}
+			if (!(result & UiResult.CONSUMED)) {
+				result |= this.onMouseClick(target, pt.x, pt.y, mod, at);
+			}
+			//後処理
+			this.postProcessEvent(evt, result);
+		} finally {
+			this.flushFinally();
 		}
-		if (!(result & UiResult.CONSUMED)) {
-			result |= this.onMouseClick(target, pt.x, pt.y, mod, at);
-		}
-		//後処理
-		this.postProcessEvent(evt, result);
 	}
 
 	private processMouseDoubleClick(evt:MouseEvent):void {
-		let x = evt.clientX;
-		let y = evt.clientY;
-		let mod = this.getMouseModifier(evt);
-		let at = evt.timeStamp;
-		Logs.info("mouseClick x=%d y=%d mod=0x%x", x, y, mod);
-		let pt:Rect = new Rect().locate(x, y, 1, 1,);
-		let target:UiNode = this.getMouseTarget(pt);
-		let node:UiNode = target;
-		let result = node.onMouseDoubleClick(target, pt.x, pt.y, mod, at);
-		while (!(result & UiResult.CONSUMED) && node.parent != null) {
-			node.translate(pt, +1);
-			node = node.parent;
-			result |= node.onMouseDoubleClick(target, pt.x, pt.y, mod, at);
+		try {
+			let x = evt.clientX;
+			let y = evt.clientY;
+			let mod = this.getMouseModifier(evt);
+			let at = evt.timeStamp;
+			Logs.info("mouseDoubleClick x=%d y=%d mod=0x%x", x, y, mod);
+			let pt:Rect = new Rect().locate(x, y, 1, 1,);
+			let target:UiNode = this.getMouseTarget(pt);
+			let node:UiNode = target;
+			let result = node.onMouseDoubleClick(target, pt.x, pt.y, mod, at);
+			while (!(result & UiResult.CONSUMED) && node.parent != null) {
+				node.translate(pt, +1);
+				node = node.parent;
+				result |= node.onMouseDoubleClick(target, pt.x, pt.y, mod, at);
+			}
+			if (!(result & UiResult.CONSUMED)) {
+				result |= this.onMouseDoubleClick(target, pt.x, pt.y, mod, at);
+			}
+			//後処理
+			this.postProcessEvent(evt, result);
+		} finally {
+			this.flushFinally();
 		}
-		if (!(result & UiResult.CONSUMED)) {
-			result |= this.onMouseDoubleClick(target, pt.x, pt.y, mod, at);
-		}
-		//後処理
-		this.postProcessEvent(evt, result);
 	}
 
 	private processMouseWheel(evt:WheelEvent):void {
-		let x = evt.clientX;
-		let y = evt.clientY;
-		let dx = 0;
-		let dy = evt.deltaY; //TODO MULTIPLY WHEEL_SCALE
-		let mod = this.getMouseModifier(evt);
-		let at = evt.timeStamp;
-		Logs.info("mouseWheel x=%d y=%d dx=%d dy=%d mod=0x%x", x, y, dx, dy, mod);
-		let pt:Rect = new Rect().locate(x, y, 1, 1,);
-		let target:UiNode = this.getMouseTarget(pt);
-		let node:UiNode = target;
-		let result = node.onMouseDoubleClick(target, pt.x, pt.y, mod, at);
-		while (!(result & UiResult.CONSUMED) && node.parent != null) {
-			node.translate(pt, +1);
-			node = node.parent;
-			result |= node.onMouseDoubleClick(target, pt.x, pt.y, mod, at);
+		try {
+			let x = evt.clientX;
+			let y = evt.clientY;
+			let dx = 0;
+			let dy = evt.deltaY; //TODO MULTIPLY WHEEL_SCALE
+			let mod = this.getMouseModifier(evt);
+			let at = evt.timeStamp;
+			Logs.info("mouseWheel x=%d y=%d dx=%d dy=%d mod=0x%x", x, y, dx, dy, mod);
+			let pt:Rect = new Rect().locate(x, y, 1, 1,);
+			let target:UiNode = this.getMouseTarget(pt);
+			let node:UiNode = target;
+			let result = node.onMouseDoubleClick(target, pt.x, pt.y, mod, at);
+			while (!(result & UiResult.CONSUMED) && node.parent != null) {
+				node.translate(pt, +1);
+				node = node.parent;
+				result |= node.onMouseDoubleClick(target, pt.x, pt.y, mod, at);
+			}
+			if (!(result & UiResult.CONSUMED)) {
+				result |= this.onMouseDoubleClick(target, pt.x, pt.y, mod, at);
+			}
+			//後処理
+			this.postProcessEvent(evt, result);
+		} finally {
+			this.flushFinally();
 		}
-		if (!(result & UiResult.CONSUMED)) {
-			result |= this.onMouseDoubleClick(target, pt.x, pt.y, mod, at);
-		}
-		//後処理
-		this.postProcessEvent(evt, result);
 	}
 
 	private getMouseModifier(evt:MouseEvent):number {
@@ -626,27 +683,35 @@ public constructor(selector:string) {
 	}
 
 	private processResize(evt:UIEvent):void {
-		Logs.info("resize");
+		try {
+			Logs.info("TODO resize");
+		} finally {
+			this.flushFinally();
+		}
 	}
 
 	private processHashChange():void {
-		let hash = decodeURIComponent(window.location.hash);
-		let index = hash.indexOf(':');
-		let tag;
-		let args:Properties<string>;
-		if (hash == "") {
-			tag = "";
-			args = {};
-		} else if (index == -1) {
-			tag = hash;
-			args = {};
-		} else {
-			tag = hash.substring(0, index);
-			args = this.decodeArguments(hash.substring(index + 1));
-		}
-		let result = this.transit(tag, args);
-		if (result & UiResult.AFFECTED) {
-			this.sync();
+		try {
+			let hash = decodeURIComponent(window.location.hash);
+			let index = hash.indexOf(':');
+			let tag;
+			let args:Properties<string>;
+			if (hash == "") {
+				tag = "";
+				args = {};
+			} else if (index == -1) {
+				tag = hash;
+				args = {};
+			} else {
+				tag = hash.substring(0, index);
+				args = this.decodeArguments(hash.substring(index + 1));
+			}
+			let result = this.transit(tag, args);
+			if (result & UiResult.AFFECTED) {
+				this.sync();
+			}
+		} finally {
+			this.flushFinally();
 		}
 	}
 

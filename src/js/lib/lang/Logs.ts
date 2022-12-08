@@ -61,7 +61,7 @@ export class Logs {
 	}
 
 	public static debug(format:string, ...args: any[]):void {
-		console.debug(Logs.message("D", format, args));
+		console.log(Logs.message("D", format, args));
 	}
 
 	public static verbose(format:string, ...args: any[]):void {

@@ -4,8 +4,14 @@ export { Rect };
 import { UiNode } from "./ui/UiNode";
 export { UiNode };
 
+import { UiNodeBuilder } from "./ui/UiNodeBuilder";
+export { UiNodeBuilder }
+
 import { UiPageNode } from "./ui/UiPageNode";
 export { UiPageNode };
+
+import { UiListNode } from "./ui/UiListNode";
+export { UiListNode }
 
 import { UiApplication } from "./ui/UiApplication";
 export { UiApplication };

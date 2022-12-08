@@ -15,12 +15,17 @@ export class UiPageNode extends UiNode {
 		return this;
 	}
 
+	public onMount():void {
+		super.onMount();
+		this.setChanged(Changed.STYLE, true);
+	}
+
 	protected syncStyle():void {
 		if (!this.isChanged(Changed.STYLE)) {
 			return;
 		}
 		let sb = "";
-		let prefix = this.className + this._id + "_";
+		let prefix = this.className + this.id + "_";
 		let styles:UiStyle[] = Array.from(this.collectStyle(prefix, new Set<UiStyle>()));
 		sb = "";
 		for (let s of styles) {
@@ -36,7 +41,7 @@ export class UiPageNode extends UiNode {
 	}
 
 	protected clearStyle():void {
-		let prefix = this.className + this._id + "_";
+		let prefix = this.className + this.id + "_";
 		let nodeId = prefix + "style";
 		let node = document.getElementById(nodeId);
 		if (node != null && node.parentElement != null) {

@@ -1,13 +1,13 @@
 import {Rect} from "./Rect";
 import {CssLength} from "./CssLength"
 import { UiStyle } from "./UiStyle"
-import { Asserts, Clonable } from "../lang";
+import { Asserts, Clonable, Logs } from "../lang";
 import type { UiApplication } from "./UiApplication";
 
  /**
  * UiNodeのフラグ定義
  */
- export enum Flags {
+enum Flags {
 
 	/** フォーカス可能フラグ */
 	FOCUSABLE		= 0x00000001,
@@ -33,11 +33,8 @@ import type { UiApplication } from "./UiApplication";
 	/** DOM接続済みフラグ */
 	BINDED			= 0x00000080,
 
-	/** 予約領域(下位１６ビットの未使用分) */
-	RESERVED		= 0x0000FF00,
-
-	/** ノード固有のフラグ領域(上位１６ビット) */
-	CUSTOM			= 0xFFFF0000,
+	/** 予約領域 */
+	RESERVED		= 0xFFFFFF00,
 
 	/** 初期フラグ値 */
 	INITIAL			= ENABLE|VISIBLE,
@@ -84,53 +81,53 @@ export enum UiResult {
  */
 export class UiNode implements Clonable<UiNode> {
 
-	protected _application:UiApplication;
+	private _application:UiApplication;
 
-	protected _id:number;
+	private _id:number;
 
-	protected _name:string;
+	private _name:string;
 
-	protected _content:string;
+	private _content:string;
 
-	protected _left:CssLength|null;
+	private _left:CssLength|null;
 
-	protected _top:CssLength|null;
+	private _top:CssLength|null;
 
-	protected _right:CssLength|null;
+	private _right:CssLength|null;
 
-	protected _bottom:CssLength|null;
+	private _bottom:CssLength|null;
 
-	protected _width:CssLength|null;
+	private _width:CssLength|null;
 
-	protected _height:CssLength|null;
+	private _height:CssLength|null;
 
-	protected _scrollLeft:CssLength|null;
+	private _scrollLeft:CssLength|null;
 
-	protected _scrollTop:CssLength|null;
+	private _scrollTop:CssLength|null;
 
-	protected _scrollWidth:CssLength|null;
+	private _scrollWidth:CssLength|null;
 
-	protected _scrollHeight:CssLength|null;
+	private _scrollHeight:CssLength|null;
 
-	protected _style:UiStyle;
+	private _style:UiStyle;
 
-	protected _stylePrefix:string;
+	private _stylePrefix:string;
 
-	protected _styleClassName:string;
+	private _styleClassName:string;
 
-	protected _rect:Rect|null;
+	private _rect:Rect|null;
 
-	protected _parent:UiNode|null;
+	private _parent:UiNode|null;
 
 	protected _children:UiNode[];
 
-	protected _flags: Flags;
+	private _flags: Flags;
 
-	protected _changed: Changed;
+	private _changed: Changed;
 
 	protected _domElement: HTMLElement|null;
 
-	protected _endElement: HTMLElement|null;
+	private _endElement: HTMLElement|null;
 
 	private static _counter:number = 0;
 
@@ -174,8 +171,8 @@ export class UiNode implements Clonable<UiNode> {
 			for (let c of src._children) {
 				this.appendChild(c.clone());
 			}
-			this._flags = Flags.INITIAL;
-			this._changed = Changed.ALL;
+			this._flags = src._flags;
+			this._changed = src._changed;
 			this._domElement = null;
 			this._endElement = null;
 		} else {
@@ -417,8 +414,25 @@ export class UiNode implements Clonable<UiNode> {
 		this.onScrollChanged();
 	}
 
+	public adoptChildren(other:UiNode):void {
+		if (this._children.length == 0) {
+			let temp = this._children;
+			this._children = other._children;
+			other._children = temp;
+			for (let c of this._children) {
+				c._parent = this;
+			}
+			this.onScrollChanged();
+			other.onScrollChanged();
+		} else {
+			for (let c of other._children) {
+				this.appendChild(c);
+			}
+		}
+	}
+
 	public getPageNode():UiNode|null {
-		return (this.parent as UiNode).getPageNode()
+		return this.parent == null ? null : this.parent.getPageNode();
 	}
 
 	protected onHierarchyChanged():void {
@@ -664,6 +678,16 @@ export class UiNode implements Clonable<UiNode> {
 		return result;
 	}
 
+	public get mounted():boolean {
+		return this.getFlag(Flags.MOUNTED);
+	}
+
+	public set mounted(on:boolean) {
+		if (this.setFlag(Flags.MOUNTED, on)) {
+			this.setChanged(Changed.ALL, true);
+		}
+	}
+
 	public get visible():boolean {
 		return this.getFlag(Flags.VISIBLE);
 	}
@@ -720,12 +744,12 @@ export class UiNode implements Clonable<UiNode> {
 		this.setFlag(Flags.EDITABLE, on);
 	}
 
-	public hasFocus():boolean {
-		let focusNode = this.application.getFocus();
-		if (focusNode == null) {
-			return false;
-		}
-		return this == focusNode || this.isAncestorOf(focusNode);
+	protected get binded():boolean {
+		return this.getFlag(Flags.BINDED);
+	}
+
+	protected set binded(on:boolean) {
+		this.setFlag(Flags.BINDED, on);
 	}
 
 	protected getFlag(bit:Flags):boolean {
@@ -742,7 +766,6 @@ export class UiNode implements Clonable<UiNode> {
 			}
 		}
 		return changed;
-
 	}
 
 	protected isChanged(bit:Changed):boolean {
@@ -757,18 +780,26 @@ export class UiNode implements Clonable<UiNode> {
 		}
 	}
 
+	public hasFocus():boolean {
+		let focusNode = this.application.getFocus();
+		if (focusNode == null) {
+			return false;
+		}
+		return this == focusNode || this.isAncestorOf(focusNode);
+	}
+
 	public onMount():void {
-		this.setFlag(Flags.MOUNTED, true);
 		for (let c of this._children) {
 			c.onMount();
 		}
+		this.mounted = true;
 	}
 
 	public onUnmount():void {
+		this.mounted = false;
 		for (let c of this._children) {
 			c.onUnmount();
 		}
-		this.setFlag(Flags.MOUNTED, false);
 	}
 
 	public isAncestorOf(other:UiNode):boolean {
@@ -797,7 +828,7 @@ export class UiNode implements Clonable<UiNode> {
 			}
 		}
 		for (let c of this._children) {
-			c.getDescendantsIf(filter, list);
+			c.getDescendantsIf(filter, list, limit);
 			if (list.length >= limit) {
 				break;
 			}
@@ -809,7 +840,7 @@ export class UiNode implements Clonable<UiNode> {
 		let anc:UiNode|null = this.parent;
 		let r:Rect = new Rect(this.getRect());
 		while (anc != null && anc.getViewRect().contains(r)) {
-			anc.translate(r, -1);
+			anc.translate(r, +1);
 			anc = anc.parent;
 		}
 		return anc;
@@ -919,16 +950,16 @@ export class UiNode implements Clonable<UiNode> {
 	}
 
 	protected ensureDomElement():HTMLElement|null {
-		if (!this.getFlag(Flags.BINDED)) {
-			this._domElement = this.createDomElement("div");
+		if (!this.binded) {
+			this._domElement = this.createDomElement(this, "div");
 			this._domElement.id = "" + this._id;
-			this.setFlag(Flags.BINDED, true);
+			this.binded = true;
 		}
 		return this._domElement;
 	}
 
-	protected createDomElement(tag:string):HTMLElement {
-		return (this.parent as UiNode).createDomElement(tag);
+	protected createDomElement(target:UiNode, tag:string):HTMLElement {
+		return (this.parent as UiNode).createDomElement(target, tag);
 	}
 
 	protected syncStyle():void {
@@ -1050,6 +1081,14 @@ export class UiNode implements Clonable<UiNode> {
 		}
 		dom.scrollLeft = scrollLeft;
 		dom.scrollTop = scrollTop;
+		if (dom.scrollLeft != scrollLeft || dom.scrollTop != scrollTop) {
+			//要素作成直後（でおそらく未Reflow）の場合、scrollLeft,scrolllTopが設定できない。
+			//致し方ないので遅延実行でリトライする
+			this.application.runFinally(()=>{
+				dom.scrollLeft = scrollLeft;
+				dom.scrollTop = scrollTop;
+			});
+		}
 	}
 
 	protected syncContent():void {

@@ -1,5 +1,5 @@
 import { Rect } from "./Rect";
-import { Changed, Flags, UiNode } from "./UiNode";
+import { Changed, UiNode } from "./UiNode";
 
 export class UiRootNode extends UiNode {
 
@@ -29,16 +29,8 @@ export class UiRootNode extends UiNode {
 		return this.application.clientHeight;
 	}
 
-	protected ensureDomElement():HTMLElement|null {
-		if (!this.getFlag(Flags.BINDED)) {
-			this._domElement = this._application.rootElement;
-			this.setFlag(Flags.BINDED, true);
-		}
-		return this._domElement;
-	}
-
-	protected createDomElement(tag:string):HTMLElement {
-		return document.createElement(tag);
+	protected createDomElement(target:UiNode, tag:string):HTMLElement {
+		return target == this ? this.application.rootElement : document.createElement(tag);
 	}
 
 	protected getWrappedRect():Rect {

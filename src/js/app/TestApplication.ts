@@ -1,6 +1,9 @@
-import { Properties, Types } from "../lib/lang";
-import { Colors, UiApplication, UiNode, UiPageNode, UiStyle, UiStyleBuilder } from "../lib/ui";
-import { UiNodeBuilder } from "../lib/ui/UiNodeBuilder";
+import { Properties } from "../lib/lang";
+import {
+	Colors, UiApplication,
+	UiNode, UiPageNode, UiListNode, UiNodeBuilder,
+	UiStyle, UiStyleBuilder
+} from "../lib/ui";
 
 const DEFAULT_STYLE:UiStyle = new UiStyleBuilder()
 	.textColor(Colors.BLACK)
@@ -27,14 +30,43 @@ const GROUP_STYLE:UiStyle = new UiStyleBuilder()
 	.borderSize("0px")
 	.build();
 
-export class TestApplication extends UiApplication {
+const LIST_STYLE:UiStyle = new UiStyleBuilder()
+	.backgroundColor(Colors.SILVER)
+	.borderSize("0px")
+	.build();
+
+	export class TestApplication extends UiApplication {
 
 	protected initialize():void {
-		this.addPageFactory("#foo", (args) => this.createFoo(args));
-		this.addPageFactory("#bar", (args) => this.createBar(args));
+		this.addPageFactory("", (args) => this.createList(args));
+		this.addPageFactory("#grid", (args) => this.createGrid(args));
 	}
 
-	public createFoo(args:Properties<string>):UiPageNode {
+	public createList(args:Properties<string>):UiPageNode {
+		let page:UiPageNode = new UiPageNode(this);
+		let b = new UiNodeBuilder(page, "1rem");
+		b.inset(1).style(GROUP_STYLE);
+		{
+			b.enter(new UiListNode(this));
+			b.inset(1).style(LIST_STYLE);
+			{
+				b.enter(new UiNode(this)).th(1, 4).lw( 1, 10)
+						.style(DEFAULT_STYLE).focusable(true).leave();
+				b.enter(new UiNode(this)).th(1, 2).lw(11, 10)
+						.style(DEFAULT_STYLE).focusable(true).leave();
+				b.enter(new UiNode(this)).th(3, 2).lw(11, 10)
+						.style(DEFAULT_STYLE).focusable(true).leave();
+				b.enter(new UiNode(this)).th(1, 2).lr(21,  1)
+						.style(DEFAULT_STYLE).focusable(true).leave();
+				b.enter(new UiNode(this)).th(3, 2).lr(21,  1)
+						.style(DEFAULT_STYLE).focusable(true).leave();
+			}
+			b.leave();
+		}
+		return page;
+	}
+
+	public createGrid(args:Properties<string>):UiPageNode {
 		let page:UiPageNode = new UiPageNode(this);
 		let b = new UiNodeBuilder(page, "1rem");
 		b.inset(1).style(GROUP_STYLE);
@@ -46,26 +78,6 @@ export class TestApplication extends UiApplication {
 				b.content(`ITEM[${row},${col}]`);
 				b.leave();
 			}
-		}
-		return page;
-	}
-
-	public createBar(args:Properties<string>):UiPageNode {
-		let page:UiPageNode = new UiPageNode(this);
-		let value = args["name"];
-		let name = Types.isUndefined(value) ? "" : value;
-		let b = new UiNodeBuilder(page, "1rem");
-		b.inset(1).style(GROUP_STYLE);
-		for (let i = 0; i < 10; i++) {
-			b.enter(new UiNode(this));
-			b.rw(1, 10).th(i * 3 + 1, 2).style(DEFAULT_STYLE);
-			b.focusable(true);
-			b.content(`${name}[${i}]`);
-			b.leave();
-			b.enter(new UiNode(this));
-			b.lr(1, 12).th(i * 3 + 1, 2).style(DEFAULT_STYLE);
-			b.focusable(true);
-			b.leave();
 		}
 		return page;
 	}
