@@ -13,6 +13,9 @@ export { UiPageNode };
 import { UiListNode } from "./ui/UiListNode";
 export { UiListNode }
 
+import { UiTextNode } from "./ui/UiTextNode"
+export { UiTextNode };
+
 import { UiApplication } from "./ui/UiApplication";
 export { UiApplication };
 
@@ -27,6 +30,9 @@ export type Color = RawColor;
 
 import { UiStyle, UiStyleBuilder } from "./ui/UiStyle"
 export { UiStyle, UiStyleBuilder }
+
+import { DataSource, DataRecord } from "./ui/DataSource"
+export { DataSource, DataRecord }
 
 import { UiStyleCondition as RawUiStyleCondition } from "./ui/UiStyle";
 export type UiStyleCondition = RawUiStyleCondition;

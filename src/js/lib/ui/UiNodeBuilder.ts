@@ -1,5 +1,6 @@
-import { Types } from "../lang";
+import { Types, Value } from "../lang";
 import { CssLength } from "./CssLength";
+import { UiListNode } from "./UiListNode";
 import { UiNode } from "./UiNode";
 import { UiStyle } from "./UiStyle";
 
@@ -109,8 +110,20 @@ export class UiNodeBuilder {
 		return this;
 	}
 
-	public content(text:string):UiNodeBuilder {
-		this._node.content = text;
+	public content(value:Value):UiNodeBuilder {
+		this._node.content = value;
+		return this;
+	}
+
+	public dataSource(name:string):UiNodeBuilder {
+		this._node.dataSourceName = name;
+		return this;
+	}
+
+	public loop(value:boolean):UiNodeBuilder {
+		if (this._node instanceof UiListNode) {
+			(this._node as UiListNode).loop = value;
+		}
 		return this;
 	}
 

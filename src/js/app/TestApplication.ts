@@ -1,9 +1,12 @@
 import { Properties } from "../lib/lang";
 import {
 	Colors, UiApplication,
-	UiNode, UiPageNode, UiListNode, UiNodeBuilder,
-	UiStyle, UiStyleBuilder
+	UiNode, UiPageNode, UiListNode, UiTextNode,
+	UiNodeBuilder,
+	UiStyle, UiStyleBuilder,
+	DataRecord, DataSource
 } from "../lib/ui";
+import { TestDataSource } from "./TestDataSource";
 
 const DEFAULT_STYLE:UiStyle = new UiStyleBuilder()
 	.textColor(Colors.BLACK)
@@ -38,8 +41,15 @@ const LIST_STYLE:UiStyle = new UiStyleBuilder()
 	export class TestApplication extends UiApplication {
 
 	protected initialize():void {
+
 		this.addPageFactory("", (args) => this.createList(args));
 		this.addPageFactory("#grid", (args) => this.createGrid(args));
+
+		let sampleData: DataRecord[] = [];
+		for (let i = 0; i < 40; i++) {
+			sampleData.push({"a": i, "b": i * 2, "c": i * 3, "d": i * 4, "e": i * 5});
+		}
+		this.addDataSource("sample", new TestDataSource(sampleData));
 	}
 
 	public createList(args:Properties<string>):UiPageNode {
@@ -48,21 +58,22 @@ const LIST_STYLE:UiStyle = new UiStyleBuilder()
 		b.inset(1).style(GROUP_STYLE);
 		{
 			b.enter(new UiListNode(this));
-			b.inset(1).style(LIST_STYLE);
+			b.inset(1).style(LIST_STYLE).dataSource("sample").loop(false);
 			{
-				b.enter(new UiNode(this)).th(1, 4).lw( 1, 10)
+				b.enter(new UiTextNode(this, "a")).th(1, 4).lw( 1, 10)
 						.style(DEFAULT_STYLE).focusable(true).leave();
-				b.enter(new UiNode(this)).th(1, 2).lw(11, 10)
+				b.enter(new UiTextNode(this, "b")).th(1, 2).lw(11, 10)
 						.style(DEFAULT_STYLE).focusable(true).leave();
-				b.enter(new UiNode(this)).th(3, 2).lw(11, 10)
+				b.enter(new UiTextNode(this, "c")).th(3, 2).lw(11, 10)
 						.style(DEFAULT_STYLE).focusable(true).leave();
-				b.enter(new UiNode(this)).th(1, 2).lr(21,  1)
+				b.enter(new UiTextNode(this, "d")).th(1, 2).lr(21,  1)
 						.style(DEFAULT_STYLE).focusable(true).leave();
-				b.enter(new UiNode(this)).th(3, 2).lr(21,  1)
+				b.enter(new UiTextNode(this, "e")).th(3, 2).lr(21,  1)
 						.style(DEFAULT_STYLE).focusable(true).leave();
 			}
 			b.leave();
 		}
+		(this.getDataSource("sample") as DataSource).select({});
 		return page;
 	}
 

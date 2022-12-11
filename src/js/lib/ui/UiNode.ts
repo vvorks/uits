@@ -1,13 +1,17 @@
 import {Rect} from "./Rect";
 import {CssLength} from "./CssLength"
 import { UiStyle } from "./UiStyle"
-import { Asserts, Clonable, Logs } from "../lang";
+import { Asserts, Clonable, Logs, Types, Value } from "../lang";
 import type { UiApplication } from "./UiApplication";
+import { DataSource } from "./DataSource";
+import { DataHolder } from "./DataHolder";
 
  /**
- * UiNodeのフラグ定義
+ * UiNodeフラグ定義
+ *
+ * 派生クラス用にEXPORTしている
  */
-enum Flags {
+export enum Flags {
 
 	/** フォーカス可能フラグ */
 	FOCUSABLE		= 0x00000001,
@@ -41,6 +45,11 @@ enum Flags {
 
 }
 
+ /**
+ * UiNode変更フラグ定義
+ *
+ * 派生クラス用にEXPORTしている
+ */
 export enum Changed {
 
 	/** 内容更新フラグ */
@@ -87,7 +96,9 @@ export class UiNode implements Clonable<UiNode> {
 
 	private _name:string;
 
-	private _content:string;
+	private _content:Value;
+
+	private _dataSourceName: string|null;
 
 	private _left:CssLength|null;
 
@@ -152,6 +163,7 @@ export class UiNode implements Clonable<UiNode> {
 			this._id = UiNode.issue();
 			this._name = src._name;
 			this._content = src._content;
+			this._dataSourceName = src._dataSourceName;
 			this._left = src._left;
 			this._top = src._top;
 			this._right = src._right;
@@ -180,7 +192,8 @@ export class UiNode implements Clonable<UiNode> {
 			this._application = app;
 			this._id = UiNode.issue();
 			this._name = (name != null ? name : this.className + this._id);
-			this._content = "";
+			this._content = null;
+			this._dataSourceName = "";
 			this._left = null;
 			this._top = null;
 			this._right = null;
@@ -223,19 +236,40 @@ export class UiNode implements Clonable<UiNode> {
 		return this._name;
 	}
 
-	public get content():string {
+	public get content():Value {
 		return this._content;
 	}
 
-	public set content(value:string) {
+	public set content(value:Value) {
 		if (this._content != value) {
 			this._content = value;
 			this.onContentChanged();
 		}
 	}
 
+	public get contentAsString():string {
+		let value = this._content;
+		if (Types.isString(value)) {
+			return value as string;
+		} else if (Types.isNumber(value)) {
+			return "" + value;
+		} else if (Types.isBoolean(value)) {
+			return (value as boolean) ? "true" : "false";
+		} else {
+			return "";
+		}
+	}
+
 	protected onContentChanged():void {
 		this.setChanged(Changed.CONTENT, true);
+	}
+
+	public get dataSourceName():string|null {
+		return this._dataSourceName;
+	}
+
+	public set dataSourceName(name:string|null) {
+		this._dataSourceName = name;
 	}
 
 	public get left():string|null {
@@ -409,6 +443,16 @@ export class UiNode implements Clonable<UiNode> {
 		if (index < 0) {
 			return;
 		}
+		this._children.splice(index, 1);
+		child.parent = null;
+		this.onScrollChanged();
+	}
+
+	public removeChildAt(index:number):void {
+		if (!(0 <= index && index < this._children.length)) {
+			return;
+		}
+		let child = this._children[index];
 		this._children.splice(index, 1);
 		child.parent = null;
 		this.onScrollChanged();
@@ -694,7 +738,7 @@ export class UiNode implements Clonable<UiNode> {
 
 	public set visible(on:boolean) {
 		if (this.setFlag(Flags.VISIBLE, on)) {
-			this.setChanged(Changed.DISPLAY, true);
+			this.setChanged(Changed.DISPLAY|Changed.LOCATION, true);
 		}
 	}
 
@@ -820,7 +864,7 @@ export class UiNode implements Clonable<UiNode> {
 		return list;
 	}
 
-	public getDescendantsIf(filter:(e:UiNode)=>boolean, list:UiNode[], limit:number = Number.MAX_SAFE_INTEGER):UiNode[] {
+	public getDescendantsIf(filter:(e:UiNode)=>boolean, limit:number = Number.MAX_SAFE_INTEGER, list:UiNode[] = []):UiNode[] {
 		if (filter(this)) {
 			list.push(this);
 			if (list.length >= limit) {
@@ -828,7 +872,26 @@ export class UiNode implements Clonable<UiNode> {
 			}
 		}
 		for (let c of this._children) {
-			c.getDescendantsIf(filter, list, limit);
+			c.getDescendantsIf(filter, limit, list);
+			if (list.length >= limit) {
+				break;
+			}
+		}
+		return list;
+	}
+
+	public getVisibleDescendantsIf(filter:(e:UiNode)=>boolean, limit:number = Number.MAX_SAFE_INTEGER, list:UiNode[] = []):UiNode[] {
+		if (!this.visible || this.deleted) {
+			return list;
+		}
+		if (filter(this)) {
+			list.push(this);
+			if (list.length >= limit) {
+				return list;
+			}
+		}
+		for (let c of this._children) {
+			c.getVisibleDescendantsIf(filter, limit, list);
 			if (list.length >= limit) {
 				break;
 			}
@@ -932,6 +995,14 @@ export class UiNode implements Clonable<UiNode> {
 		return UiResult.IGNORED;
 	}
 
+	public onDataSourceChanged(tag:string, ds:DataSource):UiResult {
+		return UiResult.IGNORED;
+	}
+
+	public onDataHolderChanged(holder:DataHolder):UiResult {
+		return UiResult.IGNORED;
+	}
+
 	public sync():void {
 		let dom = this.ensureDomElement();
 		if (dom != null) {
@@ -1002,6 +1073,7 @@ export class UiNode implements Clonable<UiNode> {
 		}
 		let dom = this._domElement as HTMLElement;
 		let style = dom.style;
+		style.display = this.visible ? "block" : "none";
 		style.position = "absolute";
 		style.margin = "auto";
 		style.overflow = "hidden";
@@ -1096,7 +1168,7 @@ export class UiNode implements Clonable<UiNode> {
 			return;
 		}
 		let dom = this._domElement as HTMLElement;
-		dom.innerText = this._content;
+		dom.innerText = this.contentAsString;
 		this.setChanged(Changed.CONTENT, false);
 	}
 

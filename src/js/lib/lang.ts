@@ -10,8 +10,10 @@ export {Types};
 import {Logs} from "./lang/Logs";
 export {Logs}
 
+export type Value = string|number|boolean|null;
+
 export interface Properties<T> {
-	[prop: string]: T;
+	[prop: string]: T|undefined;
 }
 
 export interface Clonable<T extends Clonable<T>> {

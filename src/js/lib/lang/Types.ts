@@ -1,5 +1,5 @@
 export class Types {
-	
+
 	public static isUndefined(v:any) {
 		return typeof v === "undefined";
 	}
@@ -18,5 +18,6 @@ export class Types {
 
 	public static isObject(v:any) {
 		return v !== null && typeof v === "object";
-	} 
+	}
+
 }

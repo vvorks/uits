@@ -1,10 +1,11 @@
-import { Asserts, Properties, Logs } from "../lang";
+import { Asserts, Properties, Logs, StateError, ParamError } from "../lang";
 import { Metrics } from "./Metrics";
 import { UiNode, UiResult } from "./UiNode";
 import { UiRootNode } from "./UiRootNode";
 import { UiPageNode } from './UiPageNode';
 import { KeyCodes } from './KeyCodes';
 import { Rect } from "./Rect";
+import { DataSource } from "./DataSource";
 
 export enum UiAxis {
 	NONE = 0,
@@ -130,6 +131,51 @@ class LivePage {
 
 }
 
+class DataSourceEntry {
+
+	private _tag: string;
+
+	private _dataSource: DataSource|null;
+
+	private _attaches: UiNode[];
+
+	public constructor(tag:string) {
+		this._tag = tag;
+		this._dataSource = null;
+		this._attaches = [];
+	}
+
+	public get dataSource():DataSource|null {
+		return this._dataSource;
+	}
+
+	public set dataSource(ds:DataSource|null) {
+		if (this._dataSource != null && ds != null) {
+			throw new StateError("");
+		}
+		this._dataSource = ds;
+	}
+
+	public attach(node:UiNode) {
+		this._attaches.push(node);
+	}
+
+	public detach(node:UiNode) {
+		let index = this._attaches.indexOf(node);
+		if (index >= 0) {
+			this._attaches.splice(index, 1);
+		}
+	}
+	public onDataSourceChanged(): UiResult {
+		let result:UiResult = UiResult.IGNORED;
+		for (let node of this._attaches) {
+			result |= node.onDataSourceChanged(this._tag, this._dataSource as DataSource);
+		}
+		return result;
+	}
+
+}
+
 type PageFactory = (args:Properties<string>) => UiPageNode;
 
 export class UiApplication {
@@ -141,6 +187,8 @@ export class UiApplication {
 	private _rootNode:UiRootNode|null;
 
 	private _pageFactories:Properties<PageFactory>;
+
+	private _dataSources:Properties<DataSourceEntry>;
 
 	private _pageStack: LivePage[];
 
@@ -159,6 +207,7 @@ public constructor(selector:string) {
 		this._rootElement = null;
 		this._rootNode = null;
 		this._pageFactories = {};
+		this._dataSources = {};
 		this._pageStack = [];
 		this._captureNode = null;
 		this._clientWidth = 0;
@@ -210,11 +259,11 @@ public constructor(selector:string) {
 		root.addEventListener("dblclick", (evt) => {this.processMouseDoubleClick(evt)})
 		root.addEventListener("wheel", (evt) => {this.processMouseWheel(evt)})
 		window.addEventListener("resize", (evt) => {this.processResize(evt)});
-		window.addEventListener('hashchange', (evt) => {this.processHashChange()});
+		window.addEventListener('hashchange', (evt) => {this.processHashChanged()});
 		//派生クラス初期化
 		this.initialize();
 		//初回のロード処理
-		this.processHashChange();
+		this.processHashChanged();
 	}
 
 	protected initialize():void {
@@ -226,6 +275,49 @@ public constructor(selector:string) {
 
 	public removePageFactory(tag:string):void {
 		delete this._pageFactories[tag];
+	}
+
+	public addDataSource(tag:string, ds:DataSource):void {
+		let entry = this._dataSources[tag];
+		if (entry === undefined) {
+			entry = new DataSourceEntry(tag);
+			entry.dataSource = ds;
+			this._dataSources[tag] = entry;
+			ds.addApplication(this);
+		}
+	}
+
+	public removeDataSource(tag:string):void {
+		let entry = this._dataSources[tag];
+		if (entry !== undefined) {
+			let ds = entry.dataSource;
+			if (ds == null) {
+				throw new ParamError();
+			}
+			ds.removeAppliation(this);
+			entry.dataSource = null;
+		}
+	}
+
+	public getDataSource(tag:string):DataSource|null {
+		let entry = this._dataSources[tag];
+		return (entry !== undefined) ? entry.dataSource : null;
+	}
+
+	public attachIntoDataSource(tag:string, node:UiNode) {
+		let entry = this._dataSources[tag];
+		if (entry === undefined) {
+			entry = new DataSourceEntry(tag);
+			this._dataSources[tag] = entry;
+		}
+		entry.attach(node);
+	}
+
+	public detachFromDataSource(tag:string, node:UiNode) {
+		let entry = this._dataSources[tag];
+		if (entry !== undefined) {
+			entry.detach(node);
+		}
 	}
 
 	public transit(tag:string, args:Properties<string>):UiResult {
@@ -241,7 +333,7 @@ public constructor(selector:string) {
 		}
 	}
 
-	protected isFocusable(e:UiNode):boolean {
+	public isFocusable(e:UiNode):boolean {
 		return !e.deleted && e.visible && e.enable && e.focusable;
 	}
 
@@ -255,13 +347,23 @@ public constructor(selector:string) {
 		this.rootNode.appendChild(pageNode);
 		pageNode.onMount();
 		if (page.focusNode == null) {
-			let list = pageNode.getDescendantsIf((e)=>this.isFocusableFirst(e), [], 1);
-			if (list.length > 0) {
-				page.focus(list[0], UiAxis.XY);
-			} else {
+			if (!this.resetFocus(pageNode)) {
 				Logs.warn("FOCUS NOTHING");
 			}
 		}
+	}
+
+	public resetFocus(node:UiNode):boolean {
+		let page = this.getLivePageOf(node);
+		if (page == null) {
+			throw new ParamError();
+		}
+		let list = node.getVisibleDescendantsIf((e)=>this.isFocusableFirst(e), 1);
+		let found = (list.length > 0);
+		if (found) {
+			page.focus(list[0], UiAxis.XY);
+		}
+		return found;
 	}
 
 	public back():void {
@@ -335,6 +437,10 @@ public constructor(selector:string) {
 		while (this._finallyTasks.length > 0) {
 			(this._finallyTasks.shift() as Runnable)();
 		}
+	}
+
+	public runAfter(msec:number, task:Runnable):void {
+		setTimeout(task, msec);
 	}
 
 	private processKeyDown(evt:KeyboardEvent):void {
@@ -684,13 +790,16 @@ public constructor(selector:string) {
 
 	private processResize(evt:UIEvent):void {
 		try {
+			let result:UiResult = UiResult.IGNORED;
 			Logs.info("TODO resize");
+			//後処理
+			this.postProcessEvent(evt, result);
 		} finally {
 			this.flushFinally();
 		}
 	}
 
-	private processHashChange():void {
+	private processHashChanged():void {
 		try {
 			let hash = decodeURIComponent(window.location.hash);
 			let index = hash.indexOf(':');
@@ -707,9 +816,8 @@ public constructor(selector:string) {
 				args = this.decodeArguments(hash.substring(index + 1));
 			}
 			let result = this.transit(tag, args);
-			if (result & UiResult.AFFECTED) {
-				this.sync();
-			}
+			//後処理
+			this.postProcessEvent(null, result);
 		} finally {
 			this.flushFinally();
 		}
@@ -731,12 +839,32 @@ public constructor(selector:string) {
 		return result;
 	}
 
-	private postProcessEvent(evt:Event, result:UiResult):void {
+	public processDataSourceChanged(ds:DataSource):void {
+		Logs.info("processDataSourceChanged");
+		try {
+			let result:UiResult = UiResult.IGNORED;
+			for (const [tag, entry] of Object.entries(this._dataSources)) {
+				if (entry !== undefined) {
+					if (ds == entry.dataSource) {
+						result |= entry.onDataSourceChanged();
+					}
+				}
+			}
+			//後処理
+			this.postProcessEvent(null, result);
+		} finally {
+			this.flushFinally();
+		}
+	}
+
+	private postProcessEvent(evt:Event|null, result:UiResult):void {
 		if (result & UiResult.AFFECTED) {
 			this.sync();
 		}
 		if (result & UiResult.CONSUMED) {
-			evt.preventDefault();
+			if (evt != null) {
+				evt.preventDefault();
+			}
 		}
 	}
 
@@ -779,7 +907,7 @@ public constructor(selector:string) {
 			//debug print
 			let met = Metrics.getInstance();
 			Logs.debug("emSize %d exSize %d inSize %d", met.emSize, met.exSize, met.inSize);
-			let nodes = this.rootNode.getDescendantsIf(() => true, []);
+			let nodes = this.rootNode.getDescendantsIf(() => true);
 			for (let node of nodes) {
 				let rect = node.getRect();
 				let dom = node.domElement;
@@ -832,14 +960,14 @@ public constructor(selector:string) {
 		let next:UiNode|null = null;
 		let minDegree = 0;
 		let minDistance = 0;
-		let candidates = page.pageNode.getDescendantsIf((c) => {
+		let candidates = page.pageNode.getVisibleDescendantsIf((c) => {
 			if (!(c != curr && this.isFocusable(c) && filter(c))) {
 				return false;
 			}
 			let blocker = c.getBlockerNode();
 			let luca = c.getLucaNodeWith(curr);
 			return (blocker == null || blocker == luca || blocker.isAncestorOf(luca));
-		}, []);
+		});
 		for (let c of candidates) {
 			let luca = c.getLucaNodeWith(curr);
 			let degree:number = curr.getDegree(luca);
@@ -857,14 +985,14 @@ public constructor(selector:string) {
 
 	protected getAdjacentNode(curr:UiNode, dir:number):UiNode|null {
 		let page = this.getLivePageOf(curr) as LivePage;
-		let candidates = page.pageNode.getDescendantsIf((c) => {
+		let candidates = page.pageNode.getVisibleDescendantsIf((c) => {
 			if (!this.isFocusable(c)) {
 				return false;
 			}
 			let blocker = c.getBlockerNode();
 			let luca = c.getLucaNodeWith(curr);
 			return (blocker == null || blocker == luca || blocker.isAncestorOf(luca));
-		}, []);
+		});
 		let index = candidates.indexOf(curr);
 		let n = candidates.length;
 		return index == -1 ? null : candidates[(index + dir + n) % n];

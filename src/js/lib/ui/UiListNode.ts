@@ -1,17 +1,33 @@
-import { Asserts, Logs, StateError } from "../lang";
+import { Asserts, Logs, StateError, Value } from "../lang";
 import { Colors } from "./Colors";
+import { DataHolder } from "./DataHolder";
+import { DataRecord, DataSource } from "./DataSource";
 import { Rect } from "./Rect";
-import { UiNode, UiResult } from "./UiNode";
+import { UiApplication } from "./UiApplication";
+import { Flags, UiNode, UiResult } from "./UiNode";
 import { UiStyle, UiStyleBuilder } from "./UiStyle";
 
+/**
+ * レコードノード用スタイル
+ */
 const RECORD_STYLE:UiStyle = new UiStyleBuilder()
 	.backgroundColor(Colors.TRANSPARENT)
 	.borderSize("0px")
 	.build();
 
+/**
+ * マージン定数
+ */
 const MARGIN = 3;
 
-class UiRecord extends UiNode {
+/**
+ * レコードノード
+ */
+class UiRecord extends UiNode implements DataHolder {
+
+	private _index:number = 0;
+
+	private _record:DataRecord|null = null;
 
 	public clone():UiRecord {
 		return new UiRecord(this);
@@ -21,26 +37,57 @@ class UiRecord extends UiNode {
 		return "UiRecord";
 	}
 
-	public setNo(no:number):void {
-		this._children[0].content = "" + no;
+	public get index():number {
+		return this._index;
 	}
 
+	public setIndex(newIndex:number, forceReload:boolean):void {
+		if (this._index == newIndex && !forceReload) {
+			return;
+		}
+		this._index = newIndex;
+		this._record = (newIndex < 0) ? null : this.owner.getRecord(newIndex);
+		for (let c of this.getDescendantsIf(()=>true)) {
+			c.onDataHolderChanged(this);
+		}
+	}
+
+	public getValue(name: string): Value|null {
+		if (this._record == null) {
+			return null;
+		}
+		let value = this._record[name];
+		return (value === undefined) ? null : value;
+	}
+
+	public setValue(name: string, value: Value|null): void {
+	}
+
+	protected get owner():UiListNode {
+		return this.parent as UiListNode;
+	}
 }
 
+/**
+ * リスト属性
+ */
 enum ListFlags {
 	VERTICAL		= 0x00000001,
-	INITIAL			= VERTICAL
+	LOOP			= 0x00000002,
+	ITEM_FOCUSABLE	= 0x00000004,
+	INITIAL			= VERTICAL|LOOP
 }
 
-export enum CursorMode {
-	EXIT = 0,
-	STOP = 1,
-	LOOP = 2,
-}
-
+/**
+ * 垂直及び水平の仮想データリストノード
+ *
+ * TODO
+ *		水平モードのテスト
+ *		周囲にリスト以外のノードがあった場合のカーソル移動確認
+ *		データが更新された時のふるまい（特に減少したときのカーソルの調整）
+ * 		カーソル移動の不具合修正
+ */
 export class UiListNode extends UiNode {
-
-	private _cursorMode: CursorMode;
 
 	private _listFlags:number;
 
@@ -54,6 +101,10 @@ export class UiListNode extends UiNode {
 
 	private _recsPerPage:number;
 
+	private _pageTopIndex:number;
+
+	private _dataSource:DataSource|null;
+
 	public clone():UiListNode {
 		return new UiListNode(this);
 	}
@@ -66,15 +117,15 @@ export class UiListNode extends UiNode {
 		super(param, name);
 		if (param instanceof UiListNode) {
 			let src = param as UiListNode;
-			this._cursorMode = src._cursorMode;
 			this._listFlags = src._listFlags;
 			this._template = src._template;
 			this._templateRect = src._templateRect;
 			this._recSize = src._recSize;
 			this._pageSize = src._pageSize;
 			this._recsPerPage = src._recsPerPage;
+			this._pageTopIndex = src._pageTopIndex;
+			this._dataSource = src._dataSource;
 		} else {
-			this._cursorMode = CursorMode.EXIT;
 			this._listFlags = ListFlags.INITIAL;
 			this._template = null;
 			this._templateRect = null;
@@ -82,15 +133,13 @@ export class UiListNode extends UiNode {
 			this._recSize = 0;
 			this._pageSize = 0;
 			this._recsPerPage = 0;
+			this._pageTopIndex = 0;
+			this._dataSource = null;
 		}
 	}
 
-	public get cursorMode():CursorMode {
-		return this._cursorMode;
-	}
-
-	public set cursorMode(mode:CursorMode) {
-		this._cursorMode = mode;
+	public get focusable():boolean {
+		return super.getFlag(Flags.FOCUSABLE) || (this.itemFocusable && this.count() <= 0);
 	}
 
 	public get vertical():boolean {
@@ -100,6 +149,23 @@ export class UiListNode extends UiNode {
 	public set vertical(on:boolean) {
 		Asserts.assume(this._template == null);
 		this.setListFlag(ListFlags.VERTICAL, on);
+	}
+
+	public get loop():boolean {
+		return this.getListFlag(ListFlags.LOOP);
+	}
+
+	public set loop(on:boolean) {
+		Asserts.assume(this._template == null);
+		this.setListFlag(ListFlags.LOOP, on);
+	}
+
+	protected get itemFocusable():boolean {
+		return this.getListFlag(ListFlags.ITEM_FOCUSABLE);
+	}
+
+	protected set itemFocusable(on:boolean) {
+		this.setListFlag(ListFlags.ITEM_FOCUSABLE, on);
 	}
 
 	protected getListFlag(bit:ListFlags):boolean {
@@ -118,6 +184,14 @@ export class UiListNode extends UiNode {
 		return changed;
 	}
 
+	public count():number {
+		return this._dataSource != null ? this._dataSource.count() : -1;
+	}
+
+	public getRecord(index:number):DataRecord|null {
+		return this._dataSource != null ? this._dataSource.getRecord(index) : null;
+	}
+
 	public onMount():void {
 		if (this._template == null) {
 			this._templateRect = this.getChildrenRect();
@@ -127,7 +201,36 @@ export class UiListNode extends UiNode {
 		this.prepareArea();
 		this.prepareRecs();
 		this.relocateRecs();
+		this.renumberRecs(true);
+		this.setRecsVisiblity();
 		super.onMount();
+		if (this.dataSourceName != null) {
+			this.application.attachIntoDataSource(this.dataSourceName, this);
+		}
+	}
+
+	public onDataSourceChanged(tag:string, ds:DataSource):UiResult {
+		let result = UiResult.IGNORED;
+		if (tag == this.dataSourceName) {
+			if (this.count() < 0) {
+				//最初の通知
+				let oldFocusable = this.focusable;
+				this._dataSource = ds;
+				this.resetTopIndex();
+				this.renumberRecs(true);
+				this.setRecsVisiblity();
+				let newFocusable = this.focusable;
+				if (oldFocusable && !newFocusable && this.application.getFocusOf(this) == this) {
+					this.application.resetFocus(this);
+				}
+			} else {
+				this.resetTopIndex();
+				this.renumberRecs(true);
+				this.setRecsVisiblity();
+			}
+			result |= UiResult.EATEN;
+		}
+		return result;
 	}
 
 	private makeTemplate(rTemplate:Rect):UiRecord {
@@ -157,6 +260,8 @@ export class UiListNode extends UiNode {
 		}
 		template.adoptChildren(this);
 		template.style = RECORD_STYLE;
+		this.itemFocusable = template.getVisibleDescendantsIf(
+				(e)=>this.application.isFocusable(e), 1).length > 0;
 		return template;
 	}
 
@@ -200,10 +305,15 @@ export class UiListNode extends UiNode {
 		}
 		let m = this._children.length;
 		let n = this._recsPerPage + MARGIN * 2;
-		for (let i = m; i < n; i++) {
-			let rec = this._template.clone();
-			this.appendChild(rec);
-			rec.setNo(i); //debug
+		if (m < n) {
+			for (let i = m; i < n; i++) {
+				let rec = this._template.clone();
+				this.appendChild(rec);
+			}
+		} else if (m > n) {
+			for (let i = m - 1; i >= n; i--) {
+				this.removeChildAt(i);
+			}
 		}
 	}
 
@@ -228,6 +338,56 @@ export class UiListNode extends UiNode {
 		}
 	}
 
+	protected resetTopIndex():boolean {
+		let count = Math.max(0, this.count());
+		let limit = 0;
+		let index = this._pageTopIndex;
+		if (this.loop && count >= this._recsPerPage) {
+			limit = count - 1;
+		} else {
+			limit = Math.max(0, count - this._recsPerPage);
+		}
+		this._pageTopIndex = Math.min(Math.max(0, index), limit);
+		return this._pageTopIndex != index;
+	}
+
+	protected renumberRecs(forceReload:boolean): void {
+		let n = this._children.length;
+		let count = this.count();
+		if (count <= 0) {
+			for (let i = 0; i < n; i++) {
+				let rec = this._children[i] as UiRecord;
+				rec.setIndex(-1, forceReload);
+			}
+		} else {
+			for (let i = 0; i < n; i++) {
+				let rec = this._children[i] as UiRecord;
+				let index = (this._pageTopIndex - MARGIN + i + count) % count;
+				rec.setIndex(index, forceReload);
+			}
+		}
+	}
+
+	protected setRecsVisiblity():void {
+		let n = this._children.length;
+		let count = Math.max(0, this.count());
+		if (this.loop && count >= this._recsPerPage) {
+			// ループスクロール時は全件表示
+			for (let i = 0; i < n; i++) {
+				let rec = this._children[i] as UiRecord;
+				rec.visible = true;
+			}
+		} else {
+			// 論理データ範囲外は非表示
+			let sp = Math.max(0, MARGIN - this._pageTopIndex);
+			let ep = Math.min(n, MARGIN - this._pageTopIndex + count);
+			for (let i = 0; i < n; i++) {
+				let rec = this._children[i] as UiRecord;
+				rec.visible = (sp <= i && i < ep);
+			}
+		}
+	}
+
 	public scrollFor(node:UiNode):UiResult {
 		let result = super.scrollFor(node);
 		if (this.vertical) {
@@ -243,17 +403,27 @@ export class UiListNode extends UiNode {
 		let margin = this._recSize * MARGIN;
 		let y = scroll.y;
 		let result = UiResult.IGNORED;
+		let count = this.count();
+		let index = this._pageTopIndex;
 		while (y < margin) {
 			this._children.unshift(this._children.pop() as UiNode);
 			y += this._recSize;
+			index = (index - 1 + count) % count;
 		}
 		while (scroll.height - (y + this._pageSize) < margin) {
 			this._children.push(this._children.shift() as UiNode);
 			y -= this._recSize;
+			index = (index + 1 + count) % count;
+		}
+		if (this._pageTopIndex != index) {
+			this._pageTopIndex = index;
+			this.renumberRecs(false);
+			result |= UiResult.AFFECTED;
 		}
 		if (y != scroll.y) {
 			this.scrollTop = `${y}px`;
 			this.relocateRecs();
+			this.setRecsVisiblity();
 			result |= UiResult.AFFECTED;
 		}
 		return result;
@@ -264,17 +434,27 @@ export class UiListNode extends UiNode {
 		let margin = this._recSize * MARGIN;
 		let x = scroll.x;
 		let result = UiResult.IGNORED;
+		let count = this.count();
+		let index = this._pageTopIndex;
 		while (x < margin) {
 			this._children.unshift(this._children.pop() as UiNode);
 			x += this._recSize;
+			index = (index - 1 + count) % count;
 		}
 		while (scroll.height - (x + this._pageSize) < margin) {
 			this._children.push(this._children.shift() as UiNode);
 			x -= this._recSize;
+			index = (index + 1 + count) % count;
+		}
+		if (this._pageTopIndex != index) {
+			this._pageTopIndex = index;
+			this.renumberRecs(false);
+			result |= UiResult.AFFECTED;
 		}
 		if (x != scroll.x) {
 			this.scrollLeft = `${x}px`;
 			this.relocateRecs();
+			this.setRecsVisiblity();
 			result |= UiResult.AFFECTED;
 		}
 		return result;
