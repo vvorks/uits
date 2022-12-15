@@ -4,6 +4,10 @@ export class Types {
 		return typeof v === "undefined";
 	}
 
+	public static isNull(v:any) {
+		return v == null;
+	}
+
 	public static isString(v:any) {
 		return typeof v === "string";
 	}

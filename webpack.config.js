@@ -1,5 +1,5 @@
-const HtmlWebpackPlugin = require( 'html-webpack-plugin' );
 const webpack = require('webpack')
+const HtmlWebpackPlugin = require( 'html-webpack-plugin' );
 
 module.exports = {
 	//mode: 'production',
@@ -7,8 +7,8 @@ module.exports = {
 	context: __dirname + "/src",
 	entry: './js/index.ts',
 	output: {
-		//path: __dirname + '/dist',
-		filename: 'uits.js'
+		filename: 'uits.js',
+		assetModuleFilename: 'assets/[name][ext]'
 	},
     devtool: 'source-map',
 	module: {
@@ -17,10 +17,17 @@ module.exports = {
 				test: /\.ts$/,
 				use: 'ts-loader'
 			},
+			{
+                test: /\.(svg|png|jpe?g)$/i,
+                type: 'asset/resource',
+			},
 		],
 	},
 	resolve: {
 		extensions: ['.ts', '.js'],
+		alias: {
+			"@images": __dirname + "/src/assets/images",
+		},
 		fallback: {
 			path: require.resolve("path-browserify"),
 			process: require.resolve("process"),

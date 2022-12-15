@@ -127,6 +127,13 @@ export class UiNodeBuilder {
 		return this;
 	}
 
+	public vertical(value:boolean):UiNodeBuilder {
+		if (this._node instanceof UiListNode) {
+			(this._node as UiListNode).vertical = value;
+		}
+		return this;
+	}
+
 	public enter(child:UiNode):UiNodeBuilder {
 		this._node.appendChild(child);
 		this._node = child;

@@ -16,6 +16,9 @@ export { UiListNode }
 import { UiTextNode } from "./ui/UiTextNode"
 export { UiTextNode };
 
+import { UiCheckbox } from "./ui/UiCheckbox"
+export { UiCheckbox };
+
 import { UiApplication } from "./ui/UiApplication";
 export { UiApplication };
 
@@ -42,3 +45,6 @@ export type TextAlign = RawTextAlign;
 
 import { VerticalAlign as RawVertialAlign} from "./ui/UiStyle";
 export type VerticalAlign = RawVertialAlign;
+
+import { KeyCodes } from "./ui/KeyCodes";
+export { KeyCodes };

@@ -9,10 +9,10 @@ export class TestDataSource extends DataSource {
 
 	private _loaded:boolean;
 
-	public constructor(records:DataRecord[]) {
+	public constructor() {
 		super();
 		this._lastUpdateAt = new Date();
-		this._records = records;
+		this._records = [];
 		this._loaded = false;
 	}
 
@@ -34,25 +34,31 @@ export class TestDataSource extends DataSource {
 		if (!this._loaded) {
 			return null;
 		}
-		return this._records[index];
+		let result = this._records[index];
+		result["_index_"] = index;
+		return result;
 	}
 
 	public select(criteria:Properties<Value>):void {
-		Logs.debug("select");
 		this._loaded = false;
 		this.simulateLoad1();
 	}
 
 	public insert(rec:DataRecord):void {
-		//NOP
+		this._records.push(rec);
+		super.fireDataChanged();
 	}
 
 	public update(rec:DataRecord):void {
-		//NOP
+		let index = rec["_index_"] as number;
+		this._records[index] = rec;
+		super.fireDataChanged();
 	}
 
 	public remove(rec:DataRecord):void {
-		//NOP
+		let index = rec["_index_"] as number;
+		this._records.splice(index, 0);
+		super.fireDataChanged();
 	}
 
 	private simulateLoad1():void {
@@ -61,7 +67,16 @@ export class TestDataSource extends DataSource {
 		}
 	}
 
+	private _datas:number[] = [40, 4, 14, 2, 30];
+	private _pos: number = 0;
+
 	private simulateLoad2(): void {
+		let theData: DataRecord[] = [];
+		for (let i = 0; i < this._datas[this._pos]; i++) {
+			theData.push({"a": i, "b": i * 2, "c": i * 3, "d": i * 4, "e": false});
+		}
+		this._pos = (this._pos + 1) % this._datas.length;
+		this._records = theData;
 		this._loaded = true;
 		super.fireDataChanged();
 	}

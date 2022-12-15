@@ -337,8 +337,22 @@ public constructor(selector:string) {
 		return !e.deleted && e.visible && e.enable && e.focusable;
 	}
 
-	protected isFocusableFirst(e:UiNode):boolean {
+	public isAppearedFocusable(e:UiNode):boolean {
 		return this.isFocusable(e) && e.getBlockerNode() == null;
+	}
+
+	public isAppearedFocusableAll(e:UiNode):boolean {
+		if (!this.isAppearedFocusable(e)) {
+			return false;
+		}
+		let node:UiNode|null = e.parent;
+		while (node != null) {
+			if (!(!node.deleted && node.visible)) {
+				return false;
+			}
+			node = node.parent;
+		}
+		return true;
 	}
 
 	public call(pageNode:UiPageNode):void {
@@ -346,9 +360,9 @@ public constructor(selector:string) {
 		this._pageStack.push(page);
 		this.rootNode.appendChild(pageNode);
 		pageNode.onMount();
-		if (page.focusNode == null) {
+		if (page.focusNode == null || !this.isAppearedFocusable(page.focusNode)) {
 			if (!this.resetFocus(pageNode)) {
-				Logs.warn("FOCUS NOTHING");
+				Logs.error("LOST FOCUS!");
 			}
 		}
 	}
@@ -358,7 +372,7 @@ public constructor(selector:string) {
 		if (page == null) {
 			throw new ParamError();
 		}
-		let list = node.getVisibleDescendantsIf((e)=>this.isFocusableFirst(e), 1);
+		let list = node.getVisibleDescendantsIf((e)=>this.isAppearedFocusable(e), 1);
 		let found = (list.length > 0);
 		if (found) {
 			page.focus(list[0], UiAxis.XY);
@@ -417,6 +431,24 @@ public constructor(selector:string) {
 			}
 		}
 		return null;
+	}
+
+	private recoverFocus():UiResult {
+		let result = UiResult.IGNORED;
+		let page = this.getLivePage();
+		if (page != null) {
+			if (page.focusNode == null || !this.isAppearedFocusableAll(page.focusNode)) {
+				if (!this.resetFocus(page.pageNode)) {
+					Logs.error("LOST FOCUS!");
+				} else {
+					Logs.warn("RECOVER FOCUS!");
+					result |= UiResult.AFFECTED;
+				}
+			} else {
+				Logs.debug("focus %d", page.focusNode.id);
+			}
+		}
+		return result;
 	}
 
 	public sync() {
@@ -858,6 +890,7 @@ public constructor(selector:string) {
 	}
 
 	private postProcessEvent(evt:Event|null, result:UiResult):void {
+		result |= this.recoverFocus();
 		if (result & UiResult.AFFECTED) {
 			this.sync();
 		}
@@ -947,8 +980,8 @@ public constructor(selector:string) {
 
 	protected onKeyUp(target:UiNode, key:number, ch:number, mod:number, at:number):UiResult {
 		let result = UiResult.IGNORED;
-		switch (key|mod) {
-		case KeyCodes.ENTER:
+		switch (key|(mod & KeyCodes.MOD_ACS)) {
+			case KeyCodes.ENTER:
 			result |= (this.getLivePageOf(target) as LivePage).click(null);
 			break;
 		}

@@ -3,7 +3,7 @@ import { Colors } from "./Colors";
 import { DataHolder } from "./DataHolder";
 import { DataRecord, DataSource } from "./DataSource";
 import { Rect } from "./Rect";
-import { UiApplication } from "./UiApplication";
+import { UiApplication, UiAxis } from "./UiApplication";
 import { Flags, UiNode, UiResult } from "./UiNode";
 import { UiStyle, UiStyleBuilder } from "./UiStyle";
 
@@ -19,6 +19,15 @@ const RECORD_STYLE:UiStyle = new UiStyleBuilder()
  * マージン定数
  */
 const MARGIN = 3;
+
+class FocusInfo {
+	public readonly recordIndex:number;
+	public readonly fieldIndex:number;
+	public constructor(rec:number, fld:number) {
+		this.recordIndex = rec;
+		this.fieldIndex = fld;
+	}
+}
 
 /**
  * レコードノード
@@ -61,6 +70,11 @@ class UiRecord extends UiNode implements DataHolder {
 	}
 
 	public setValue(name: string, value: Value|null): void {
+		if (this._record == null) {
+			return;
+		}
+		this._record[name] = value;
+		this.owner.setRecord(this._record);
 	}
 
 	protected get owner():UiListNode {
@@ -192,6 +206,12 @@ export class UiListNode extends UiNode {
 		return this._dataSource != null ? this._dataSource.getRecord(index) : null;
 	}
 
+	public setRecord(rec:DataRecord):void {
+		if (this._dataSource != null) {
+			this._dataSource.update(rec)
+		}
+	}
+
 	public onMount():void {
 		if (this._template == null) {
 			this._templateRect = this.getChildrenRect();
@@ -210,27 +230,74 @@ export class UiListNode extends UiNode {
 	}
 
 	public onDataSourceChanged(tag:string, ds:DataSource):UiResult {
-		let result = UiResult.IGNORED;
-		if (tag == this.dataSourceName) {
-			if (this.count() < 0) {
-				//最初の通知
-				let oldFocusable = this.focusable;
-				this._dataSource = ds;
-				this.resetTopIndex();
-				this.renumberRecs(true);
-				this.setRecsVisiblity();
-				let newFocusable = this.focusable;
-				if (oldFocusable && !newFocusable && this.application.getFocusOf(this) == this) {
-					this.application.resetFocus(this);
-				}
-			} else {
-				this.resetTopIndex();
-				this.renumberRecs(true);
-				this.setRecsVisiblity();
-			}
-			result |= UiResult.EATEN;
+		if (tag != this.dataSourceName) {
+			return UiResult.IGNORED;
 		}
-		return result;
+		if (this.count() < 0) {
+			//最初の通知
+			let oldFocusable = this.focusable;
+			this._dataSource = ds;
+			this.resetTopIndex();
+			this.adjustScroll();
+			this.renumberRecs(true);
+			this.setRecsVisiblity();
+			let newFocusable = this.focusable;
+			if (oldFocusable && !newFocusable && this.application.getFocusOf(this) == this) {
+				this.application.resetFocus(this);
+			}
+		} else {
+			//２回目以降の通知
+			let info = this.saveFocus();
+			this.resetTopIndex();
+			this.adjustScroll();
+			this.renumberRecs(true);
+			this.setRecsVisiblity();
+			this.restoreFocus(info);
+		}
+		return UiResult.EATEN;
+	}
+
+	private saveFocus():FocusInfo|null {
+		let app = this.application;
+		let focus = app.getFocusOf(this);
+		if (focus != null && this.isAncestorOf(focus)) {
+			let rec = this.getUiRecordOf(focus);
+			if (rec != null) {
+				let recIndex = this._children.indexOf(rec);
+				let fldIndex = rec.getDescendantIndex(focus);
+				if (recIndex >= 0 && fldIndex >= 0) {
+					return new FocusInfo(recIndex, fldIndex);
+				}
+			}
+		}
+		return null;
+	}
+
+	private restoreFocus(info:FocusInfo|null):void {
+		if (info == null) {
+			return;
+		}
+		if (this._children[info.recordIndex].visible) {
+			return;
+		}
+		for (let i = info.recordIndex - 1; i >= 0; i--) {
+			let rec = this._children[i];
+			if (rec.visible) {
+				let restore = rec.getDescendantAt(info.fieldIndex);
+				if (restore != null) {
+					this.application.setFocus(restore, this.vertical ? UiAxis.Y : UiAxis.X);
+				}
+				break;
+			}
+		}
+	}
+
+	private getUiRecordOf(node:UiNode):UiRecord|null {
+		let e:UiNode|null = node;
+		while (e != null && !(e instanceof UiRecord)) {
+			e = e.parent;
+		}
+		return (e != null) ? e as UiRecord : null;
 	}
 
 	private makeTemplate(rTemplate:Rect):UiRecord {
@@ -348,7 +415,20 @@ export class UiListNode extends UiNode {
 			limit = Math.max(0, count - this._recsPerPage);
 		}
 		this._pageTopIndex = Math.min(Math.max(0, index), limit);
-		return this._pageTopIndex != index;
+		let changed = this._pageTopIndex != index;
+		return changed;
+	}
+
+	protected adjustScroll() {
+		let count = this.count();
+		if (count < this._recsPerPage) {
+			let margin = this._recSize * MARGIN;
+			if (this.vertical) {
+				this.scrollTop = `${margin}px`;
+			} else {
+				this.scrollLeft = `${margin}px`;
+			}
+		}
 	}
 
 	protected renumberRecs(forceReload:boolean): void {
@@ -391,14 +471,14 @@ export class UiListNode extends UiNode {
 	public scrollFor(node:UiNode):UiResult {
 		let result = super.scrollFor(node);
 		if (this.vertical) {
-			result |= this.adjustScrollTop();
+			result |= this.slideVertical();
 		} else {
-			result |= this.adjustScrollLeft();
+			result |= this.slideHorizontal();
 		}
 		return result;
 	}
 
-	protected adjustScrollTop():UiResult {
+	protected slideVertical():UiResult {
 		let scroll = this.getScrollRect();
 		let margin = this._recSize * MARGIN;
 		let y = scroll.y;
@@ -429,7 +509,7 @@ export class UiListNode extends UiNode {
 		return result;
 	}
 
-	protected adjustScrollLeft():UiResult {
+	protected slideHorizontal():UiResult {
 		let scroll = this.getScrollRect();
 		let margin = this._recSize * MARGIN;
 		let x = scroll.x;
@@ -441,7 +521,7 @@ export class UiListNode extends UiNode {
 			x += this._recSize;
 			index = (index - 1 + count) % count;
 		}
-		while (scroll.height - (x + this._pageSize) < margin) {
+		while (scroll.width - (x + this._pageSize) < margin) {
 			this._children.push(this._children.shift() as UiNode);
 			x -= this._recSize;
 			index = (index + 1 + count) % count;

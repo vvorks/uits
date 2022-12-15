@@ -249,15 +249,20 @@ export class UiNode implements Clonable<UiNode> {
 
 	public get contentAsString():string {
 		let value = this._content;
+		let result:string;
 		if (Types.isString(value)) {
-			return value as string;
+			result = value as string;
 		} else if (Types.isNumber(value)) {
-			return "" + value;
+			result = "" + value;
 		} else if (Types.isBoolean(value)) {
-			return (value as boolean) ? "true" : "false";
+			result = (value as boolean) ? "true" : "false";
 		} else {
-			return "";
+			result = "";
 		}
+		if (this._children.length == 0) {
+			result = "(" + this.id + ")" + result;
+		}
+		return result;
 	}
 
 	protected onContentChanged():void {
@@ -847,10 +852,10 @@ export class UiNode implements Clonable<UiNode> {
 	}
 
 	public isAncestorOf(other:UiNode):boolean {
-		return other.getAncestorsIf((e) => e == this, [], 1).length == 1;
+		return other.getAncestorsIf((e) => e == this, 1).length == 1;
 	}
 
-	public getAncestorsIf(filter:(e:UiNode)=>boolean, list:UiNode[], limit:number = Number.MAX_SAFE_INTEGER):UiNode[] {
+	public getAncestorsIf(filter:(e:UiNode)=>boolean, limit:number = Number.MAX_SAFE_INTEGER, list:UiNode[] = []):UiNode[] {
 		let p:UiNode|null = this.parent;
 		while (p != null) {
 			if (filter(p)) {
@@ -899,6 +904,28 @@ export class UiNode implements Clonable<UiNode> {
 		return list;
 	}
 
+	public getDescendantIndex(d:UiNode):number {
+		let index = 0;
+		for (let c of this.getDescendantsIf(e=>true)) {
+			if (c == d) {
+				return index;
+			}
+			index++;
+		}
+		return -1;
+	}
+
+	public getDescendantAt(pos:number):UiNode|null {
+		let index = 0;
+		for (let c of this.getDescendantsIf(e=>true)) {
+			if (index == pos) {
+				return c;
+			}
+			index++;
+		}
+		return null;
+	}
+
 	public getBlockerNode():UiNode|null {
 		let anc:UiNode|null = this.parent;
 		let r:Rect = new Rect(this.getRect());
@@ -916,8 +943,8 @@ export class UiNode implements Clonable<UiNode> {
 	 * @returns 最終共通祖先ノード。但し、両者が上下関係の場合、上位側ノードを返す。
 	 */
 	public getLucaNodeWith(other:UiNode):UiNode {
-		let tList = this.getAncestorsIf(e => true, []).reverse();
-		let oList = other.getAncestorsIf(e => true, []).reverse();
+		let tList = this.getAncestorsIf(e => true).reverse();
+		let oList = other.getAncestorsIf(e => true).reverse();
 		tList.push(this);
 		oList.push(other);
 		let n = Math.min(tList.length, oList.length);

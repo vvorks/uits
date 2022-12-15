@@ -1,11 +1,12 @@
 import { Properties } from "../lib/lang";
 import {
 	Colors, UiApplication,
-	UiNode, UiPageNode, UiListNode, UiTextNode,
+	UiNode, UiPageNode, UiListNode, UiTextNode, UiCheckbox,
 	UiNodeBuilder,
 	UiStyle, UiStyleBuilder,
-	DataRecord, DataSource
+	DataSource, KeyCodes
 } from "../lib/ui";
+import { UiResult } from "../lib/ui/UiNode";
 import { TestDataSource } from "./TestDataSource";
 
 const DEFAULT_STYLE:UiStyle = new UiStyleBuilder()
@@ -38,40 +39,70 @@ const LIST_STYLE:UiStyle = new UiStyleBuilder()
 	.borderSize("0px")
 	.build();
 
-	export class TestApplication extends UiApplication {
+export class TestApplication extends UiApplication {
 
 	protected initialize():void {
 
-		this.addPageFactory("", (args) => this.createList(args));
+		this.addPageFactory("#vlist", (args) => this.createVerticalList(args));
+		this.addPageFactory("#hlist", (args) => this.createHorizontalList(args));
 		this.addPageFactory("#grid", (args) => this.createGrid(args));
 
-		let sampleData: DataRecord[] = [];
-		for (let i = 0; i < 40; i++) {
-			sampleData.push({"a": i, "b": i * 2, "c": i * 3, "d": i * 4, "e": i * 5});
-		}
-		this.addDataSource("sample", new TestDataSource(sampleData));
+		this.addDataSource("sample", new TestDataSource());
 	}
 
-	public createList(args:Properties<string>):UiPageNode {
+	public createVerticalList(args:Properties<string>):UiPageNode {
 		let page:UiPageNode = new UiPageNode(this);
 		let b = new UiNodeBuilder(page, "1rem");
 		b.inset(1).style(GROUP_STYLE);
 		{
-			b.enter(new UiListNode(this));
-			b.inset(1).style(LIST_STYLE).dataSource("sample").loop(false);
+			b.enter(new UiNode(this, "北")).th(1,2).lr(1,1).style(DEFAULT_STYLE).focusable(true).leave();
+			b.enter(new UiNode(this, "西")).tb(4,4).lw(1,2).style(DEFAULT_STYLE).focusable(true).leave();
 			{
+				b.enter(new UiListNode(this)).tb(4,4).lr(4,4).style(LIST_STYLE)
+				.dataSource("sample").loop(false);
 				b.enter(new UiTextNode(this, "a")).th(1, 4).lw( 1, 10)
 						.style(DEFAULT_STYLE).focusable(true).leave();
 				b.enter(new UiTextNode(this, "b")).th(1, 2).lw(11, 10)
 						.style(DEFAULT_STYLE).focusable(true).leave();
 				b.enter(new UiTextNode(this, "c")).th(3, 2).lw(11, 10)
 						.style(DEFAULT_STYLE).focusable(true).leave();
-				b.enter(new UiTextNode(this, "d")).th(1, 2).lr(21,  1)
+				b.enter(new UiTextNode(this, "d")).th(1, 4).lr(21,  5)
 						.style(DEFAULT_STYLE).focusable(true).leave();
-				b.enter(new UiTextNode(this, "e")).th(3, 2).lr(21,  1)
+				b.enter(new UiCheckbox(this, "e")).th(1, 4).rw( 1,  4)
 						.style(DEFAULT_STYLE).focusable(true).leave();
+				b.leave();
 			}
-			b.leave();
+			b.enter(new UiNode(this, "東")).tb(4,4).rw(1,2).style(DEFAULT_STYLE).focusable(true).leave();
+			b.enter(new UiNode(this, "南")).bh(1,2).lr(1,1).style(DEFAULT_STYLE).focusable(true).leave();
+		}
+		(this.getDataSource("sample") as DataSource).select({});
+		return page;
+	}
+
+	public createHorizontalList(args:Properties<string>):UiPageNode {
+		let page:UiPageNode = new UiPageNode(this);
+		let b = new UiNodeBuilder(page, "1rem");
+		b.inset(1).style(GROUP_STYLE);
+		{
+			b.enter(new UiNode(this, "北")).th(1,2).lr(1,1).style(DEFAULT_STYLE).focusable(true).leave();
+			b.enter(new UiNode(this, "西")).tb(4,4).lw(1,2).style(DEFAULT_STYLE).focusable(true).leave();
+			{
+				b.enter(new UiListNode(this)).tb(4,4).lr(4,4).style(LIST_STYLE)
+					.dataSource("sample").loop(true).vertical(false);
+				b.enter(new UiTextNode(this, "a")).th(0, 2).lw( 0, 10)
+						.style(DEFAULT_STYLE).focusable(true).leave();
+				b.enter(new UiTextNode(this, "b")).th(2, 2).lw( 0, 10)
+						.style(DEFAULT_STYLE).focusable(true).leave();
+				b.enter(new UiTextNode(this, "c")).th(4, 2).lw( 0, 10)
+						.style(DEFAULT_STYLE).focusable(true).leave();
+				b.enter(new UiTextNode(this, "d")).th(6, 2).lw( 0, 10)
+						.style(DEFAULT_STYLE).focusable(true).leave();
+				b.enter(new UiTextNode(this, "e")).tb(8, 0).lw( 0, 10)
+						.style(DEFAULT_STYLE).focusable(true).leave();
+				b.leave();
+			}
+			b.enter(new UiNode(this, "東")).tb(4,4).rw(1,2).style(DEFAULT_STYLE).focusable(true).leave();
+			b.enter(new UiNode(this, "南")).bh(1,2).lr(1,1).style(DEFAULT_STYLE).focusable(true).leave();
 		}
 		(this.getDataSource("sample") as DataSource).select({});
 		return page;
@@ -92,5 +123,19 @@ const LIST_STYLE:UiStyle = new UiStyleBuilder()
 		}
 		return page;
 	}
+
+	protected onKeyDown(target:UiNode, key:number, ch:number, mod:number, at:number):UiResult {
+		let result:UiResult = UiResult.IGNORED;
+		switch (key|(mod & KeyCodes.MOD_ACS)) {
+		case KeyCodes.KEY_Q|KeyCodes.MOD_CTRL:
+			(this.getDataSource("sample") as DataSource).select({});
+			break;
+		default:
+			result = super.onKeyDown(target, key, ch, mod, at);
+			break;
+		}
+		return result;
+	}
+
 
 }
