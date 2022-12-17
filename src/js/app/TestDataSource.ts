@@ -1,6 +1,14 @@
 import { Logs, ParamError, Properties, Value } from "../lib/lang";
 import { DataRecord, DataSource } from "../lib/ui";
 
+const LONG_NAME_JA =
+	"寿限無寿限無五劫のすりきれ海砂利水魚の水行末雲来末風来末食う寝るところに住むところ" +
+	"やぶらこうじのぶらこうじパイポパイポパイポのシューリンガンシューリンガンのグーリンダイ" +
+	"グーリンダイのポンポコピーのポンポコナの長久命の長助";
+
+const LONG_NAME_ES =
+	"Pablo Diego José Francisco de Paula Juan Nepomuceno Cipriano de la Santísima Trinidad Ruiz y Picasso";
+
 export class TestDataSource extends DataSource {
 
 	private _lastUpdateAt: Date;
@@ -73,7 +81,13 @@ export class TestDataSource extends DataSource {
 	private simulateLoad2(): void {
 		let theData: DataRecord[] = [];
 		for (let i = 0; i < this._datas[this._pos]; i++) {
-			theData.push({"a": i, "b": i * 2, "c": i * 3, "d": i * 4, "e": false});
+			theData.push({
+				"a": i,
+				"b": i * 2,
+				"c": i * 3,
+				"d": (i % 2) == 0 ? LONG_NAME_JA : LONG_NAME_ES,
+				"e": false
+			});
 		}
 		this._pos = (this._pos + 1) % this._datas.length;
 		this._records = theData;

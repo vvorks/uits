@@ -1,7 +1,7 @@
 import {Rect} from "./Rect";
 import {CssLength} from "./CssLength"
 import { UiStyle } from "./UiStyle"
-import { Asserts, Clonable, Logs, Types, Value } from "../lang";
+import { Asserts, Clonable, Logs, StateError, Types, Value } from "../lang";
 import type { UiApplication } from "./UiApplication";
 import { DataSource } from "./DataSource";
 import { DataHolder } from "./DataHolder";
@@ -85,18 +85,30 @@ export enum UiResult {
 	EATEN = 3
 }
 
+class VoidDataHolder implements DataHolder {
+
+	getValue(name: string): Value {
+		throw new StateError("CAN NOT CALL");
+	}
+
+	setValue(name: string, value: Value): void {
+		throw new StateError("CAN NOT CALL");
+	}
+
+}
+
 /**
  * UiNode
  */
 export class UiNode implements Clonable<UiNode> {
+
+	public static readonly VOID_DATA_HOLDER:DataHolder = new VoidDataHolder()
 
 	private _application:UiApplication;
 
 	private _id:number;
 
 	private _name:string;
-
-	private _content:Value;
 
 	private _dataSourceName: string|null;
 
@@ -162,7 +174,7 @@ export class UiNode implements Clonable<UiNode> {
 			this._application = src._application;
 			this._id = UiNode.issue();
 			this._name = src._name;
-			this._content = src._content;
+			// this._content = src._content;
 			this._dataSourceName = src._dataSourceName;
 			this._left = src._left;
 			this._top = src._top;
@@ -192,7 +204,7 @@ export class UiNode implements Clonable<UiNode> {
 			this._application = app;
 			this._id = UiNode.issue();
 			this._name = (name != null ? name : this.className + this._id);
-			this._content = null;
+			// this._content = null;
 			this._dataSourceName = "";
 			this._left = null;
 			this._top = null;
@@ -234,35 +246,6 @@ export class UiNode implements Clonable<UiNode> {
 
 	public get name():string {
 		return this._name;
-	}
-
-	public get content():Value {
-		return this._content;
-	}
-
-	public set content(value:Value) {
-		if (this._content != value) {
-			this._content = value;
-			this.onContentChanged();
-		}
-	}
-
-	public get contentAsString():string {
-		let value = this._content;
-		let result:string;
-		if (Types.isString(value)) {
-			result = value as string;
-		} else if (Types.isNumber(value)) {
-			result = "" + value;
-		} else if (Types.isBoolean(value)) {
-			result = (value as boolean) ? "true" : "false";
-		} else {
-			result = "";
-		}
-		if (this._children.length == 0) {
-			result = "(" + this.id + ")" + result;
-		}
-		return result;
 	}
 
 	protected onContentChanged():void {
@@ -1194,9 +1177,11 @@ export class UiNode implements Clonable<UiNode> {
 		if (!this.isChanged(Changed.CONTENT)) {
 			return;
 		}
-		let dom = this._domElement as HTMLElement;
-		dom.innerText = this.contentAsString;
+		this.renderContent();
 		this.setChanged(Changed.CONTENT, false);
+	}
+
+	protected renderContent():void {
 	}
 
 	protected syncHierarchy():void {

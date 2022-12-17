@@ -1,25 +1,29 @@
 リスト関連
-・カーソル移動の不具合修正(EXCEL参照)
-・「お待ちください」対応
+* カーソル移動の不具合修正(EXCEL参照)
+* 「お待ちください」対応
 
 コンポーネント
-・カードレイアウト
-・ボタン（操作用）
-・チェックボックス(真偽値用)
-・セレクタ（列挙、参照用）
-・セル（数値、文字列入力用）
-・Date/Time Picker（日付・時刻入力用）
-・Color Picker（色入力用）
-I18N関連
+* スクロールバー
+* UiTextField
+	* 入力機能
+	* 数値も受付可能にする
+	* フォーマット指定
+* UiLookupField/UiLookupPopup
+	* 参照はこちら
+	* データソース指定の必要あり
+	* POPUPテンプレートいる？（→とりあえずは元フィールドと同じ枠、数だけ指定？）
+* UiPickerField/UiPickerPopup
+	* 日付・時刻、色
+	* ソフトウェアキーボードもここか？
+* カードレイアウト
+* ボタン（操作用）
+* I18N関連
 
 基本ライブラリ
-・リサイズイベント
-・GWT版自作Intlライブラリ(Intl.NumberFormat, Intl.DateFormat Wrapper)の移植
-・トースト／バナー
-・Pickerフレームワーク
-・タイマーディスパッチ
-・Canvasレンダリング
-・Mouse Wheel
-
-その他
-・ソフトウェアキーボード
+* リサイズイベント
+* GWT版自作Intlライブラリ(Intl.NumberFormat, Intl.DateFormat Wrapper)の移植
+* トースト／バナー
+* Pickerフレームワーク
+* タイマーディスパッチ
+* Canvasレンダリング
+* Mouse Wheel

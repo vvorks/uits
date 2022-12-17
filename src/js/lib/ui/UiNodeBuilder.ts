@@ -3,6 +3,7 @@ import { CssLength } from "./CssLength";
 import { UiListNode } from "./UiListNode";
 import { UiNode } from "./UiNode";
 import { UiStyle } from "./UiStyle";
+import { UiTextNode } from "./UiTextNode";
 
 type Size = string|number;
 
@@ -110,8 +111,10 @@ export class UiNodeBuilder {
 		return this;
 	}
 
-	public content(value:Value):UiNodeBuilder {
-		this._node.content = value;
+	public textContent(value:Value):UiNodeBuilder {
+		if (this._node instanceof UiTextNode) {
+			(this._node as UiTextNode).textContent = value;
+		}
 		return this;
 	}
 

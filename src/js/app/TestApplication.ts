@@ -4,7 +4,7 @@ import {
 	UiNode, UiPageNode, UiListNode, UiTextNode, UiCheckbox,
 	UiNodeBuilder,
 	UiStyle, UiStyleBuilder,
-	DataSource, KeyCodes
+	DataSource, KeyCodes, UiTextField
 } from "../lib/ui";
 import { UiResult } from "../lib/ui/UiNode";
 import { TestDataSource } from "./TestDataSource";
@@ -15,6 +15,8 @@ const DEFAULT_STYLE:UiStyle = new UiStyleBuilder()
 	.borderSize("2px")
 	.borderColor(Colors.BLUE)
 	.fontSize("12pt")
+	.textAlign("center")
+	.verticalAlign("middle")
 	.build();
 
 const FOCUS_STYLE:UiStyle = new UiStyleBuilder()
@@ -59,14 +61,18 @@ export class TestApplication extends UiApplication {
 			b.enter(new UiNode(this, "西")).tb(4,4).lw(1,2).style(DEFAULT_STYLE).focusable(true).leave();
 			{
 				b.enter(new UiListNode(this)).tb(4,4).lr(4,4).style(LIST_STYLE)
-				.dataSource("sample").loop(false);
-				b.enter(new UiTextNode(this, "a")).th(1, 4).lw( 1, 10)
+				.dataSource("sample").loop(true);
+				b.enter(new UiTextField(this, "a")).th(1, 4).lw( 1, 10)
 						.style(DEFAULT_STYLE).focusable(true).leave();
-				b.enter(new UiTextNode(this, "b")).th(1, 2).lw(11, 10)
+				b.enter(new UiTextField(this, "b")).th(1, 2).lw(11, 10)
 						.style(DEFAULT_STYLE).focusable(true).leave();
-				b.enter(new UiTextNode(this, "c")).th(3, 2).lw(11, 10)
-						.style(DEFAULT_STYLE).focusable(true).leave();
-				b.enter(new UiTextNode(this, "d")).th(1, 4).lr(21,  5)
+				{
+					b.enter(new UiTextField(this, "c")).th(3, 2).lw(11, 10)
+						.style(DEFAULT_STYLE).focusable(true);
+
+					b.leave();
+				}
+				b.enter(new UiTextField(this, "d")).th(1, 4).lr(21,  5)
 						.style(DEFAULT_STYLE).focusable(true).leave();
 				b.enter(new UiCheckbox(this, "e")).th(1, 4).rw( 1,  4)
 						.style(DEFAULT_STYLE).focusable(true).leave();
@@ -89,15 +95,15 @@ export class TestApplication extends UiApplication {
 			{
 				b.enter(new UiListNode(this)).tb(4,4).lr(4,4).style(LIST_STYLE)
 					.dataSource("sample").loop(true).vertical(false);
-				b.enter(new UiTextNode(this, "a")).th(0, 2).lw( 0, 10)
+				b.enter(new UiTextField(this, "a")).th(0, 2).lw( 0, 10)
 						.style(DEFAULT_STYLE).focusable(true).leave();
-				b.enter(new UiTextNode(this, "b")).th(2, 2).lw( 0, 10)
+				b.enter(new UiTextField(this, "b")).th(2, 2).lw( 0, 10)
 						.style(DEFAULT_STYLE).focusable(true).leave();
-				b.enter(new UiTextNode(this, "c")).th(4, 2).lw( 0, 10)
+				b.enter(new UiTextField(this, "c")).th(4, 2).lw( 0, 10)
 						.style(DEFAULT_STYLE).focusable(true).leave();
-				b.enter(new UiTextNode(this, "d")).th(6, 2).lw( 0, 10)
+				b.enter(new UiTextField(this, "d")).th(6, 2).lw( 0, 10)
 						.style(DEFAULT_STYLE).focusable(true).leave();
-				b.enter(new UiTextNode(this, "e")).tb(8, 0).lw( 0, 10)
+				b.enter(new UiCheckbox(this, "e")).tb(8, 0).lw( 0, 10)
 						.style(DEFAULT_STYLE).focusable(true).leave();
 				b.leave();
 			}
@@ -117,7 +123,7 @@ export class TestApplication extends UiApplication {
 				b.enter(new UiNode(this));
 				b.th(row * 3 + 1, 2).lw(col * 16 + 1, 14).style(DEFAULT_STYLE);
 				b.focusable(true);
-				b.content(`ITEM[${row},${col}]`);
+				b.textContent(`ITEM[${row},${col}]`);
 				b.leave();
 			}
 		}

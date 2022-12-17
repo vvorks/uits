@@ -73,8 +73,10 @@ class UiRecord extends UiNode implements DataHolder {
 		if (this._record == null) {
 			return;
 		}
-		this._record[name] = value;
-		this.owner.setRecord(this._record);
+		if (this._record[name] != value) {
+			this._record[name] = value;
+			this.owner.setRecord(this._record);
+		}
 	}
 
 	protected get owner():UiListNode {

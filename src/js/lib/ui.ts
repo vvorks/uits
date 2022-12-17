@@ -16,6 +16,9 @@ export { UiListNode }
 import { UiTextNode } from "./ui/UiTextNode"
 export { UiTextNode };
 
+import { UiTextField } from "./ui/UiTextField"
+export { UiTextField };
+
 import { UiCheckbox } from "./ui/UiCheckbox"
 export { UiCheckbox };
 
