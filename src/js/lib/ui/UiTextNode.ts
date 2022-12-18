@@ -1,17 +1,5 @@
 import { Logs, Properties, Types, Value } from "../lang";
-import { UiNode, UiResult } from "./UiNode";
-
-
-const ESCAPE_PATTERN = /[&<>"'\/]/g;
-
-const ESCAPE_CHARS:Properties<string> = {
-	"&": "&amp;",
-	"<": "&lt;",
-	">": "&gt;",
-	'"': '&quot;',
-	"'": '&#39;',
-	"/": '&#x2F;'
-};
+import { UiNode } from "./UiNode";
 
 export class UiTextNode extends UiNode {
 
@@ -33,7 +21,6 @@ export class UiTextNode extends UiNode {
 	}
 
 	protected createDomElement(target:UiNode, tag:string):HTMLElement {
-		Logs.debug("createDomElement");
 		let dom = super.createDomElement(target, tag);
 		let div = document.createElement("div");
 		let style = div.style;
@@ -75,10 +62,6 @@ export class UiTextNode extends UiNode {
 			result = "";
 		}
 		return result;
-	}
-
-	protected escapeHtml(str:string):string {
-		return str.replace(ESCAPE_PATTERN, c => ESCAPE_CHARS[c] as string);
 	}
 
 }

@@ -61,7 +61,7 @@ class UiRecord extends UiNode implements DataHolder {
 		}
 	}
 
-	public getValue(name: string): Value|null {
+	public getValue(name: string): Value|DataRecord|null {
 		if (this._record == null) {
 			return null;
 		}
@@ -69,7 +69,7 @@ class UiRecord extends UiNode implements DataHolder {
 		return (value === undefined) ? null : value;
 	}
 
-	public setValue(name: string, value: Value|null): void {
+	public setValue(name: string, value: Value|DataRecord|null): void {
 		if (this._record == null) {
 			return;
 		}
@@ -79,9 +79,19 @@ class UiRecord extends UiNode implements DataHolder {
 		}
 	}
 
+	public getRecord():DataRecord|null {
+		return this._record;
+	}
+
+	public setReocord(rec:DataRecord):void {
+		this._record = rec;
+		this.owner.setRecord(this._record);
+	}
+
 	protected get owner():UiListNode {
 		return this.parent as UiListNode;
 	}
+
 }
 
 /**

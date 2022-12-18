@@ -13,14 +13,14 @@ export { UiPageNode };
 import { UiListNode } from "./ui/UiListNode";
 export { UiListNode }
 
-import { UiTextNode } from "./ui/UiTextNode"
-export { UiTextNode };
-
 import { UiTextField } from "./ui/UiTextField"
 export { UiTextField };
 
 import { UiCheckbox } from "./ui/UiCheckbox"
 export { UiCheckbox };
+
+import { UiLookupField } from "./ui/UiLookupField"
+export { UiLookupField };
 
 import { UiApplication } from "./ui/UiApplication";
 export { UiApplication };

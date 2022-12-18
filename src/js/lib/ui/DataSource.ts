@@ -1,7 +1,7 @@
 import { Logs, Properties, Value } from "../lang";
 import { UiApplication } from "./UiApplication";
 
-export type DataRecord = Properties<Value>;
+export type DataRecord = Properties<Value|DataRecord>;
 
 /**
  * データアクセスを実現する（抽象）クラス

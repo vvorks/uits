@@ -293,10 +293,7 @@ export class UiStyle {
 	}
 
 	public get fontFamily():string {
-		return this.getProperty((s) => {
-			Logs.debug("font %s", s._fontFamily)
-			return s._fontFamily;}
-			, UiStyle.DEFAULT_FONT_FAMILY) as string;
+		return this.getProperty((s) => s._fontFamily, UiStyle.DEFAULT_FONT_FAMILY) as string;
 	}
 
 	public get lineHeight():string {

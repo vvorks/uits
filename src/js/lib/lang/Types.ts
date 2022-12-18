@@ -20,6 +20,11 @@ export class Types {
 		return typeof v === "boolean";
 	}
 
+	public static isValueType(v:any) {
+		let t = typeof v;
+		return t == "string" || t == "number" || t == "boolean";
+	}
+
 	public static isObject(v:any) {
 		return v !== null && typeof v === "object";
 	}

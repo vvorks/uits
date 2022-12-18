@@ -1,10 +1,11 @@
 import { Properties } from "../lib/lang";
 import {
-	Colors, UiApplication,
-	UiNode, UiPageNode, UiListNode, UiTextNode, UiCheckbox,
+	UiApplication,
+	UiNode, UiPageNode, UiListNode, UiTextField, UiCheckbox, UiLookupField,
 	UiNodeBuilder,
 	UiStyle, UiStyleBuilder,
-	DataSource, KeyCodes, UiTextField
+	DataSource,
+	Colors, KeyCodes, DataRecord
 } from "../lib/ui";
 import { UiResult } from "../lib/ui/UiNode";
 import { TestDataSource } from "./TestDataSource";
@@ -41,7 +42,19 @@ const LIST_STYLE:UiStyle = new UiStyleBuilder()
 	.borderSize("0px")
 	.build();
 
+const LONG_NAME_JA =
+	"寿限無寿限無五劫のすりきれ海砂利水魚の水行末雲来末風来末食う寝るところに住むところ" +
+	"やぶらこうじのぶらこうじパイポパイポパイポのシューリンガンシューリンガンのグーリンダイ" +
+	"グーリンダイのポンポコピーのポンポコナの長久命の長助";
+
+const LONG_NAME_ES =
+	"Pablo Diego José Francisco de Paula Juan Nepomuceno Cipriano de la Santísima Trinidad Ruiz y Picasso";
+
 export class TestApplication extends UiApplication {
+
+	private _datas:number[] = [40, 4, 14, 2, 30];
+
+	private _pos: number = 0;
 
 	protected initialize():void {
 
@@ -49,7 +62,36 @@ export class TestApplication extends UiApplication {
 		this.addPageFactory("#hlist", (args) => this.createHorizontalList(args));
 		this.addPageFactory("#grid", (args) => this.createGrid(args));
 
-		this.addDataSource("sample", new TestDataSource());
+		this.addDataSource("sample", new TestDataSource(() => {
+			let theData: DataRecord[] = [];
+			for (let i = 0; i < this._datas[this._pos]; i++) {
+				theData.push({
+					"a": i,
+					"b": i * 2,
+					"c": {
+						"key": "1",
+						"title": "時政",
+					},
+					"d": (i % 2) == 0 ? LONG_NAME_JA : LONG_NAME_ES,
+					"e": false
+				});
+			}
+			this._pos = (this._pos + 1) % this._datas.length;
+			return theData;
+		}));
+		this.addDataSource("sample2", new TestDataSource(() => {
+			let theData: DataRecord[] = [];
+			theData.push({"key": "1", "title": "時政"});
+			theData.push({"key": "2", "title": "義時"});
+			theData.push({"key": "3", "title": "泰時"});
+			theData.push({"key": "4", "title": "経時"});
+			theData.push({"key": "5", "title": "時頼"});
+			theData.push({"key": "6", "title": "長時"});
+			theData.push({"key": "7", "title": "政村"});
+			theData.push({"key": "8", "title": "時宗"});
+			return theData;
+		}));
+
 	}
 
 	public createVerticalList(args:Properties<string>):UiPageNode {
@@ -67,9 +109,8 @@ export class TestApplication extends UiApplication {
 				b.enter(new UiTextField(this, "b")).th(1, 2).lw(11, 10)
 						.style(DEFAULT_STYLE).focusable(true).leave();
 				{
-					b.enter(new UiTextField(this, "c")).th(3, 2).lw(11, 10)
-						.style(DEFAULT_STYLE).focusable(true);
-
+					b.enter(new UiLookupField(this, "c")).th(3, 2).lw(11, 10)
+						.style(DEFAULT_STYLE).focusable(true).dataSource("sample2");
 					b.leave();
 				}
 				b.enter(new UiTextField(this, "d")).th(1, 4).lr(21,  5)
@@ -142,6 +183,5 @@ export class TestApplication extends UiApplication {
 		}
 		return result;
 	}
-
 
 }

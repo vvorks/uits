@@ -30,3 +30,15 @@ export class LogicalError extends Error {
 	  Object.setPrototypeOf(this, new.target.prototype);
 	}
 }
+
+/**
+ * 未サポートエラー
+ */
+export class UnsupportedError extends Error {
+	constructor(message?:string) {
+	  super(message);
+	  this.name = new.target.name;
+	  Object.setPrototypeOf(this, new.target.prototype);
+	}
+}
+

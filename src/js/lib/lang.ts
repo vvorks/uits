@@ -1,11 +1,14 @@
-import {ParamError, StateError, LogicalError} from "./lang/Error";
-export {ParamError, StateError, LogicalError}
+import {ParamError, StateError, LogicalError, UnsupportedError} from "./lang/Error";
+export {ParamError, StateError, LogicalError, UnsupportedError}
 
 import {Asserts} from "./lang/Asserts";
 export {Asserts};
 
 import {Types} from "./lang/Types";
 export {Types};
+
+import {Strings} from "./lang/Strings";
+export {Strings};
 
 import {Logs} from "./lang/Logs";
 export {Logs}

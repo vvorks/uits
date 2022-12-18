@@ -21,7 +21,6 @@ export class UiImageNode extends UiNode {
 	}
 
 	protected createDomElement(target:UiNode, tag:string):HTMLElement {
-		Logs.debug("createDomElement");
 		let dom = super.createDomElement(target, tag);
 		let img = document.createElement("img");
 		let style = img.style;

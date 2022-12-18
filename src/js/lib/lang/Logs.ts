@@ -1,4 +1,4 @@
-import { sprintf, vsprintf } from "sprintf-js";
+import {sprintf  as jsprintf, vsprintf as jvsprintf} from "sprintf-js";
 
 export class Logs {
 
@@ -33,7 +33,7 @@ export class Logs {
 
 	public static message(type:string, format:string, args:any[]):string {
 		let now = new Date();
-		let message = sprintf("%02d/%02d %02d:%02d:%02d.%03d %s %s at %s",
+		let message = jsprintf("%02d/%02d %02d:%02d:%02d.%03d %s %s at %s",
 			//now.getFullYear(),
 			now.getMonth() + 1,
 			now.getDate(),
@@ -42,7 +42,7 @@ export class Logs {
 			now.getSeconds(),
 			now.getMilliseconds(),
 			type,
-			vsprintf(format, args),
+			jvsprintf(format, args),
 			Logs.getCaller()
 		);
 		return message;

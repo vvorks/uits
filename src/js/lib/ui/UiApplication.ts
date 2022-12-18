@@ -444,8 +444,6 @@ public constructor(selector:string) {
 					Logs.warn("RECOVER FOCUS!");
 					result |= UiResult.AFFECTED;
 				}
-			} else {
-				Logs.debug("focus %d", page.focusNode.id);
 			}
 		}
 		return result;

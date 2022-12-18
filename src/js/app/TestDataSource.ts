@@ -1,26 +1,21 @@
 import { Logs, ParamError, Properties, Value } from "../lib/lang";
 import { DataRecord, DataSource } from "../lib/ui";
 
-const LONG_NAME_JA =
-	"寿限無寿限無五劫のすりきれ海砂利水魚の水行末雲来末風来末食う寝るところに住むところ" +
-	"やぶらこうじのぶらこうじパイポパイポパイポのシューリンガンシューリンガンのグーリンダイ" +
-	"グーリンダイのポンポコピーのポンポコナの長久命の長助";
-
-const LONG_NAME_ES =
-	"Pablo Diego José Francisco de Paula Juan Nepomuceno Cipriano de la Santísima Trinidad Ruiz y Picasso";
-
 export class TestDataSource extends DataSource {
 
 	private _lastUpdateAt: Date;
 
 	private _records: DataRecord[];
 
+	private _loader:()=>DataRecord[];
+
 	private _loaded:boolean;
 
-	public constructor() {
+	public constructor(loader:()=>DataRecord[]) {
 		super();
 		this._lastUpdateAt = new Date();
 		this._records = [];
+		this._loader = loader;
 		this._loaded = false;
 	}
 
@@ -71,26 +66,12 @@ export class TestDataSource extends DataSource {
 
 	private simulateLoad1():void {
 		if (this.applications.length > 0) {
-			this.applications[0].runAfter(1000, () => this.simulateLoad2());
+			this.applications[0].runAfter(0, () => this.simulateLoad2());
 		}
 	}
 
-	private _datas:number[] = [40, 4, 14, 2, 30];
-	private _pos: number = 0;
-
 	private simulateLoad2(): void {
-		let theData: DataRecord[] = [];
-		for (let i = 0; i < this._datas[this._pos]; i++) {
-			theData.push({
-				"a": i,
-				"b": i * 2,
-				"c": i * 3,
-				"d": (i % 2) == 0 ? LONG_NAME_JA : LONG_NAME_ES,
-				"e": false
-			});
-		}
-		this._pos = (this._pos + 1) % this._datas.length;
-		this._records = theData;
+		this._records = this._loader();
 		this._loaded = true;
 		super.fireDataChanged();
 	}

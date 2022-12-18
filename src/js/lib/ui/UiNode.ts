@@ -1,9 +1,9 @@
 import {Rect} from "./Rect";
 import {CssLength} from "./CssLength"
 import { UiStyle } from "./UiStyle"
-import { Asserts, Clonable, Logs, StateError, Types, Value } from "../lang";
+import { Asserts, Clonable, Logs, StateError, Types, UnsupportedError, Value } from "../lang";
 import type { UiApplication } from "./UiApplication";
-import { DataSource } from "./DataSource";
+import { DataRecord, DataSource } from "./DataSource";
 import { DataHolder } from "./DataHolder";
 
  /**
@@ -88,11 +88,19 @@ export enum UiResult {
 class VoidDataHolder implements DataHolder {
 
 	getValue(name: string): Value {
-		throw new StateError("CAN NOT CALL");
+		throw new UnsupportedError();
 	}
 
 	setValue(name: string, value: Value): void {
-		throw new StateError("CAN NOT CALL");
+		throw new UnsupportedError();
+	}
+
+	getRecord():DataRecord|null {
+		throw new UnsupportedError();
+	}
+
+	setReocord(rec:DataRecord):void {
+		throw new UnsupportedError();
 	}
 
 }
