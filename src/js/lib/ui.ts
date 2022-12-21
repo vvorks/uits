@@ -1,8 +1,8 @@
 import { Rect } from "./ui/Rect";
 export { Rect };
 
-import { UiNode } from "./ui/UiNode";
-export { UiNode };
+import { UiNode, UiResult } from "./ui/UiNode";
+export { UiNode, UiResult };
 
 import { UiNodeBuilder } from "./ui/UiNodeBuilder";
 export { UiNodeBuilder }
@@ -13,6 +13,9 @@ export { UiPageNode };
 import { UiListNode } from "./ui/UiListNode";
 export { UiListNode }
 
+import { UiTextNode } from "./ui/UiTextNode"
+export { UiTextNode };
+
 import { UiTextField } from "./ui/UiTextField"
 export { UiTextField };
 
@@ -21,6 +24,12 @@ export { UiCheckbox };
 
 import { UiLookupField } from "./ui/UiLookupField"
 export { UiLookupField };
+
+import { UiScrollbar } from "./ui/UiScrollbar"
+export { UiScrollbar };
+
+import { COMPONENT_THUMB as RAW_COMPONNT_THUMB } from "./ui/UiScrollbar"
+export const COMPONENT_THUMB = RAW_COMPONNT_THUMB;
 
 import { UiApplication } from "./ui/UiApplication";
 export { UiApplication };

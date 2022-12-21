@@ -1,13 +1,13 @@
 import { Properties } from "../lib/lang";
 import {
 	UiApplication,
-	UiNode, UiPageNode, UiListNode, UiTextField, UiCheckbox, UiLookupField,
-	UiNodeBuilder,
+	UiNode, UiResult, UiNodeBuilder,
+	UiPageNode, UiListNode, UiTextNode, UiScrollbar,
+	UiTextField, UiCheckbox, UiLookupField,
 	UiStyle, UiStyleBuilder,
 	DataSource,
-	Colors, KeyCodes, DataRecord
+	Colors, KeyCodes, DataRecord, COMPONENT_THUMB
 } from "../lib/ui";
-import { UiResult } from "../lib/ui/UiNode";
 import { TestDataSource } from "./TestDataSource";
 
 const DEFAULT_STYLE:UiStyle = new UiStyleBuilder()
@@ -40,6 +40,17 @@ const GROUP_STYLE:UiStyle = new UiStyleBuilder()
 const LIST_STYLE:UiStyle = new UiStyleBuilder()
 	.backgroundColor(Colors.SILVER)
 	.borderSize("0px")
+	.build();
+
+const SB_STYLE:UiStyle = new UiStyleBuilder()
+	.backgroundColor(Colors.GRAY)
+	.borderSize("0px")
+	.build();
+
+const THUMB_STYLE:UiStyle = new UiStyleBuilder()
+	.basedOn(SB_STYLE)
+	.condition("NAMED", COMPONENT_THUMB)
+	.backgroundColor(Colors.WHITE)
 	.build();
 
 const LONG_NAME_JA =
@@ -156,19 +167,44 @@ export class TestApplication extends UiApplication {
 	}
 
 	public createGrid(args:Properties<string>):UiPageNode {
-		let page:UiPageNode = new UiPageNode(this);
-		let b = new UiNodeBuilder(page, "1rem");
-		b.inset(1).style(GROUP_STYLE);
-		for (let row = 0; row < 100; row++) {
-			for (let col = 0; col < 100; col++) {
-				b.enter(new UiNode(this));
-				b.th(row * 3 + 1, 2).lw(col * 16 + 1, 14).style(DEFAULT_STYLE);
+		const ROW = 30;
+		const COL = 30;
+		let b = new UiNodeBuilder(new UiPageNode(this), "1rem").style(GROUP_STYLE).inset(1);
+		//行ヘッダ
+		b.enter(new UiNode(this)).style(GROUP_STYLE).th(0, 3).lr(10, 1).hscroll("h");
+		for (let col = 0; col < COL; col++) {
+			b.enter(new UiTextNode(this)).style(DEFAULT_STYLE).tb(0, 0).lw(col*10, 10);
+			b.focusable(true);
+			b.textContent(`COL[${col}]`);
+			b.leave();
+		}
+		b.leave();
+		//列ヘッダ
+		b.enter(new UiNode(this)).style(GROUP_STYLE).tb(3, 1).lw(0, 10).vscroll("v");
+		for (let row = 0; row < ROW; row++) {
+			b.enter(new UiTextNode(this)).style(DEFAULT_STYLE).lr(0, 0).th(row*3, 3);
+			b.focusable(true);
+			b.textContent(`ROW[${row}]`);
+			b.leave();
+		}
+		b.leave();
+		//グリッド
+		b.enter(new UiNode(this)).style(GROUP_STYLE).tb(3, 1).lr(10, 1).hscroll("h").vscroll("v");
+		for (let row = 0; row < ROW; row++) {
+			for (let col = 0; col < COL; col++) {
+				b.enter(new UiTextNode(this)).style(DEFAULT_STYLE).th(row*3,3).lw(col*10,10);
 				b.focusable(true);
 				b.textContent(`ITEM[${row},${col}]`);
 				b.leave();
 			}
 		}
-		return page;
+		b.leave();
+		//垂直スクロールバー
+		b.enter(new UiScrollbar(this)).style(SB_STYLE).tb(3, 1).rw(0, 1).vscroll("v").leave();
+		//水平スクロールバー
+		b.enter(new UiScrollbar(this)).style(SB_STYLE).bh(0, 1).lr(10, 1).hscroll("h").leave();
+		//ページを返却
+		return b.build();
 	}
 
 	protected onKeyDown(target:UiNode, key:number, ch:number, mod:number, at:number):UiResult {

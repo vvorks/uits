@@ -236,9 +236,6 @@ export class UiListNode extends UiNode {
 		this.renumberRecs(true);
 		this.setRecsVisiblity();
 		super.onMount();
-		if (this.dataSourceName != null) {
-			this.application.attachIntoDataSource(this.dataSourceName, this);
-		}
 	}
 
 	public onDataSourceChanged(tag:string, ds:DataSource):UiResult {

@@ -1,4 +1,4 @@
-import { Asserts } from "../lang";
+import { Asserts, Types } from "../lang";
 import { Metrics } from "./Metrics";
 import { UiApplication } from "./UiApplication";
 
@@ -14,18 +14,23 @@ export class CssLength {
 
 	private _unit:string;
 
-	public constructor(arg:string) {
-		let str = arg.toLowerCase();
-		this._unit = "px";
-		for (let u of CssLength.UNITS) {
-			if (str.endsWith(u)) {
-				let mid = str.length - u.length;
-				this._unit = str.substring(mid);
-				str = str.substring(0, mid);
-				break;
+	public constructor(arg:string|number) {
+		if (Types.isString(arg)) {
+			let str = (arg as string).toLowerCase();
+			this._unit = "px";
+			for (let u of CssLength.UNITS) {
+				if (str.endsWith(u)) {
+					let mid = str.length - u.length;
+					this._unit = str.substring(mid);
+					str = str.substring(0, mid);
+					break;
+				}
 			}
+			this._value = Number(str);
+		} else {
+			this._value = arg as number;
+			this._unit = "px";
 		}
-		this._value = Number(str);
 		Asserts.require(!isNaN(this._value));
 	}
 
@@ -73,6 +78,14 @@ export class CssLength {
 			unit = "rex";
 		}
 		return `${this._value}${unit}`;
+	}
+
+	public static equals(a:CssLength|null, b:CssLength|null):boolean {
+		if (a == null || b == null) {
+			return a == b;
+		} else {
+			return a._value == b._value && a._unit == b._unit;
+		}
 	}
 
 }

@@ -7,13 +7,15 @@ import { UiTextNode } from "./UiTextNode";
 
 type Size = string|number;
 
-export class UiNodeBuilder {
+export class UiNodeBuilder<T extends UiNode> {
 
+	private _root: T;
 	private _node: UiNode;
 
 	private _defaultLength:CssLength;
 
-	public constructor(node:UiNode, len:string = "1px") {
+	public constructor(node:T, len:string = "1px") {
+		this._root = node;
 		this._node = node;
 		this._defaultLength = new CssLength(len);
 	}
@@ -29,38 +31,38 @@ export class UiNodeBuilder {
 		}
 	}
 
-	public lw(left:Size, width:Size):UiNodeBuilder {
+	public lw(left:Size, width:Size):UiNodeBuilder<T> {
 		this._node.left = this.toValue(left);
 		this._node.width = this.toValue(width);
 		return this;
 	}
 
-	public rw(right:Size, width:Size):UiNodeBuilder {
+	public rw(right:Size, width:Size):UiNodeBuilder<T> {
 		this._node.right = this.toValue(right);
 		this._node.width = this.toValue(width);
 		return this;
 	}
 
-	public lr(left:Size, right:Size, width?:Size):UiNodeBuilder {
+	public lr(left:Size, right:Size, width?:Size):UiNodeBuilder<T> {
 		this._node.left = this.toValue(left);
 		this._node.right = this.toValue(right);
 		this._node.width = Types.isUndefined(width) ? null : this.toValue(width as Size);
 		return this;
 	}
 
-	public th(top:Size, height:Size):UiNodeBuilder {
+	public th(top:Size, height:Size):UiNodeBuilder<T> {
 		this._node.top = this.toValue(top);
 		this._node.height = this.toValue(height);
 		return this;
 	}
 
-	public bh(bottom:Size, height:Size):UiNodeBuilder {
+	public bh(bottom:Size, height:Size):UiNodeBuilder<T> {
 		this._node.bottom = this.toValue(bottom);
 		this._node.height = this.toValue(height);
 		return this;
 	}
 
-	public tb(top:Size, bottom:Size, height?:Size):UiNodeBuilder {
+	public tb(top:Size, bottom:Size, height?:Size):UiNodeBuilder<T> {
 		this._node.top = this.toValue(top);
 		this._node.bottom = this.toValue(bottom);
 		this._node.height = Types.isUndefined(height) ? null : this.toValue(height as Size);
@@ -71,7 +73,7 @@ export class UiNodeBuilder {
 		left:Size, top:Size,
 		right:Size, bottom: Size,
 		width:Size, height:Size
-	):UiNodeBuilder {
+	):UiNodeBuilder<T> {
 		this._node.left = this.toValue(left);
 		this._node.top = this.toValue(top);
 		this._node.right = this.toValue(right);
@@ -81,71 +83,85 @@ export class UiNodeBuilder {
 		return this;
 	}
 
-	public inset(v:Size):UiNodeBuilder {
+	public inset(v:Size):UiNodeBuilder<T> {
 		this._node.inset = this.toValue(v);
 		return this;
 	}
 
-	public style(value:UiStyle):UiNodeBuilder {
+	public style(value:UiStyle):UiNodeBuilder<T> {
 		this._node.style = value;
 		return this;
 	}
 
-	public visible(value:boolean):UiNodeBuilder {
+	public visible(value:boolean):UiNodeBuilder<T> {
 		this._node.visible = value;
 		return this;
 	}
 
-	public enable(value:boolean):UiNodeBuilder {
+	public enable(value:boolean):UiNodeBuilder<T> {
 		this._node.enable = value;
 		return this;
 	}
 
-	public focusable(value:boolean):UiNodeBuilder {
+	public focusable(value:boolean):UiNodeBuilder<T> {
 		this._node.focusable = value;
 		return this;
 	}
 
-	public editable(value:boolean):UiNodeBuilder {
+	public editable(value:boolean):UiNodeBuilder<T> {
 		this._node.editable = value;
 		return this;
 	}
 
-	public textContent(value:Value):UiNodeBuilder {
+	public textContent(value:Value):UiNodeBuilder<T> {
 		if (this._node instanceof UiTextNode) {
 			(this._node as UiTextNode).textContent = value;
 		}
 		return this;
 	}
 
-	public dataSource(name:string):UiNodeBuilder {
+	public dataSource(name:string):UiNodeBuilder<T> {
 		this._node.dataSourceName = name;
 		return this;
 	}
 
-	public loop(value:boolean):UiNodeBuilder {
+	public vscroll(name:string):UiNodeBuilder<T> {
+		this._node.vScrollName = name;
+		return this;
+	}
+
+	public hscroll(name:string):UiNodeBuilder<T> {
+		this._node.hScrollName = name;
+		return this;
+	}
+
+	public loop(value:boolean):UiNodeBuilder<T> {
 		if (this._node instanceof UiListNode) {
 			(this._node as UiListNode).loop = value;
 		}
 		return this;
 	}
 
-	public vertical(value:boolean):UiNodeBuilder {
+	public vertical(value:boolean):UiNodeBuilder<T> {
 		if (this._node instanceof UiListNode) {
 			(this._node as UiListNode).vertical = value;
 		}
 		return this;
 	}
 
-	public enter(child:UiNode):UiNodeBuilder {
+	public enter(child:UiNode):UiNodeBuilder<T> {
 		this._node.appendChild(child);
 		this._node = child;
 		return this;
 	}
 
-	public leave():UiNodeBuilder {
+	public leave():UiNodeBuilder<T> {
 		this._node = this._node.parent as UiNode;
 		return this;
+	}
+
+	public build():T {
+		return this._root;
 	}
 
 }

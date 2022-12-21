@@ -1,10 +1,12 @@
 import {Rect} from "./Rect";
 import {CssLength} from "./CssLength"
 import { UiStyle } from "./UiStyle"
-import { Asserts, Clonable, Logs, StateError, Types, UnsupportedError, Value } from "../lang";
+import { Asserts, Clonable, UnsupportedError, Value } from "../lang";
 import type { UiApplication } from "./UiApplication";
 import { DataRecord, DataSource } from "./DataSource";
 import { DataHolder } from "./DataHolder";
+import { Scrollable } from "./Scrollable";
+import { UiPageNode } from "./UiPageNode";
 
  /**
  * UiNodeフラグ定義
@@ -42,6 +44,9 @@ export enum Flags {
 
 	/** 初期フラグ値 */
 	INITIAL			= ENABLE|VISIBLE,
+
+	/** クローン時に引き継ぐフラグ */
+	CLONABLE_FLAGS	= FOCUSABLE|ENABLE|VISIBLE|EDITABLE,
 
 }
 
@@ -108,7 +113,7 @@ class VoidDataHolder implements DataHolder {
 /**
  * UiNode
  */
-export class UiNode implements Clonable<UiNode> {
+export class UiNode implements Clonable<UiNode>, Scrollable {
 
 	public static readonly VOID_DATA_HOLDER:DataHolder = new VoidDataHolder()
 
@@ -119,6 +124,10 @@ export class UiNode implements Clonable<UiNode> {
 	private _name:string;
 
 	private _dataSourceName: string|null;
+
+	private _hScrollName: string|null;
+
+	private _vScrollName: string|null;
 
 	private _left:CssLength|null;
 
@@ -182,8 +191,9 @@ export class UiNode implements Clonable<UiNode> {
 			this._application = src._application;
 			this._id = UiNode.issue();
 			this._name = src._name;
-			// this._content = src._content;
 			this._dataSourceName = src._dataSourceName;
+			this._hScrollName = src._hScrollName;
+			this._vScrollName = src._vScrollName;
 			this._left = src._left;
 			this._top = src._top;
 			this._right = src._right;
@@ -203,7 +213,7 @@ export class UiNode implements Clonable<UiNode> {
 			for (let c of src._children) {
 				this.appendChild(c.clone());
 			}
-			this._flags = src._flags;
+			this._flags = src._flags & Flags.CLONABLE_FLAGS;
 			this._changed = src._changed;
 			this._domElement = null;
 			this._endElement = null;
@@ -212,8 +222,9 @@ export class UiNode implements Clonable<UiNode> {
 			this._application = app;
 			this._id = UiNode.issue();
 			this._name = (name != null ? name : this.className + this._id);
-			// this._content = null;
-			this._dataSourceName = "";
+			this._dataSourceName = null;
+			this._hScrollName = null;
+			this._vScrollName = null;
 			this._left = null;
 			this._top = null;
 			this._right = null;
@@ -265,16 +276,64 @@ export class UiNode implements Clonable<UiNode> {
 	}
 
 	public set dataSourceName(name:string|null) {
-		this._dataSourceName = name;
+		if (this.mounted) {
+			if (this.dataSourceName != null) {
+				this.application.detachFromDataSource(this.dataSourceName, this);
+			}
+			this._dataSourceName = name;
+			if (this.dataSourceName != null) {
+				this.application.attachIntoDataSource(this.dataSourceName, this);
+			}
+		} else {
+			this._dataSourceName = name;
+		}
+	}
+
+	public get hScrollName():string|null {
+		return this._hScrollName;
+	}
+
+	public set hScrollName(name:string|null) {
+		if (this.mounted) {
+			let page = this.getPageNode() as UiPageNode;
+			if (this._hScrollName != null) {
+				page.detachHScroll(this._hScrollName, this);
+			}
+			this._hScrollName = name;
+			if (this._hScrollName != null) {
+				page.attachHScroll(this._hScrollName, this);
+			}
+		} else {
+			this._hScrollName = name;
+		}
+	}
+
+	public get vScrollName():string|null {
+		return this._vScrollName;
+	}
+
+	public set vScrollName(name:string|null) {
+		if (this.mounted) {
+			let page = this.getPageNode() as UiPageNode;
+			if (this._vScrollName != null) {
+				page.detachVScroll(this._vScrollName, this);
+			}
+			this._vScrollName = name;
+			if (this._vScrollName != null) {
+				page.attachVScroll(this._vScrollName, this);
+			}
+		} else {
+			this._vScrollName = name;
+		}
 	}
 
 	public get left():string|null {
 		return (this._left == null ? null : this._left.toString());
 	}
 
-	public set left(str:string|null) {
-		let value:CssLength|null = (str == null ? null : new CssLength(str));
-		if (this._left != value) {
+	public set left(arg:string|number|null) {
+		let value:CssLength|null = (arg == null ? null : new CssLength(arg));
+		if (!CssLength.equals(this._left, value)) {
 			this._left = value;
 			this.onLocationChanged();
 		}
@@ -284,9 +343,9 @@ export class UiNode implements Clonable<UiNode> {
 		return (this._top == null ? null : this._top.toString());
 	}
 
-	public set top(str:string|null) {
-		let value:CssLength|null = (str == null ? null : new CssLength(str));
-		if (this._top != value) {
+	public set top(arg:string|number|null) {
+		let value:CssLength|null = (arg == null ? null : new CssLength(arg));
+		if (!CssLength.equals(this._top, value)) {
 			this._top = value;
 			this.onLocationChanged();
 		}
@@ -296,9 +355,9 @@ export class UiNode implements Clonable<UiNode> {
 		return (this._right == null ? null : this._right.toString());
 	}
 
-	public set right(str:string|null) {
-		let value:CssLength|null = (str == null ? null : new CssLength(str));
-		if (this._right != value) {
+	public set right(arg:string|number|null) {
+		let value:CssLength|null = (arg == null ? null : new CssLength(arg));
+		if (!CssLength.equals(this._right, value)) {
 			this._right = value;
 			this.onLocationChanged();
 		}
@@ -308,9 +367,9 @@ export class UiNode implements Clonable<UiNode> {
 		return (this._bottom == null ? null : this._bottom.toString());
 	}
 
-	public set bottom(str:string|null) {
-		let value:CssLength|null = (str == null ? null : new CssLength(str));
-		if (this._bottom != value) {
+	public set bottom(arg:string|number|null) {
+		let value:CssLength|null = (arg == null ? null : new CssLength(arg));
+		if (!CssLength.equals(this._bottom, value)) {
 			this._bottom = value;
 			this.onLocationChanged();
 		}
@@ -320,9 +379,9 @@ export class UiNode implements Clonable<UiNode> {
 		return (this._width == null ? null : this._width.toString());
 	}
 
-	public set width(str:string|null) {
-		let value:CssLength|null = (str == null ? null : new CssLength(str));
-		if (this._width != value) {
+	public set width(arg:string|number|null) {
+		let value:CssLength|null = (arg == null ? null : new CssLength(arg));
+		if (!CssLength.equals(this._width, value)) {
 			this._width = value;
 			this.onLocationChanged();
 		}
@@ -332,21 +391,37 @@ export class UiNode implements Clonable<UiNode> {
 		return (this._height == null ? null : this._height.toString());
 	}
 
-	public set height(str:string|null) {
-		let value:CssLength|null = (str == null ? null : new CssLength(str));
-		if (this._height != value) {
+	public set height(arg:string|number|null) {
+		let value:CssLength|null = (arg == null ? null : new CssLength(arg));
+		if (!CssLength.equals(this._height, value)) {
 			this._height = value;
 			this.onLocationChanged();
 		}
 	}
 
-	public set inset(str:string) {
-		this.left = str;
-		this.top = str;
-		this.right = str;
-		this.bottom = str;
+	public set inset(arg:string|number) {
+		this.left = arg;
+		this.top = arg;
+		this.right = arg;
+		this.bottom = arg;
 		this.width = null;
 		this.height = null;
+	}
+
+	public locate(
+		left:string|number|null,
+		top:string|number|null,
+		right:string|number|null,
+		bottom:string|number|null,
+		width:string|number|null,
+		height:string|number|null
+	):void {
+		this.left = left;
+		this.top = top;
+		this.right = right;
+		this.bottom = bottom;
+		this.width = width;
+		this.height = height;
 	}
 
 	protected onLocationChanged():void {
@@ -360,8 +435,9 @@ export class UiNode implements Clonable<UiNode> {
 
 	public set scrollLeft(str:string|null) {
 		let value:CssLength|null = (str == null ? null : new CssLength(str));
-		if (this._scrollLeft != value) {
+		if (!CssLength.equals(this._scrollLeft, value)) {
 			this._scrollLeft = value;
+			this.fireHScroll();
 			this.onScrollChanged();
 		}
 	}
@@ -372,8 +448,9 @@ export class UiNode implements Clonable<UiNode> {
 
 	public set scrollTop(str:string|null) {
 		let value:CssLength|null = (str == null ? null : new CssLength(str));
-		if (this._scrollTop != value) {
+		if (!CssLength.equals(this._scrollTop, value)) {
 			this._scrollTop = value;
+			this.fireVScroll();
 			this.onScrollChanged();
 		}
 	}
@@ -384,8 +461,9 @@ export class UiNode implements Clonable<UiNode> {
 
 	public set scrollWidth(str:string|null) {
 		let value:CssLength|null = (str == null ? null : new CssLength(str));
-		if (this._scrollWidth != value) {
+		if (!CssLength.equals(this._scrollWidth, value)) {
 			this._scrollWidth = value;
+			this.fireHScroll();
 			this.onScrollChanged();
 		}
 	}
@@ -396,8 +474,9 @@ export class UiNode implements Clonable<UiNode> {
 
 	public set scrollHeight(str:string|null) {
 		let value:CssLength|null = (str == null ? null : new CssLength(str));
-		if (this._scrollHeight != value) {
+		if (!CssLength.equals(this._scrollHeight, value)) {
 			this._scrollHeight = value;
+			this.fireVScroll();
 			this.onScrollChanged();
 		}
 	}
@@ -431,6 +510,8 @@ export class UiNode implements Clonable<UiNode> {
 		}
 		this._children.push(child);
 		child.parent = this;
+		this.fireHScroll();
+		this.fireVScroll();
 		this.onScrollChanged();
 	}
 
@@ -441,6 +522,8 @@ export class UiNode implements Clonable<UiNode> {
 		}
 		this._children.splice(index, 1);
 		child.parent = null;
+		this.fireHScroll();
+		this.fireVScroll();
 		this.onScrollChanged();
 	}
 
@@ -477,6 +560,49 @@ export class UiNode implements Clonable<UiNode> {
 
 	protected onHierarchyChanged():void {
 		this.setChanged(Changed.HIERARCHY, true);
+	}
+
+
+	public onHScroll(source:Scrollable, offset:number, limit:number, count:number):void {
+		let rect = this.getScrollRect();
+		limit = this.innerWidth;
+		count = rect.width;
+		offset = Math.min(Math.max(0, offset), count - limit);
+		if (offset != rect.left) {
+			this.scrollLeft = `${offset}px`;
+		}
+	}
+
+	public onVScroll(source:Scrollable, offset:number, limit:number, count:number):void {
+		let rect = this.getScrollRect();
+		limit = this.innerHeight;
+		count = rect.height;
+		offset = Math.min(Math.max(0, offset), count - limit);
+		if (offset != rect.top) {
+			this.scrollTop = `${offset}px`;
+		}
+	}
+
+	public fireHScroll():void {
+		let page = this.getPageNode() as UiPageNode;
+		if (this.mounted && this._hScrollName != null) {
+			let rect = this.getScrollRect();
+			let limit = this.innerWidth;
+			let count = rect.width;
+			let offset = Math.min(Math.max(0, rect.left), count - limit);
+			page.dispatchHScroll(this._hScrollName, this, offset, limit, count);
+		}
+	}
+
+	public fireVScroll():void {
+		let page = this.getPageNode() as UiPageNode;
+		if (this.mounted && this._vScrollName != null) {
+			let rect = this.getScrollRect();
+			let limit = this.innerHeight;
+			let count = rect.height;
+			let offset = Math.min(Math.max(0, rect.top), count - limit);
+			page.dispatchVScroll(this._vScrollName, this, offset, limit, count);
+		}
 	}
 
 	public get style():UiStyle {
@@ -832,11 +958,31 @@ export class UiNode implements Clonable<UiNode> {
 		for (let c of this._children) {
 			c.onMount();
 		}
+		if (this.dataSourceName != null) {
+			this.application.attachIntoDataSource(this.dataSourceName, this);
+		}
+		let page = this.getPageNode() as UiPageNode;
+		if (this._hScrollName != null) {
+			page.attachHScroll(this._hScrollName, this);
+		}
+		if (this._vScrollName != null) {
+			page.attachVScroll(this._vScrollName, this);
+		}
 		this.mounted = true;
 	}
 
 	public onUnmount():void {
 		this.mounted = false;
+		let page = this.getPageNode() as UiPageNode;
+		if (this._vScrollName != null) {
+			page.detachVScroll(this._vScrollName, this);
+		}
+		if (this._hScrollName != null) {
+			page.detachHScroll(this._hScrollName, this);
+		}
+		if (this.dataSourceName != null) {
+			this.application.detachFromDataSource(this.dataSourceName, this);
+		}
 		for (let c of this._children) {
 			c.onUnmount();
 		}
