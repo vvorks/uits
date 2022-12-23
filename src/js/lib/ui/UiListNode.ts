@@ -3,8 +3,10 @@ import { Colors } from "./Colors";
 import { DataHolder } from "./DataHolder";
 import { DataRecord, DataSource } from "./DataSource";
 import { Rect } from "./Rect";
+import { Scrollable } from "./Scrollable";
 import { UiApplication, UiAxis } from "./UiApplication";
 import { Flags, UiNode, UiResult } from "./UiNode";
+import { UiPageNode } from "./UiPageNode";
 import { UiStyle, UiStyleBuilder } from "./UiStyle";
 
 /**
@@ -246,7 +248,7 @@ export class UiListNode extends UiNode {
 			//最初の通知
 			let oldFocusable = this.focusable;
 			this._dataSource = ds;
-			this.resetTopIndex();
+			this._pageTopIndex = this.validateIndex(0); //TODO 仮
 			this.adjustScroll();
 			this.renumberRecs(true);
 			this.setRecsVisiblity();
@@ -257,12 +259,14 @@ export class UiListNode extends UiNode {
 		} else {
 			//２回目以降の通知
 			let info = this.saveFocus();
-			this.resetTopIndex();
+			this._pageTopIndex = this.validateIndex(this._pageTopIndex);
 			this.adjustScroll();
 			this.renumberRecs(true);
 			this.setRecsVisiblity();
 			this.restoreFocus(info);
 		}
+		this.fireHScroll();
+		this.fireVScroll();
 		return UiResult.EATEN;
 	}
 
@@ -414,18 +418,15 @@ export class UiListNode extends UiNode {
 		}
 	}
 
-	protected resetTopIndex():boolean {
+	protected validateIndex(index:number):number {
 		let count = Math.max(0, this.count());
 		let limit = 0;
-		let index = this._pageTopIndex;
 		if (this.loop && count >= this._recsPerPage) {
 			limit = count - 1;
 		} else {
 			limit = Math.max(0, count - this._recsPerPage);
 		}
-		this._pageTopIndex = Math.min(Math.max(0, index), limit);
-		let changed = this._pageTopIndex != index;
-		return changed;
+		return Math.min(Math.max(0, index), limit);
 	}
 
 	protected adjustScroll() {
@@ -547,6 +548,64 @@ export class UiListNode extends UiNode {
 			result |= UiResult.AFFECTED;
 		}
 		return result;
+	}
+
+	public onVScroll(source:Scrollable, offset:number, limit:number, count:number):void {
+		this._pageTopIndex = this.validateIndex(Math.floor(offset / this._recSize));
+		this.adjustScroll();
+		this.renumberRecs(true);
+		this.setRecsVisiblity();
+		let remain = (offset % this._recSize) + (MARGIN * this._recSize);
+		this.scrollTop = `${remain}px`;
+	}
+
+	public onHScroll(source:Scrollable, offset:number, limit:number, count:number):void {
+		this._pageTopIndex = this.validateIndex(Math.floor(offset / this._recSize));
+		this.adjustScroll();
+		this.renumberRecs(true);
+		this.setRecsVisiblity();
+		let remain = (offset % this._recSize) + (MARGIN * this._recSize);
+		this.scrollLeft = `${remain}px`;
+	}
+
+	public fireVScroll():void {
+		let page = this.getPageNode() as UiPageNode;
+		let count = Math.max(0, this.count());
+		if (!this.vertical) {
+			super.fireVScroll();
+		} else if (!(this.mounted && this.vScrollName != null)) {
+			//NOP
+		} else if (count >= this._recsPerPage) {
+			let scroll = this.getScrollRect();
+			let margin = this._recSize * MARGIN;
+			let index = this._pageTopIndex;
+			let offset = index * this._recSize + (scroll.y - margin);
+			let limit = this._pageSize;
+			let totalSize = count * this._recSize;
+			page.dispatchVScroll(this.vScrollName, this, offset, limit, totalSize);
+		} else {
+			page.dispatchVScroll(this.vScrollName, this, 0, this._pageSize, this._pageSize);
+		}
+	}
+
+	public fireHScroll():void {
+		let page = this.getPageNode() as UiPageNode;
+		let count = Math.max(0, this.count());
+		if (this.vertical) {
+			super.fireHScroll();
+		} else if (!(this.mounted && this.hScrollName != null)) {
+			//NOP
+		} else if (count >= this._recsPerPage) {
+			let scroll = this.getScrollRect();
+			let margin = this._recSize * MARGIN;
+			let index = this._pageTopIndex;
+			let offset = index * this._recSize + (scroll.x - margin);
+			let limit = this._pageSize;
+			let totalSize = count * this._recSize;
+			page.dispatchHScroll(this.hScrollName, this, offset, limit, totalSize);
+		} else {
+			page.dispatchHScroll(this.hScrollName, this, 0, this._pageSize, this._pageSize);
+		}
 	}
 
 }

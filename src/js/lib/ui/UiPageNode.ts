@@ -4,11 +4,20 @@ import { UiApplication } from "./UiApplication";
 import { Changed, UiNode } from "./UiNode";
 import { UiStyle } from "./UiStyle";
 
+enum PageFlags {
+	INITIAL = 0,
+	INITIALIZED = 1,
+}
+
 export class UiPageNode extends UiNode {
 
 	private _hScrollables: Properties<Scrollable[]>;
 
 	private _vScrollables: Properties<Scrollable[]>;
+
+	private _arguments: Properties<string>;
+
+	private _pageFlags: PageFlags;
 
 	public get className():string {
 		return "UiPageNode";
@@ -18,13 +27,18 @@ export class UiPageNode extends UiNode {
 		return new UiPageNode(this);
 	}
 
-	constructor(app:UiApplication, name?:string);
+	constructor(app:UiApplication, args?:Properties<string>);
 	constructor(src:UiPageNode);
-	public constructor(param:any, name?:string) {
+	public constructor(param:any, args?:Properties<string>) {
 		if (param instanceof UiPageNode) {
 			super(param as UiPageNode);
+			let src = param as UiPageNode;
+			this._arguments = src._arguments;
+			this._pageFlags = src._pageFlags;
 		} else {
-			super(param as UiApplication, name);
+			super(param as UiApplication);
+			this._arguments = (args === undefined) ? {} : args;
+			this._pageFlags = PageFlags.INITIAL;
 		}
 		this._hScrollables = {};
 		this._vScrollables = {};
@@ -34,11 +48,42 @@ export class UiPageNode extends UiNode {
 		return this;
 	}
 
+	public get initialized():boolean {
+		return this.getPageFlag(PageFlags.INITIALIZED);
+	}
+
+	public set initialized(on:boolean) {
+		this.setPageFlag(PageFlags.INITIALIZED, on);
+	}
+
+	protected getPageFlag(bit:PageFlags):boolean {
+		return !!(this._pageFlags & bit);
+	}
+
+	protected setPageFlag(bit:PageFlags, on:boolean):boolean {
+		let changed:boolean = (this.getPageFlag(bit) != on);
+		if (changed) {
+			if (on) {
+				this._pageFlags |= bit;
+			} else {
+				this._pageFlags &= ~bit;
+			}
+		}
+		return changed;
+	}
+
 	public onMount():void {
+		if (!this.initialized) {
+			this.initialize(this._arguments);
+			this.initialized = true;
+		}
 		super.onMount();
 		this.initScroll(this._hScrollables, (s)=>s.fireHScroll());
 		this.initScroll(this._vScrollables, (s)=>s.fireVScroll());
 		this.setChanged(Changed.STYLE, true);
+	}
+
+	protected initialize(args:Properties<string>):void {
 	}
 
 	private initScroll(prop:Properties<Scrollable[]>, func:(s:Scrollable)=>void) {

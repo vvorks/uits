@@ -562,7 +562,6 @@ export class UiNode implements Clonable<UiNode>, Scrollable {
 		this.setChanged(Changed.HIERARCHY, true);
 	}
 
-
 	public onHScroll(source:Scrollable, offset:number, limit:number, count:number):void {
 		let rect = this.getScrollRect();
 		limit = this.innerWidth;
