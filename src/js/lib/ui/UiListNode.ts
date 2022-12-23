@@ -2,6 +2,7 @@ import { Asserts, Logs, StateError, Value } from "../lang";
 import { Colors } from "./Colors";
 import { DataHolder } from "./DataHolder";
 import { DataRecord, DataSource } from "./DataSource";
+import { KeyCodes } from "./KeyCodes";
 import { Rect } from "./Rect";
 import { Scrollable } from "./Scrollable";
 import { UiApplication, UiAxis } from "./UiApplication";
@@ -481,17 +482,17 @@ export class UiListNode extends UiNode {
 	public scrollFor(node:UiNode):UiResult {
 		let result = super.scrollFor(node);
 		if (this.vertical) {
-			result |= this.slideVertical();
+			result |= this.slideVertical(0);
 		} else {
-			result |= this.slideHorizontal();
+			result |= this.slideHorizontal(0);
 		}
 		return result;
 	}
 
-	protected slideVertical():UiResult {
+	protected slideVertical(dy:number):UiResult {
 		let scroll = this.getScrollRect();
 		let margin = this._recSize * MARGIN;
-		let y = scroll.y;
+		let y = scroll.y + dy;
 		let result = UiResult.IGNORED;
 		let count = this.count();
 		let index = this._pageTopIndex;
@@ -519,10 +520,10 @@ export class UiListNode extends UiNode {
 		return result;
 	}
 
-	protected slideHorizontal():UiResult {
+	protected slideHorizontal(dx:number):UiResult {
 		let scroll = this.getScrollRect();
 		let margin = this._recSize * MARGIN;
-		let x = scroll.x;
+		let x = scroll.x + dx;
 		let result = UiResult.IGNORED;
 		let count = this.count();
 		let index = this._pageTopIndex;
@@ -577,11 +578,12 @@ export class UiListNode extends UiNode {
 			//NOP
 		} else if (count >= this._recsPerPage) {
 			let scroll = this.getScrollRect();
+			let rTemplate = this._templateRect as Rect;
 			let margin = this._recSize * MARGIN;
 			let index = this._pageTopIndex;
 			let offset = index * this._recSize + (scroll.y - margin);
 			let limit = this._pageSize;
-			let totalSize = count * this._recSize;
+			let totalSize = count * this._recSize + rTemplate.top;
 			page.dispatchVScroll(this.vScrollName, this, offset, limit, totalSize);
 		} else {
 			page.dispatchVScroll(this.vScrollName, this, 0, this._pageSize, this._pageSize);
@@ -597,15 +599,51 @@ export class UiListNode extends UiNode {
 			//NOP
 		} else if (count >= this._recsPerPage) {
 			let scroll = this.getScrollRect();
+			let rTemplate = this._templateRect as Rect;
 			let margin = this._recSize * MARGIN;
 			let index = this._pageTopIndex;
 			let offset = index * this._recSize + (scroll.x - margin);
 			let limit = this._pageSize;
-			let totalSize = count * this._recSize;
+			let totalSize = count * this._recSize + rTemplate.left;
 			page.dispatchHScroll(this.hScrollName, this, offset, limit, totalSize);
 		} else {
 			page.dispatchHScroll(this.hScrollName, this, 0, this._pageSize, this._pageSize);
 		}
+	}
+
+	public onMouseWheel(target:UiNode, x:number, y:number,
+			dx:number, dy:number, mod:number, at:number):UiResult {
+		let count = Math.max(0, this.count());
+		if (count < this._recsPerPage) {
+			return UiResult.IGNORED;
+		}
+		let result = UiResult.CONSUMED;
+		if (mod & KeyCodes.MOD_SHIFT) {
+			let dt = dx;
+			dx = dy;
+			dy = dt;
+		}
+		let scroll = this.getScrollRect();
+		let margin = this._recSize * MARGIN;
+		let rTemplate = this._templateRect as Rect;
+		if (this.vertical) {
+			if (!this.loop) {
+				let maxOffset = count * this._recSize + rTemplate.top - this._pageSize;
+				let oldOffset = this._pageTopIndex * this._recSize + (scroll.y - margin);
+				let newOffset = Math.min(Math.max(0, oldOffset + dy), maxOffset);
+				dy = newOffset - oldOffset;
+			}
+			result |= this.slideVertical(dy);
+		} else {
+			if (!this.loop) {
+				let maxOffset = count * this._recSize + rTemplate.left - this._pageSize;
+				let oldOffset = this._pageTopIndex * this._recSize + (scroll.x - margin);
+				let newOffset = Math.min(Math.max(0, oldOffset + dx), maxOffset);
+				dx = newOffset - oldOffset;
+			}
+			result |= this.slideHorizontal(dx);
+		}
+		return result;
 	}
 
 }

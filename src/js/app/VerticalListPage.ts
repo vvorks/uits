@@ -13,7 +13,7 @@ export class VerticalListPage extends UiPageNode {
 			b.enter(new UiNode(app, "西")).tb(4,4).lw(1,2).style(DEFAULT_STYLE).focusable(true).leave();
 			{
 				b.enter(new UiListNode(app)).tb(4,4).lr(4,5).style(LIST_STYLE)
-				.dataSource("sample").vscroll("v").loop(true);
+				.dataSource("sample").vscroll("v").loop(false);
 				b.enter(new UiTextField(app, "a")).th(1, 4).lw( 1, 10)
 						.style(DEFAULT_STYLE).focusable(true).leave();
 				b.enter(new UiTextField(app, "b")).th(1, 2).lw(11, 10)

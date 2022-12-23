@@ -200,6 +200,8 @@ export class UiApplication {
 
 	private _busy:boolean = false;
 
+	private _wheelScale: number;
+
 	private _finallyTasks: Runnable[];
 
 public constructor(selector:string) {
@@ -212,6 +214,7 @@ public constructor(selector:string) {
 		this._captureNode = null;
 		this._clientWidth = 0;
 		this._clientHeight = 0;
+		this._wheelScale = 0.5;
 		this._finallyTasks = [];
 		window.onload = (evt:Event) => {this.onLoad(evt)};
 	}
@@ -232,6 +235,14 @@ public constructor(selector:string) {
 
 	public get clientHeight(): number {
 		return this._clientHeight;
+	}
+
+	public get wheelScale(): number {
+		return this._wheelScale;
+	}
+
+	public set wheelScale(scale:number) {
+		this._wheelScale = scale;
 	}
 
 	public onLoad(evt:Event):void {
@@ -756,22 +767,22 @@ public constructor(selector:string) {
 		try {
 			let x = evt.clientX;
 			let y = evt.clientY;
-			let dx = 0;
-			let dy = evt.deltaY; //TODO MULTIPLY WHEEL_SCALE
+			let dx = evt.deltaX * this.wheelScale;
+			let dy = evt.deltaY * this.wheelScale;
 			let mod = this.getMouseModifier(evt);
 			let at = evt.timeStamp;
 			Logs.info("mouseWheel x=%d y=%d dx=%d dy=%d mod=0x%x", x, y, dx, dy, mod);
 			let pt:Rect = new Rect().locate(x, y, 1, 1,);
 			let target:UiNode = this.getMouseTarget(pt);
 			let node:UiNode = target;
-			let result = node.onMouseDoubleClick(target, pt.x, pt.y, mod, at);
+			let result = node.onMouseWheel(target, pt.x, pt.y, dx, dy, mod, at);
 			while (!(result & UiResult.CONSUMED) && node.parent != null) {
 				node.translate(pt, +1);
 				node = node.parent;
-				result |= node.onMouseDoubleClick(target, pt.x, pt.y, mod, at);
+				result |= node.onMouseWheel(target, pt.x, pt.y, dx, dy, mod, at);
 			}
 			if (!(result & UiResult.CONSUMED)) {
-				result |= this.onMouseDoubleClick(target, pt.x, pt.y, mod, at);
+				result |= this.onMouseWheel(target, pt.x, pt.y, dx, dy, mod, at);
 			}
 			//後処理
 			this.postProcessEvent(evt, result);
@@ -893,7 +904,7 @@ public constructor(selector:string) {
 			this.sync();
 		}
 		if (result & UiResult.CONSUMED) {
-			if (evt != null) {
+			if (evt != null && !(evt instanceof WheelEvent)) {
 				evt.preventDefault();
 			}
 		}

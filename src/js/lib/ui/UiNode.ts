@@ -7,6 +7,7 @@ import { DataRecord, DataSource } from "./DataSource";
 import { DataHolder } from "./DataHolder";
 import { Scrollable } from "./Scrollable";
 import { UiPageNode } from "./UiPageNode";
+import { KeyCodes } from "./KeyCodes";
 
  /**
  * UiNodeフラグ定義
@@ -1154,8 +1155,34 @@ export class UiNode implements Clonable<UiNode>, Scrollable {
 		return UiResult.IGNORED;
 	}
 
-	public onMouseWheel(target:UiNode, x:number, y:number, dx:number, dy:number, mod:number, at:number):UiResult {
-		return UiResult.IGNORED;
+	public onMouseWheel(target:UiNode, x:number, y:number,
+			dx:number, dy:number, mod:number, at:number):UiResult {
+		let result = UiResult.IGNORED;
+		if (mod & KeyCodes.MOD_SHIFT) {
+			let dt = dx;
+			dx = dy;
+			dy = dt;
+		}
+		let rect = this.getScrollRect();
+		if (dx != 0) {
+			let limit = this.innerWidth;
+			let count = rect.width;
+			let offset = Math.min(Math.max(0, rect.left + dx), count - limit);
+			if (offset != rect.left) {
+				this.scrollLeft = `${offset}px`;
+				result = UiResult.EATEN;
+			}
+		}
+		if (dy != 0) {
+			let limit = this.innerHeight;
+			let count = rect.height;
+			let offset = Math.min(Math.max(0, rect.top + dy), count - limit);
+			if (offset != rect.top) {
+				this.scrollTop = `${offset}px`;
+				result = UiResult.EATEN;
+			}
+		}
+		return result;
 	}
 
 	public onDataSourceChanged(tag:string, ds:DataSource):UiResult {
