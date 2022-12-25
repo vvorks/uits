@@ -65,9 +65,7 @@ export class TestDataSource extends DataSource {
 	}
 
 	private simulateLoad1():void {
-		if (this.applications.length > 0) {
-			this.applications[0].runAfter(0, () => this.simulateLoad2());
-		}
+		window.setTimeout(() => this.simulateLoad2(), 0);
 	}
 
 	private simulateLoad2(): void {

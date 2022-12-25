@@ -1,4 +1,4 @@
-import { Asserts, Properties, Logs, StateError, ParamError } from "../lang";
+import { Asserts, Properties, Logs, StateError, ParamError, Arrays } from "../lang";
 import { Metrics } from "./Metrics";
 import { UiNode, UiResult } from "./UiNode";
 import { UiRootNode } from "./UiRootNode";
@@ -19,7 +19,9 @@ enum PageType {
 	TOAST,
 }
 
-type Runnable = ()=>void;
+type RunFinallyTask = () => void;
+
+type RunAfterTask = () => UiResult;
 
 class LivePage {
 
@@ -176,6 +178,31 @@ class DataSourceEntry {
 
 }
 
+class RunAfterEntry {
+	private _timeoutId: number;
+	private _node: UiNode;
+	private _id: number;
+	private _task: RunAfterTask;
+	public constructor(timeoutId:number, node:UiNode, id:number, task:RunAfterTask) {
+		this._timeoutId = timeoutId;
+		this._node = node;
+		this._id = id;
+		this._task = task;
+	}
+	public get timeoutId():number {
+		return this._timeoutId;
+	}
+	public get task(): RunAfterTask {
+		return this._task;
+	}
+	public get node(): UiNode {
+		return this._node;
+	}
+	public match(node: UiNode, id:number):boolean {
+		return this._node.id == node.id && this._id == id;
+	}
+}
+
 type PageFactory = (args:Properties<string>) => UiPageNode;
 
 export class UiApplication {
@@ -202,7 +229,9 @@ export class UiApplication {
 
 	private _wheelScale: number;
 
-	private _finallyTasks: Runnable[];
+	private _finallyTasks: RunFinallyTask[];
+
+	private _runAfterTasks: RunAfterEntry[];
 
 public constructor(selector:string) {
 		this._selector = selector;
@@ -216,6 +245,7 @@ public constructor(selector:string) {
 		this._clientHeight = 0;
 		this._wheelScale = 0.5;
 		this._finallyTasks = [];
+		this._runAfterTasks = [];
 		window.onload = (evt:Event) => {this.onLoad(evt)};
 	}
 
@@ -399,6 +429,7 @@ public constructor(selector:string) {
 		let pageNode = page.pageNode;
 		pageNode.onUnmount();
 		this.rootNode.removeChild(pageNode);
+		this.cancelAfterIn(pageNode);
 	}
 
 	public setFocus(node:UiNode, axis:UiAxis):UiResult {
@@ -470,18 +501,56 @@ public constructor(selector:string) {
 
 	}
 
-	public runFinally(task:Runnable):void {
+	public runFinally(task:RunFinallyTask):void {
 		this._finallyTasks.push(task);
 	}
 
 	protected flushFinally():void {
-		while (this._finallyTasks.length > 0) {
-			(this._finallyTasks.shift() as Runnable)();
+		if (this._finallyTasks.length > 0) {
+			let tasks = this._finallyTasks;
+			this._finallyTasks = [];
+			for (let task of tasks) {
+				task();
+			}
 		}
 	}
 
-	public runAfter(msec:number, task:Runnable):void {
-		setTimeout(task, msec);
+	public runAfter(node:UiNode, id:number, msec:number, task:RunAfterTask):void {
+		this.cancelAfter(node, id);
+		let timeoutId = window.setTimeout(()=>this.processRunAfter(node, id), msec);
+		let entry = new RunAfterEntry(timeoutId, node, id, task);
+		this._runAfterTasks.push(entry);
+	}
+
+	public cancelAfter(node:UiNode, id:number) {
+		let divided = Arrays.divide(this._runAfterTasks, (e)=>e.match(node, id));
+		this._runAfterTasks = divided[1];
+		for (let e of divided[0]) {
+			window.clearTimeout(e.timeoutId);
+		}
+	}
+
+	public cancelAfterIn(page:UiPageNode) {
+		let divided = Arrays.divide(this._runAfterTasks, (e)=>page.isAncestorOf(e.node));
+		this._runAfterTasks = divided[1];
+		for (let e of divided[0]) {
+			window.clearTimeout(e.timeoutId);
+		}
+	}
+
+	private processRunAfter(node:UiNode, id:number):void {
+		let divided = Arrays.divide(this._runAfterTasks, (e)=>e.match(node, id));
+		this._runAfterTasks = divided[1];
+		let result:UiResult = UiResult.IGNORED;
+		try {
+			for (let e of divided[0]) {
+				result |= e.task();
+			}
+			//後処理
+			this.postProcessEvent(null, result);
+		} finally {
+			this.flushFinally();
+		}
 	}
 
 	private processKeyDown(evt:KeyboardEvent):void {

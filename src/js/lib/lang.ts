@@ -10,6 +10,9 @@ export {Types};
 import {Strings} from "./lang/Strings";
 export {Strings};
 
+import {Arrays} from "./lang/Arrays";
+export {Arrays};
+
 import {Logs} from "./lang/Logs";
 export {Logs}
 
