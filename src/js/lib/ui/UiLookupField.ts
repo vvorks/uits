@@ -57,11 +57,11 @@ class UiLookupItem extends UiTextNode {
 		switch (key|(mod & KeyCodes.MOD_ACS)) {
 		case KeyCodes.ENTER:
 			this.updateValue();
-			this.application.back();
+			this.application.dispose(this.getPageNode() as UiPageNode);
 			result |= UiResult.EATEN;
 			break;
 		case KeyCodes.ESCAPE:
-			this.application.back();
+			this.application.dispose(this.getPageNode() as UiPageNode);
 			result |= UiResult.EATEN;
 			break;
 		}
@@ -70,7 +70,7 @@ class UiLookupItem extends UiTextNode {
 
 	public onMouseClick(target: UiNode, x: number, y: number, mod: number, at: number): UiResult {
 		this.updateValue();
-		this.application.back();
+		this.application.dispose(this.getPageNode() as UiPageNode);
 		return UiResult.EATEN;
 	}
 

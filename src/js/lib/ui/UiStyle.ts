@@ -3,7 +3,7 @@ import {Color, Colors} from "./Colors"
 import {UiNode} from "./UiNode"
 import { Logs } from "../lang";
 
-export type UiStyleCondition = "NAMED"|"CLICKING"|"FOCUS"|"ENABLE"|"DISABLE";
+export type UiStyleCondition = "NAMED"|"CLICKING"|"FOCUS"|"ENABLE"|"DISABLE"|"ELSE";
 export type TextAlign = "left"|"right"|"center"|"justify";
 export type VerticalAlign = "top"|"bottom"|"middle";
 
@@ -20,7 +20,8 @@ export class UiStyle {
 		"CLICKING": 2,
 		"FOCUS": 3,
 		"ENABLE": 4,
-		"DISABLE": 5
+		"DISABLE": 5,
+		"ELSE": 6,
 	};
 
 	private static readonly CONDITION_FUNCS:((node:UiNode, param:string|null)=>boolean)[] = [
@@ -30,6 +31,7 @@ export class UiStyle {
 		(node:UiNode, param:string|null) => node.hasFocus(),		//FOCUS
 		(node:UiNode, param:string|null) => node.enable,			//ENABLE
 		(node:UiNode, param:string|null) => !node.enable,			//DISABLE
+		(node:UiNode, param:string|null) => true,					//DISABLE
 	];
 
 	/** デフォルトフォントサイズ */
@@ -180,15 +182,15 @@ export class UiStyle {
 
 	public getEffectiveStyle(node:UiNode):UiStyle {
 		let effective:UiStyle = this;
-		let found:UiStyle|null = effective.findChild(node);
+		let found:UiStyle|null = effective.findConditionalChild(node);
 		while (found != null) {
 			effective = found;
-			found = effective.findChild(node);
+			found = effective.findConditionalChild(node);
 		}
 		return effective;
 	}
 
-	private findChild(node:UiNode):UiStyle|null {
+	private findConditionalChild(node:UiNode):UiStyle|null {
 		this.ensureChildrenOrder();
 		for (let c of this._inherits) {
 			if (c.isConditionMatches(node)) {
@@ -203,7 +205,7 @@ export class UiStyle {
 			let func = UiStyle.CONDITION_FUNCS[this.conditionOrder];
 			return func(node, this._conditionParam);
 		} else {
-			return true;
+			return false;
 		}
 	}
 

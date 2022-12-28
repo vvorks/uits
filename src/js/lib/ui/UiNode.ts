@@ -506,10 +506,19 @@ export class UiNode implements Clonable<UiNode>, Scrollable {
 	}
 
 	public appendChild(child:UiNode):void {
+		this.insertChild(child, null);
+	}
+
+	public insertChild(child:UiNode, after:UiNode|null) {
 		if (child.parent != null) {
 			child.parent.removeChild(child);
 		}
-		this._children.push(child);
+		let index = (after == null) ? -1 : this._children.indexOf(after);
+		if (index < 0) {
+			this._children.push(child);
+		} else {
+			this._children.splice(index, 0 , child);
+		}
 		child.parent = this;
 		this.fireHScroll();
 		this.fireVScroll();
@@ -557,6 +566,41 @@ export class UiNode implements Clonable<UiNode>, Scrollable {
 
 	public getPageNode():UiNode|null {
 		return this.parent == null ? null : this.parent.getPageNode();
+	}
+
+	public findNodeByPath(path:string):UiNode|null {
+		if (path == "") {
+			return this;
+		}
+		let node:UiNode|null = this;
+		let page = this.getPageNode() as UiPageNode;
+		if (path.startsWith("/")) {
+			node = page;
+			path = path.substring(1);
+		}
+		let names = path.split("/");
+		for (let i = 0; node != null && i < names.length; i++) {
+			let name = names[i];
+			if (name == "" || name == ".") {
+				//nop
+			} else if (name == "..") {
+				if (node != page) {
+					node = node.parent;
+				}
+			} else {
+				node = node.findChildByName(name);
+			}
+		}
+		return node;
+	}
+
+	private findChildByName(name:string): UiNode|null {
+		for (let c of this._children) {
+			if (c.name == name) {
+				return c;
+			}
+		}
+		return null;
 	}
 
 	protected onHierarchyChanged():void {

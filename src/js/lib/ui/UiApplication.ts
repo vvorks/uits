@@ -7,6 +7,9 @@ import { KeyCodes } from './KeyCodes';
 import { Rect } from "./Rect";
 import { DataSource } from "./DataSource";
 
+const DEFAULT_WHEEL_SCALE = 0.5;
+const DEFAULT_INTERVAL_PRECISION = 500;
+
 export enum UiAxis {
 	NONE = 0,
 	X = 1,
@@ -70,7 +73,7 @@ class LivePage {
 	}
 
 	public get focusOrPage():UiNode {
-		return this._focusNode != null ? this._focusNode : this._pageNode;
+		return this._type == PageType.NORMAL && this._focusNode != null ? this._focusNode : this._pageNode;
 	}
 
 	public focus(newNode: UiNode, axis:UiAxis):UiResult {
@@ -192,14 +195,43 @@ class RunAfterEntry {
 	public get timeoutId():number {
 		return this._timeoutId;
 	}
-	public get task(): RunAfterTask {
-		return this._task;
+	public get node(): UiNode {
+		return this._node;
+	}
+	public match(node: UiNode, id:number):boolean {
+		return this._node.id == node.id && this._id == id;
+	}
+	public task(): UiResult {
+		return this._task();
+	}
+}
+
+class RunIntervalEntry {
+	private _node: UiNode;
+	private _id: number;
+	private _cycle: number;
+	private _lastTime: number;
+	private _task: RunAfterTask;
+	public constructor(node:UiNode, id:number, cycle:number, task:RunAfterTask) {
+		this._node = node;
+		this._id = id;
+		this._cycle = cycle;
+		this._lastTime = new Date().getTime();
+		this._task = task;
 	}
 	public get node(): UiNode {
 		return this._node;
 	}
 	public match(node: UiNode, id:number):boolean {
 		return this._node.id == node.id && this._id == id;
+	}
+	public task(now:number):UiResult {
+		let result = UiResult.IGNORED;
+		if (Math.floor(this._lastTime / this._cycle) != Math.floor(now / this._cycle)) {
+			result |= this._task();
+			this._lastTime = now;
+		}
+		return result;
 	}
 }
 
@@ -229,9 +261,13 @@ export class UiApplication {
 
 	private _wheelScale: number;
 
+	private _intervalPrecision: number;
+
 	private _finallyTasks: RunFinallyTask[];
 
 	private _runAfterTasks: RunAfterEntry[];
+
+	private _runIntervalTasks: RunIntervalEntry[];
 
 public constructor(selector:string) {
 		this._selector = selector;
@@ -243,9 +279,11 @@ public constructor(selector:string) {
 		this._captureNode = null;
 		this._clientWidth = 0;
 		this._clientHeight = 0;
-		this._wheelScale = 0.5;
+		this._wheelScale = DEFAULT_WHEEL_SCALE;
+		this._intervalPrecision = DEFAULT_INTERVAL_PRECISION;
 		this._finallyTasks = [];
 		this._runAfterTasks = [];
+		this._runIntervalTasks = [];
 		window.onload = (evt:Event) => {this.onLoad(evt)};
 	}
 
@@ -275,6 +313,14 @@ public constructor(selector:string) {
 		this._wheelScale = scale;
 	}
 
+	public get intervalPrecision(): number {
+		return this._intervalPrecision;
+	}
+
+	public set intervalPrecision(precision:number) {
+		this._intervalPrecision = precision;
+	}
+
 	public onLoad(evt:Event):void {
 		//root準備
 		this._rootNode = new UiRootNode(this, "root");
@@ -301,6 +347,7 @@ public constructor(selector:string) {
 		root.addEventListener("wheel", (evt) => {this.processMouseWheel(evt)})
 		window.addEventListener("resize", (evt) => {this.processResize(evt)});
 		window.addEventListener('hashchange', (evt) => {this.processHashChanged()});
+		window.setTimeout(()=>{this.processInterval()}, this.getNextInterval());
 		//派生クラス初期化
 		this.initialize();
 		//初回のロード処理
@@ -366,12 +413,77 @@ public constructor(selector:string) {
 		if (factory == null) {
 			return UiResult.IGNORED;
 		} else {
-			while (this._pageStack.length > 0) {
-				this.back();
-			}
+			this.unmountNormalPages();
 			this.call(factory(args));
 			return UiResult.EATEN;
 		}
+	}
+
+	public toast(tag:string, args:Properties<string>):UiResult {
+		let factory:PageFactory|undefined = this._pageFactories[tag];
+		if (factory == null) {
+			return UiResult.IGNORED;
+		} else {
+			this.call(factory(args), PageType.TOAST);
+			return UiResult.EATEN;
+		}
+	}
+
+	private unmountNormalPages():void {
+		let pageTail = this.getPageTail();
+		for (let i = pageTail - 1; i >= 0; i--) {
+			let page = this._pageStack[i];
+			let pageNode = page.pageNode;
+			pageNode.onUnmount();
+			this.rootNode.removeChild(pageNode);
+			this.cancelRunAfterIn(pageNode);
+			this.cancelRunIntervalIn(pageNode);
+		}
+		this._pageStack.splice(0, pageTail);
+	}
+
+	private getPageTail():number {
+		let pageTail:number = this._pageStack.length;
+		while (pageTail > 0 && this._pageStack[pageTail - 1].isToast()) {
+			pageTail--;
+		}
+		return pageTail;
+	}
+
+	public call(pageNode:UiPageNode, type:PageType = PageType.NORMAL):void {
+		let page = new LivePage(pageNode, type);
+		if (type == PageType.NORMAL) {
+			let pageTail = this.getPageTail();
+			if (pageTail < this._pageStack.length) {
+				let afterNode = this._pageStack[pageTail].pageNode;
+				this._pageStack.splice(pageTail, 0, page);
+				this.rootNode.insertChild(pageNode, afterNode);
+			} else {
+				this._pageStack.push(page);
+				this.rootNode.appendChild(pageNode);
+			}
+		} else {
+			this._pageStack.push(page);
+			this.rootNode.appendChild(pageNode);
+		}
+		pageNode.onMount();
+		if (!page.isToast() && (page.focusNode == null || !this.isAppearedFocusable(page.focusNode))) {
+			if (!this.resetFocus(pageNode)) {
+				Logs.error("LOST FOCUS!");
+			}
+		}
+	}
+
+	public dispose(pageNode:UiPageNode):void {
+		let index = this.getLivePageIndex(pageNode);
+		if (index < 0) {
+			return;
+		}
+		this._pageStack.splice(index, 1);
+		pageNode.onUnmount();
+		this.rootNode.removeChild(pageNode);
+		this.cancelRunAfterIn(pageNode);
+		this.cancelRunIntervalIn(pageNode);
 	}
 
 	public isFocusable(e:UiNode):boolean {
@@ -396,18 +508,6 @@ public constructor(selector:string) {
 		return true;
 	}
 
-	public call(pageNode:UiPageNode):void {
-		let page = new LivePage(pageNode);
-		this._pageStack.push(page);
-		this.rootNode.appendChild(pageNode);
-		pageNode.onMount();
-		if (page.focusNode == null || !this.isAppearedFocusable(page.focusNode)) {
-			if (!this.resetFocus(pageNode)) {
-				Logs.error("LOST FOCUS!");
-			}
-		}
-	}
-
 	public resetFocus(node:UiNode):boolean {
 		let page = this.getLivePageOf(node);
 		if (page == null) {
@@ -421,17 +521,6 @@ public constructor(selector:string) {
 		return found;
 	}
 
-	public back():void {
-		if (this._pageStack.length == 0) {
-			return;
-		}
-		let page = this._pageStack.pop() as LivePage;
-		let pageNode = page.pageNode;
-		pageNode.onUnmount();
-		this.rootNode.removeChild(pageNode);
-		this.cancelAfterIn(pageNode);
-	}
-
 	public setFocus(node:UiNode, axis:UiAxis):UiResult {
 		let page = this.getLivePageOf(node);
 		let result = UiResult.IGNORED;
@@ -443,9 +532,9 @@ public constructor(selector:string) {
 	}
 
 	public getFocus():UiNode|null {
-		let page = this.getLivePage();
-		if (page != null) {
-			return page.focusNode;
+		let pageTail = this.getPageTail();
+		if (pageTail > 0) {
+			return this._pageStack[pageTail - 1].focusNode;
 		}
 		return null;
 	}
@@ -458,28 +547,40 @@ public constructor(selector:string) {
 		return null;
 	}
 
-	protected getLivePage():LivePage|null {
+	protected getTopmostLivePage():LivePage|null {
 		let len = this._pageStack.length;
 		return len == 0 ? null : this._pageStack[len - 1];
 	}
 
 	protected getLivePageOf(node:UiNode):LivePage|null {
-		let pageNode = node.getPageNode();
+		let pageNode:UiPageNode|null = node.getPageNode() as UiPageNode;
+		if (pageNode == null) {
+			return null;
+		}
+		let index = this.getLivePageIndex(pageNode);
+		if (index < 0) {
+			return null;
+		}
+		return this._pageStack[index];
+	}
+
+	private getLivePageIndex(pageNode:UiPageNode):number {
 		let len = this._pageStack.length;
 		for (let i = len - 1; i >= 0; i--) {
 			let page = this._pageStack[i];
 			if (pageNode == page.pageNode) {
-				return page;
+				return i;
 			}
 		}
-		return null;
+		return -1;
 	}
 
 	private recoverFocus():UiResult {
 		let result = UiResult.IGNORED;
-		let page = this.getLivePage();
-		if (page != null) {
-			if (page.focusNode == null || !this.isAppearedFocusableAll(page.focusNode)) {
+		let pageTail = this.getPageTail();
+		if (pageTail > 0) {
+			let page = this._pageStack[pageTail - 1];
+			if (!page.isToast() && (page.focusNode == null || !this.isAppearedFocusableAll(page.focusNode))) {
 				if (!this.resetFocus(page.pageNode)) {
 					Logs.error("LOST FOCUS!");
 				} else {
@@ -516,13 +617,13 @@ public constructor(selector:string) {
 	}
 
 	public runAfter(node:UiNode, id:number, msec:number, task:RunAfterTask):void {
-		this.cancelAfter(node, id);
+		this.cancelRunAfter(node, id);
 		let timeoutId = window.setTimeout(()=>this.processRunAfter(node, id), msec);
 		let entry = new RunAfterEntry(timeoutId, node, id, task);
 		this._runAfterTasks.push(entry);
 	}
 
-	public cancelAfter(node:UiNode, id:number) {
+	public cancelRunAfter(node:UiNode, id:number) {
 		let divided = Arrays.divide(this._runAfterTasks, (e)=>e.match(node, id));
 		this._runAfterTasks = divided[1];
 		for (let e of divided[0]) {
@@ -530,7 +631,7 @@ public constructor(selector:string) {
 		}
 	}
 
-	public cancelAfterIn(page:UiPageNode) {
+	private cancelRunAfterIn(page:UiPageNode) {
 		let divided = Arrays.divide(this._runAfterTasks, (e)=>page.isAncestorOf(e.node));
 		this._runAfterTasks = divided[1];
 		for (let e of divided[0]) {
@@ -553,6 +654,43 @@ public constructor(selector:string) {
 		}
 	}
 
+	public runInterval(node:UiNode, id:number, cycle:number, task:RunAfterTask) {
+		let entry = new RunIntervalEntry(node, id, cycle, task);
+		this._runIntervalTasks.push(entry);
+	}
+
+	public cancelRunInterval(node:UiNode, id:number, cycle:number, task:RunAfterTask) {
+		let divided = Arrays.divide(this._runIntervalTasks, (e)=>e.match(node, id));
+		this._runIntervalTasks = divided[1];
+	}
+
+	private cancelRunIntervalIn(page:UiPageNode) {
+		let divided = Arrays.divide(this._runIntervalTasks, (e)=>page.isAncestorOf(e.node));
+		this._runIntervalTasks = divided[1];
+	}
+
+	private processInterval():void {
+		let result:UiResult = UiResult.IGNORED;
+		try {
+			let now = new Date().getTime();
+			for (let e of this._runIntervalTasks) {
+				result |= e.task(now);
+			}
+			//後処理
+			this.postProcessEvent(null, result);
+		} finally {
+			this.flushFinally();
+		}
+		window.setTimeout(()=>{this.processInterval()}, this.getNextInterval());
+	}
+
+	private getNextInterval():number {
+		let now = new Date().getTime();
+		let unit = this._intervalPrecision;
+		let next = Math.floor((now + unit) / unit) * unit;
+		return next - now;
+	}
+
 	private processKeyDown(evt:KeyboardEvent):void {
 		try {
 			//busyチェック
@@ -570,10 +708,10 @@ public constructor(selector:string) {
 			//UINodeへのキーディスパッチ
 			let result:UiResult = UiResult.IGNORED;
 			let depth = this._pageStack.length;
-			let target = this.getFocus();
 			for (let i = depth - 1; i >= 0; i--) {
 				let page = this._pageStack[i];
-				let node:UiNode|null = page.focusOrPage;
+				let target = page.focusOrPage;
+				let node:UiNode|null = target;
 				while (node != null) {
 					result = node.onKeyDown(target, key, ch, mod, at);
 					if (result & UiResult.CONSUMED) {
@@ -588,7 +726,7 @@ public constructor(selector:string) {
 			//UiApplicationのデフォルト処理呼び出し
 			if (!(result & UiResult.CONSUMED)) {
 				//UiNode側の処理でフォーカスが変化している場合があるので、再取得
-				target = this.getFocus();
+				let target = this.getFocus();
 				if (target != null) {
 					result = this.onKeyDown(target, key, ch, mod, at);
 				}
@@ -611,10 +749,10 @@ public constructor(selector:string) {
 			//UINodeへのキーディスパッチ
 			let result:UiResult = UiResult.IGNORED;
 			let depth = this._pageStack.length;
-			let target = this.getFocus();
 			for (let i = depth - 1; i >= 0; i--) {
 				let page = this._pageStack[i];
-				let node:UiNode|null = page.focusOrPage;
+				let target = page.focusOrPage;
+				let node:UiNode|null = target;
 				while (node != null) {
 					result = node.onKeyPress(target, key, ch, mod, at);
 					if (result & UiResult.CONSUMED) {
@@ -629,7 +767,7 @@ public constructor(selector:string) {
 			//UiApplicationのデフォルト処理呼び出し
 			if (!(result & UiResult.CONSUMED)) {
 				//UiNode側の処理でフォーカスが変化している場合があるので、再取得
-				target = this.getFocus();
+				let target = this.getFocus();
 				if (target != null) {
 					result = this.onKeyPress(target, key, ch, mod, at);
 				}
@@ -652,10 +790,10 @@ public constructor(selector:string) {
 			//UINodeへのキーディスパッチ
 			let result:UiResult = UiResult.IGNORED;
 			let depth = this._pageStack.length;
-			let target = this.getFocus();
 			for (let i = depth - 1; i >= 0; i--) {
 				let page = this._pageStack[i];
-				let node:UiNode|null = page.focusOrPage;
+				let target = page.focusOrPage;
+				let node:UiNode|null = target;
 				while (node != null) {
 					result = node.onKeyUp(target, key, ch, mod, at);
 					if (result & UiResult.CONSUMED) {
@@ -670,7 +808,7 @@ public constructor(selector:string) {
 			//UiApplicationのデフォルト処理呼び出し
 			if (!(result & UiResult.CONSUMED)) {
 				//UiNode側の処理でフォーカスが変化している場合があるので、再取得
-				target = this.getFocus();
+				let target = this.getFocus();
 				if (target != null) {
 					result = this.onKeyUp(target, key, ch, mod, at);
 				}
@@ -875,13 +1013,12 @@ public constructor(selector:string) {
 	 * @returns 指定位置に存在するノード。また、副次的ptは返却するノードの座標系に変更される
 	 */
 	private getMouseTarget(pt:Rect):UiNode {
-		let page:LivePage|null = this.getLivePage();
 		let node:UiNode;
-		if (page == null) {
+		if (this._pageStack.length == 0) {
 			node = this.rootNode;
 		} else if (this._captureNode == null) {
 			node = this.rootNode;
-			let child:UiNode|null = page.pageNode;
+			let child:UiNode|null = node.getVisibleChildAt(pt.x, pt.y);
 			while (child != null) {
 				node = child;
 				node.translate(pt, -1);

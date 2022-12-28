@@ -12,6 +12,7 @@ import { GridPage } from "./GridPage";
 import { HorizontalListPage } from "./HorizontalListPage";
 import { TestDataSource } from "./TestDataSource";
 import { VerticalListPage } from "./VerticalListPage";
+import { VolumeToast } from "./VolumeToast";
 
 export const DEFAULT_STYLE:UiStyle = new UiStyleBuilder()
 	.textColor(Colors.BLACK)
@@ -38,6 +39,11 @@ export const CLICKING_STYLE:UiStyle = new UiStyleBuilder()
 export const GROUP_STYLE:UiStyle = new UiStyleBuilder()
 	.backgroundColor(Colors.GREEN)
 	.borderSize("0px")
+	.build();
+
+export const TOAST_STYLE:UiStyle = new UiStyleBuilder()
+	.basedOn(GROUP_STYLE)
+	.backgroundColor(Colors.YELLOW)
 	.build();
 
 export const LIST_STYLE:UiStyle = new UiStyleBuilder()
@@ -75,6 +81,7 @@ export class TestApplication extends UiApplication {
 		this.addPageFactory("#vlist", (args) => new VerticalListPage(this, args));
 		this.addPageFactory("#hlist", (args) => new HorizontalListPage(this, args));
 		this.addPageFactory("#grid", (args) => new GridPage(this, args));
+		this.addPageFactory("#volume", (args) => new VolumeToast(this, args));
 
 		this.addDataSource("sample", new TestDataSource(() => {
 			let theData: DataRecord[] = [];
@@ -113,6 +120,10 @@ export class TestApplication extends UiApplication {
 		switch (key|(mod & KeyCodes.MOD_ACS)) {
 		case KeyCodes.KEY_Q|KeyCodes.MOD_CTRL:
 			(this.getDataSource("sample") as DataSource).select({});
+			break;
+		case KeyCodes.PAGEUP:
+		case KeyCodes.PAGEDOWN:
+			result = this.toast("#volume", {}); //kari
 			break;
 		default:
 			result = super.onKeyDown(target, key, ch, mod, at);
