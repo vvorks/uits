@@ -19,10 +19,6 @@ export class UiPageNode extends UiNode {
 
 	private _pageFlags: PageFlags;
 
-	public get className():string {
-		return "UiPageNode";
-	}
-
 	public clone():UiPageNode {
 		return new UiPageNode(this);
 	}

@@ -8,6 +8,7 @@ import { DataHolder } from "./DataHolder";
 import { Scrollable } from "./Scrollable";
 import { UiPageNode } from "./UiPageNode";
 import { KeyCodes } from "./KeyCodes";
+import { Inset } from "./Inset";
 
  /**
  * UiNodeフラグ定義
@@ -181,7 +182,7 @@ export class UiNode implements Clonable<UiNode>, Scrollable {
 	}
 
 	public get className():string {
-		return "UiNode";
+		return this.constructor.name;
 	}
 
 	constructor(app:UiApplication, name?:string);
@@ -751,6 +752,16 @@ export class UiNode implements Clonable<UiNode>, Scrollable {
 			h = 0;
 		}
 		return new Rect().locate(x, y, w, h);
+	}
+
+	protected getBorderSize():Inset {
+		let r = this.getRect();
+		let s = this.style.getEffectiveStyle(this);
+		let left = s.borderLeftAsLength.toPixel(() => r.width);
+		let top = s.borderTopAsLength.toPixel(() => r.height);
+		let right = s.borderRightAsLength.toPixel(() => r.width);
+		let bottom = s.borderBottomAsLength.toPixel(() => r.height);
+		return new Inset(left, top, right, bottom);
 	}
 
 	protected get innerWidth(): number {

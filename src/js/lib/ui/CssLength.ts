@@ -1,4 +1,4 @@
-import { Asserts, Types } from "../lang";
+import { Asserts, Logs, Types } from "../lang";
 import { Metrics } from "./Metrics";
 import { UiApplication } from "./UiApplication";
 
@@ -14,10 +14,10 @@ export class CssLength {
 
 	private _unit:string;
 
-	public constructor(arg:string|number) {
+	public constructor(arg:string|number, defaultUnit:string="px") {
 		if (Types.isString(arg)) {
 			let str = (arg as string).toLowerCase();
-			this._unit = "px";
+			this._unit = defaultUnit;
 			for (let u of CssLength.UNITS) {
 				if (str.endsWith(u)) {
 					let mid = str.length - u.length;
@@ -29,7 +29,7 @@ export class CssLength {
 			this._value = Number(str);
 		} else {
 			this._value = arg as number;
-			this._unit = "px";
+			this._unit = defaultUnit;
 		}
 		Asserts.require(!isNaN(this._value));
 	}

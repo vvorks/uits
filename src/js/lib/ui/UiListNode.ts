@@ -45,10 +45,6 @@ class UiRecord extends UiNode implements DataHolder {
 		return new UiRecord(this);
 	}
 
-	public get className():string {
-		return "UiRecord";
-	}
-
 	public get index():number {
 		return this._index;
 	}
@@ -109,12 +105,6 @@ enum ListFlags {
 
 /**
  * 垂直及び水平の仮想データリストノード
- *
- * TODO
- *		水平モードのテスト
- *		周囲にリスト以外のノードがあった場合のカーソル移動確認
- *		データが更新された時のふるまい（特に減少したときのカーソルの調整）
- * 		カーソル移動の不具合修正
  */
 export class UiListNode extends UiNode {
 
@@ -138,10 +128,8 @@ export class UiListNode extends UiNode {
 		return new UiListNode(this);
 	}
 
-	public get className():string {
-		return "UiListNode";
-	}
-
+	constructor(app:UiApplication, name?:string);
+	constructor(src:UiListNode);
 	public constructor(param:any, name?:string) {
 		super(param, name);
 		if (param instanceof UiListNode) {

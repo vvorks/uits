@@ -18,8 +18,10 @@ export const DEFAULT_STYLE:UiStyle = new UiStyleBuilder()
 	.textColor(Colors.BLACK)
 	.backgroundColor(Colors.WHITE)
 	.borderSize("2px")
+	//.borderRadius("8px")
 	.borderColor(Colors.BLUE)
 	.fontSize("12pt")
+	.lineHeight("1.5")
 	.textAlign("center")
 	.verticalAlign("middle")
 	.build();
@@ -27,6 +29,7 @@ export const DEFAULT_STYLE:UiStyle = new UiStyleBuilder()
 export const FOCUS_STYLE:UiStyle = new UiStyleBuilder()
 	.basedOn(DEFAULT_STYLE)
 	.condition("FOCUS")
+	.textColor(Colors.BLUE)
 	.borderColor(Colors.RED)
 	.build();
 

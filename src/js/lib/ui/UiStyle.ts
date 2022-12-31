@@ -3,7 +3,7 @@ import {Color, Colors} from "./Colors"
 import {UiNode} from "./UiNode"
 import { Logs } from "../lang";
 
-export type UiStyleCondition = "NAMED"|"CLICKING"|"FOCUS"|"ENABLE"|"DISABLE"|"ELSE";
+export type UiStyleCondition = "NAMED"|"CLICKING"|"FOCUS"|"ENABLE"|"DISABLE"|"OTHERWISE";
 export type TextAlign = "left"|"right"|"center"|"justify";
 export type VerticalAlign = "top"|"bottom"|"middle";
 
@@ -15,30 +15,33 @@ export class UiStyle {
 	private static readonly EMPTY_STYLE_ID = 0;
 
 	private static readonly CONDITION_ORDERS = {
-		"DEFAULT":0,
+		"NONE": 0,
 		"NAMED": 1,
 		"CLICKING": 2,
 		"FOCUS": 3,
 		"ENABLE": 4,
 		"DISABLE": 5,
-		"ELSE": 6,
+		"OTHERWISE": 6,
 	};
 
 	private static readonly CONDITION_FUNCS:((node:UiNode, param:string|null)=>boolean)[] = [
-		(node:UiNode, param:string|null) => true,					//DEFAULT
+		(node:UiNode, param:string|null) => false,					//BASED
 		(node:UiNode, param:string|null) => node.name == param,		//NAMED
 		(node:UiNode, param:string|null) => node.clicking,			//CLICKING
 		(node:UiNode, param:string|null) => node.hasFocus(),		//FOCUS
 		(node:UiNode, param:string|null) => node.enable,			//ENABLE
 		(node:UiNode, param:string|null) => !node.enable,			//DISABLE
-		(node:UiNode, param:string|null) => true,					//DISABLE
+		(node:UiNode, param:string|null) => true,					//OTHERWISE
 	];
 
 	/** デフォルトフォントサイズ */
-	private static readonly DEFAULT_FONT_SIZE = new CssLength("10.5pt");
+	private static readonly DEFAULT_FONT_SIZE = new CssLength(10.5, "pt");
 
 	/** デフォルトフォントファミリー名 */
 	private static readonly DEFAULT_FONT_FAMILY = "sans-serif";
+
+	/** デフォルト行間 */
+	private static readonly DEFAULT_LINE_HEIGHT = new CssLength("1.5", "");
 
 	/** ID */
 	private _id:number;
@@ -75,6 +78,18 @@ export class UiStyle {
 
 	/** ボーダーサイズ(Length)（下） */
 	private _borderBottom: CssLength|null;
+
+	/** ボーダー角丸めサイズ（Length）（左上） */
+	private _borderRadiusTopLeft: CssLength|null;
+
+	/** ボーダー角丸めサイズ（Length）（右上） */
+	private _borderRadiusTopRight: CssLength|null;
+
+	/** ボーダー角丸めサイズ（Length）（左下） */
+	private _borderRadiusBottomLeft: CssLength|null;
+
+	/** ボーダー角丸めサイズ（Length）（右下） */
+	private _borderRadiusBottomRight: CssLength|null;
 
 	/** ボーダー色 */
 	private _borderColor: Color|null;
@@ -117,6 +132,10 @@ export class UiStyle {
 			this._borderTop = null;
 			this._borderRight = null;
 			this._borderBottom = null;
+			this._borderRadiusTopLeft = null;
+			this._borderRadiusTopRight = null;
+			this._borderRadiusBottomLeft = null;
+			this._borderRadiusBottomRight = null;
 			this._borderColor = null;
 			this._borderImage = null;
 			this._fontSize = null;
@@ -139,6 +158,10 @@ export class UiStyle {
 			this._borderTop = builder.getBorderTop();
 			this._borderRight = builder.getBorderRight();
 			this._borderBottom = builder.getBorderBottom();
+			this._borderRadiusTopLeft = builder.getBorderRadiusTopLeft();
+			this._borderRadiusTopRight = builder.getBorderRadiusTopRight();
+			this._borderRadiusBottomLeft = builder.getBorderRadiusBottomLeft();
+			this._borderRadiusBottomRight = builder.getBorderRadiusBottomRight();
 			this._borderColor = builder.getBorderColor();
 			this._borderImage = builder.getBorderImage();
 			this._fontSize = builder.getFontSize();
@@ -182,15 +205,15 @@ export class UiStyle {
 
 	public getEffectiveStyle(node:UiNode):UiStyle {
 		let effective:UiStyle = this;
-		let found:UiStyle|null = effective.findConditionalChild(node);
+		let found:UiStyle|null = effective.findMatchedChild(node);
 		while (found != null) {
 			effective = found;
-			found = effective.findConditionalChild(node);
+			found = effective.findMatchedChild(node);
 		}
 		return effective;
 	}
 
-	private findConditionalChild(node:UiNode):UiStyle|null {
+	private findMatchedChild(node:UiNode):UiStyle|null {
 		this.ensureChildrenOrder();
 		for (let c of this._inherits) {
 			if (c.isConditionMatches(node)) {
@@ -201,12 +224,8 @@ export class UiStyle {
 	}
 
 	private isConditionMatches(node:UiNode):boolean {
-		if (this._conditionName != null) {
-			let func = UiStyle.CONDITION_FUNCS[this.conditionOrder];
-			return func(node, this._conditionParam);
-		} else {
-			return false;
-		}
+		let func = UiStyle.CONDITION_FUNCS[this.conditionOrder];
+		return func(node, this._conditionParam);
 	}
 
 	private ensureChildrenOrder():void {
@@ -222,8 +241,24 @@ export class UiStyle {
 		if (this._conditionName != null) {
 			return UiStyle.CONDITION_ORDERS[this._conditionName];
 		} else {
-			return 0;
+			return UiStyle.CONDITION_ORDERS.NONE;
 		}
+	}
+
+	public getConditionalStyle(cond:UiStyleCondition, param?:string|null):UiStyle|null {
+		if (this.conditionName == cond && (param === undefined || this.conditionParam == param)) {
+			return this;
+		}
+		this.ensureChildrenOrder();
+		for (let c of this._inherits) {
+			if (c.conditionName != null) {
+				let result = c.getConditionalStyle(cond, param);
+				if (result != null) {
+					return result;
+				}
+			}
+		}
+		return null;
 	}
 
 	public get conditionName():UiStyleCondition|null {
@@ -278,6 +313,38 @@ export class UiStyle {
 		return this.borderBottomAsLength.toString();
 	}
 
+	public get borderRadiusTopLeftAsLength():CssLength {
+		return this.getProperty((s) => s._borderRadiusTopLeft, CssLength.ZERO) as CssLength;
+	}
+
+	public get borderRadiusTopLeft():string {
+		return this.borderRadiusTopLeftAsLength.toString();
+	}
+
+	public get borderRadiusTopRightAsLength():CssLength {
+		return this.getProperty((s) => s._borderRadiusTopRight, CssLength.ZERO) as CssLength;
+	}
+
+	public get borderRadiusTopRight():string {
+		return this.borderRadiusTopRightAsLength.toString();
+	}
+
+	public get borderRadiusBottomLeftAsLength():CssLength {
+		return this.getProperty((s) => s._borderRadiusBottomLeft, CssLength.ZERO) as CssLength;
+	}
+
+	public get borderRadiusBottomLeft():string {
+		return this.borderRadiusBottomLeftAsLength.toString();
+	}
+
+	public get borderRadiusBottomRightAsLength():CssLength {
+		return this.getProperty((s) => s._borderRadiusBottomRight, CssLength.ZERO) as CssLength;
+	}
+
+	public get borderRadiusBottomRight():string {
+		return this.borderRadiusBottomRightAsLength.toString();
+	}
+
 	public get borderColor():Color {
 		return this.getProperty((s) => s._borderColor, Colors.BLACK) as Color;
 	}
@@ -299,8 +366,7 @@ export class UiStyle {
 	}
 
 	public get lineHeight():string {
-		let prop:CssLength|null = this.getProperty((s) => s._lineHeight, null);
-		return (prop == null ? this.fontSize : prop.toString());
+		return (this.getProperty((s) => s._lineHeight, UiStyle.DEFAULT_LINE_HEIGHT) as CssLength).toString();
 	}
 
 	public get textAlign():TextAlign {
@@ -343,6 +409,10 @@ export class UiStyle {
 		sb += this.getStringProperty("border-top-width", this.borderTop);
 		sb += this.getStringProperty("border-right-width", this.borderRight);
 		sb += this.getStringProperty("border-bottom-width", this.borderBottom);
+		sb += this.getStringProperty("border-top-left-radius", this.borderRadiusTopLeft);
+		sb += this.getStringProperty("border-top-right-radius", this.borderRadiusTopRight);
+		sb += this.getStringProperty("border-bottom-left-radius", this.borderRadiusBottomLeft);
+		sb += this.getStringProperty("border-bottom-right-radius", this.borderRadiusBottomRight);
 		sb += this.getColorProperty ("border-color", this.borderColor);
 		sb += this.getStringProperty("border-image", this.borderImage);
 		sb += this.getStringProperty("font-size", this.fontSize);
@@ -400,6 +470,18 @@ export class UiStyleBuilder {
 	/** ボーダーサイズ(Length)（下） */
 	private _borderBottom: CssLength|null;
 
+	/** ボーダー角丸めサイズ（Length）（左上） */
+	private _borderRadiusTopLeft: CssLength|null;
+
+	/** ボーダー角丸めサイズ（Length）（右上） */
+	private _borderRadiusTopRight: CssLength|null;
+
+	/** ボーダー角丸めサイズ（Length）（左下） */
+	private _borderRadiusBottomLeft: CssLength|null;
+
+	/** ボーダー角丸めサイズ（Length）（右下） */
+	private _borderRadiusBottomRight: CssLength|null;
+
 	/** ボーダー色 */
 	private _borderColor: Color|null;
 
@@ -435,6 +517,10 @@ export class UiStyleBuilder {
 		this._borderTop = null;
 		this._borderRight = null;
 		this._borderBottom = null;
+		this._borderRadiusTopLeft = null;
+		this._borderRadiusTopRight = null;
+		this._borderRadiusBottomLeft = null;
+		this._borderRadiusBottomRight = null;
 		this._borderColor = null;
 		this._borderImage = null;
 		this._fontSize = null;
@@ -503,6 +589,67 @@ export class UiStyleBuilder {
 		return this;
 	}
 
+	public borderRadius(str:string|null):UiStyleBuilder {
+		let value:CssLength|null = (str == null ? null : new CssLength(str));
+		this._borderRadiusTopLeft = value;
+		this._borderRadiusTopRight = value;
+		this._borderRadiusBottomLeft = value;
+		this._borderRadiusBottomRight = value;
+		return this;
+	}
+
+	public borderRadiusLeft(str:string|null):UiStyleBuilder {
+		let value:CssLength|null = (str == null ? null : new CssLength(str));
+		this._borderRadiusTopLeft = value;
+		this._borderRadiusBottomLeft = value;
+		return this;
+	}
+
+	public borderRadiusRight(str:string|null):UiStyleBuilder {
+		let value:CssLength|null = (str == null ? null : new CssLength(str));
+		this._borderRadiusTopRight = value;
+		this._borderRadiusBottomRight = value;
+		return this;
+	}
+
+	public borderRadiusTop(str:string|null):UiStyleBuilder {
+		let value:CssLength|null = (str == null ? null : new CssLength(str));
+		this._borderRadiusTopLeft = value;
+		this._borderRadiusTopRight = value;
+		return this;
+	}
+
+	public borderRadiusBottom(str:string|null):UiStyleBuilder {
+		let value:CssLength|null = (str == null ? null : new CssLength(str));
+		this._borderRadiusBottomLeft = value;
+		this._borderRadiusBottomRight = value;
+		return this;
+	}
+
+	public borderRadiusTopLeft(str:string|null):UiStyleBuilder {
+		let value:CssLength|null = (str == null ? null : new CssLength(str));
+		this._borderRadiusTopLeft = value;
+		return this;
+	}
+
+	public borderRadiusTopRight(str:string|null):UiStyleBuilder {
+		let value:CssLength|null = (str == null ? null : new CssLength(str));
+		this._borderRadiusTopRight = value;
+		return this;
+	}
+
+	public borderRadiusBottomLeft(str:string|null):UiStyleBuilder {
+		let value:CssLength|null = (str == null ? null : new CssLength(str));
+		this._borderRadiusBottomLeft = value;
+		return this;
+	}
+
+	public borderRadiusBottomRight(str:string|null):UiStyleBuilder {
+		let value:CssLength|null = (str == null ? null : new CssLength(str));
+		this._borderRadiusBottomRight = value;
+		return this;
+	}
+
 	public borderColor(value:Color|null):UiStyleBuilder {
 		this._borderColor = value;
 		return this;
@@ -525,7 +672,7 @@ export class UiStyleBuilder {
 	}
 
 	public lineHeight(str:string|null):UiStyleBuilder {
-		let value:CssLength|null = (str == null ? null : new CssLength(str));
+		let value:CssLength|null = (str == null ? null : new CssLength(str, ""));
 		this._lineHeight = value;
 		return this;
 	}
@@ -582,6 +729,22 @@ export class UiStyleBuilder {
 
 	public getBorderBottom(): CssLength|null {
 		return this._borderBottom;
+	}
+
+	public getBorderRadiusTopLeft(): CssLength|null {
+		return this._borderRadiusTopLeft;
+	}
+
+	public getBorderRadiusTopRight(): CssLength|null {
+		return this._borderRadiusTopRight;
+	}
+
+	public getBorderRadiusBottomLeft(): CssLength|null {
+		return this._borderRadiusBottomLeft;
+	}
+
+	public getBorderRadiusBottomRight(): CssLength|null {
+		return this._borderRadiusBottomRight;
 	}
 
 	public getBorderColor(): Color|null {

@@ -18,10 +18,6 @@ export class UiScrollbar extends UiNode {
 
 	private _lastRatio: number;
 
-	public get className():string {
-		return "UiScrollbar";
-	}
-
 	public clone():UiScrollbar {
 		return new UiScrollbar(this);
 	}

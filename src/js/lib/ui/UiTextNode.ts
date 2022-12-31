@@ -21,17 +21,19 @@ export class UiTextNode extends UiNode {
 	}
 
 	protected createDomElement(target:UiNode, tag:string):HTMLElement {
+		let border = this.getBorderSize();
 		let dom = super.createDomElement(target, tag);
 		let div = document.createElement("div");
 		let style = div.style;
 		style.position = "absolute";
-		style.left = "0px";
-		style.right = "0px";
+		style.left = `${border.left}px`;
+		style.right = `${border.right}px`;
 		dom.appendChild(div);
 		return dom;
 	}
 
 	protected renderContent():void {
+		let border = this.getBorderSize();
 		let dom = this.domElement as HTMLElement;
 		let div = dom.firstChild as HTMLDivElement;
 		let cssStyle = div.style;
@@ -40,9 +42,9 @@ export class UiTextNode extends UiNode {
 		let valign = uiStyle.verticalAlign;
 		cssStyle.textAlign = align;
 		if (valign == "top") {
-			cssStyle.top = "0px";
+			cssStyle.top = `${border.top}px`;
 		} else if (valign == "bottom") {
-			cssStyle.bottom = "0px";
+			cssStyle.bottom = `${border.bottom}px`;
 		} else {
 			cssStyle.top = "50%";
 			cssStyle.transform = "translate(0,-50%)";

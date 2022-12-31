@@ -7,10 +7,6 @@ export class UiRootNode extends UiNode {
 		return new UiRootNode(this);
 	}
 
-	public get className():string {
-		return "UiRootNode";
-	}
-
 	public getPageNode():UiNode|null {
 		return null;
 	}
