@@ -7,8 +7,14 @@ import { KeyCodes } from './KeyCodes';
 import { Rect } from "./Rect";
 import { DataSource } from "./DataSource";
 
+/** システムWheel調整比の既定値  */
 const DEFAULT_WHEEL_SCALE = 0.5;
+
+/** 周期タスクの分解能の既定値 */
 const DEFAULT_INTERVAL_PRECISION = 500;
+
+/** スクロールアニメーション時間の既定値 */
+const DEFAULT_SCROLL_ANIMATION_TIME = 100;
 
 export enum UiAxis {
 	NONE = 0,
@@ -183,6 +189,12 @@ class DataSourceEntry {
 
 }
 
+enum RunFlags {
+	NONE = 0,
+	EXIT = 1,
+	REPEAT = 2,
+}
+
 class RunEntry<T> {
 
 	private _node: UiNode;
@@ -236,24 +248,26 @@ class RunIntervalEntry extends RunEntry<RunAfterTask> {
 
 	private _lastTime: number;
 
-	private _exit: boolean;
+	private _flags: RunFlags;
 
 	public constructor(node:UiNode, id:number, cycle:number, task:RunAfterTask) {
 		super(node, id, task);
 		this._cycle = cycle;
 		this._lastTime = new Date().getTime();
-		this._exit = false;
+		this._flags = RunFlags.NONE;
 	}
 
 	public get exit():boolean {
-		return this._exit;
+		return !!(this._flags & RunFlags.EXIT);
 	}
 
 	public run(now:number):UiResult {
 		let result = UiResult.IGNORED;
 		if (Math.floor(this._lastTime / this._cycle) != Math.floor(now / this._cycle)) {
 			result = this.task();
-			this._exit = !!(result & UiResult.EXIT);
+			if (result & UiResult.EXIT) {
+				this._flags |= RunFlags.EXIT;
+			}
 			result &= UiResult.EXIT;
 			this._lastTime = now;
 		}
@@ -268,17 +282,21 @@ class RunAnimationEntry extends RunEntry<AnimationTask> {
 
 	private _baseTime:number;
 
-	private _exit: boolean;
+	private _flags: RunFlags;
 
-	public constructor(node:UiNode, id:number, limit:number, task:AnimationTask) {
+	public constructor(node:UiNode, id:number, limit:number, repeat:boolean, task:AnimationTask) {
 		super(node, id, task);
 		this._limit = limit;
 		this._baseTime = 0;
-		this._exit = false;
+		this._flags = repeat ? RunFlags.REPEAT : RunFlags.NONE;
 	}
 
 	public get exit():boolean {
-		return this._exit;
+		return !!(this._flags & RunFlags.EXIT);
+	}
+
+	public get repeat():boolean {
+		return !!(this._flags & RunFlags.REPEAT);
 	}
 
 	public run(now:number):UiResult {
@@ -287,7 +305,9 @@ class RunAnimationEntry extends RunEntry<AnimationTask> {
 		}
 		let step = (now - this._baseTime) / this._limit;
 		let result = this.task(step);
-		this._exit = !!(result & UiResult.EXIT);
+		if ((result & UiResult.EXIT) || (!this.repeat && step >= 1.0)) {
+			this._flags |= RunFlags.EXIT;
+		}
 		result &= UiResult.EXIT;
 		return result;
 	}
@@ -299,36 +319,55 @@ type PageFactory = (args:Properties<string>) => UiPageNode;
 
 export class UiApplication {
 
+	/** 描画対象要素を検索するためのセレクタ（通常はBODY） */
 	private _selector:string;
 
+	/** 描画対象要素 */
 	private _rootElement:HTMLElement|null;
 
+	/** ルートノード */
 	private _rootNode:UiRootNode|null;
 
+	/** ページファクトリーリスト */
 	private _pageFactories:Properties<PageFactory>;
 
+	/** データソースリスト */
 	private _dataSources:Properties<DataSourceEntry>;
 
+	/** ページスタック */
 	private _pageStack: LivePage[];
 
+	/** マウスキャプチャ中ノード */
 	private _captureNode: UiNode|null;
 
+	/** ドキュメント全体幅 */
 	private _clientWidth:number;
 
+	/** ドキュメント全体高 */
 	private _clientHeight:number;
 
+	/** ビシーフラグ */
 	private _busy:boolean = false;
 
+	/** システムWheel調整比  */
 	private _wheelScale: number;
 
+	/** 周期タスクの分解能（単位：ミリ秒） */
 	private _intervalPrecision: number;
 
+	/** スクロールアニメーション時間（単位：ミリ秒） */
+	private _scrollAnimationTime: number;
+
+	/** イベント処理終了後に実行するタスクのリスト */
 	private _finallyTasks: RunFinallyTask[];
 
+	/** 指定時間後にワンショットで実行するタスクのリスト */
 	private _afterTasks: RunAfterEntry[];
 
+	/** 定期的に実行するタスクのリスト */
 	private _intervalTasks: RunIntervalEntry[];
 
+	/** アニメーション用タスクのリスト */
 	private _animationTasks: RunAnimationEntry[];
 
 public constructor(selector:string) {
@@ -343,6 +382,7 @@ public constructor(selector:string) {
 		this._clientHeight = 0;
 		this._wheelScale = DEFAULT_WHEEL_SCALE;
 		this._intervalPrecision = DEFAULT_INTERVAL_PRECISION;
+		this._scrollAnimationTime = DEFAULT_SCROLL_ANIMATION_TIME;
 		this._finallyTasks = [];
 		this._afterTasks = [];
 		this._intervalTasks = [];
@@ -382,6 +422,14 @@ public constructor(selector:string) {
 
 	public set intervalPrecision(precision:number) {
 		this._intervalPrecision = precision;
+	}
+
+	public get scrollAnimationTime(): number {
+		return this._scrollAnimationTime;
+	}
+
+	public set scrollAnimationTime(time: number) {
+		this._scrollAnimationTime = time;
 	}
 
 	public onLoad(evt:Event):void {
@@ -663,7 +711,6 @@ public constructor(selector:string) {
 	}
 
 	public sync() {
-		Logs.info("sync");
 		this.rootNode.sync();
 		this._busy = true;
 	}
@@ -763,8 +810,8 @@ public constructor(selector:string) {
 		return next - now;
 	}
 
-	public runAnimation(node:UiNode, id:number, limit:number, task:RunAfterTask) {
-		let entry = new RunAnimationEntry(node, id, limit, task);
+	public runAnimation(node:UiNode, id:number, limit:number, repeat:boolean, task:AnimationTask) {
+		let entry = new RunAnimationEntry(node, id, limit, repeat, task);
 		this._animationTasks.push(entry);
 	}
 
@@ -783,19 +830,29 @@ public constructor(selector:string) {
 		this._animationTasks = divided[1];
 	}
 
+	private hasOneshotAnimation():boolean {
+		let divided = Arrays.divide(this._animationTasks, (e)=>e.repeat);
+		return divided[1].length > 0;
+	}
+
 	private processAnimationFrame(at:number):void {
-		let result:UiResult = UiResult.IGNORED;
+		let result:UiResult = UiResult.AFFECTED;
+		let hasAnimation = false;
 		try {
 			for (let e of this._animationTasks) {
 				result |= e.run(at);
 			}
+			this.cancelAnimationTasksIfExit();
+			hasAnimation = this.hasOneshotAnimation();
+			if (!hasAnimation) {
+				result |= this.recoverFocus();
+			}
 			//後処理
 			this.postProcessEvent(null, result);
-			this.cancelAnimationTasksIfExit();
 		} finally {
 			this.flushFinally();
 		}
-		this._busy = false;
+		this._busy = hasAnimation;
 	}
 
 	private processKeyDown(evt:KeyboardEvent):void {
@@ -1213,7 +1270,6 @@ public constructor(selector:string) {
 	}
 
 	private postProcessEvent(evt:Event|null, result:UiResult):void {
-		result |= this.recoverFocus();
 		if (result & UiResult.AFFECTED) {
 			this.sync();
 		}

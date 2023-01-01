@@ -889,8 +889,8 @@ export class UiNode implements Clonable<UiNode>, Scrollable {
 		let result:UiResult = UiResult.IGNORED;
 		let r = target.getWrappedRectOn(this);
 		let s = this.getViewRect();
-		let dx;
-		let dy;
+		let dx:number;
+		let dy:number;
 		if (r.left < s.left) {
 			dx = -(s.left - r.left + 0);
 		} else if (r.right > s.right) {
@@ -906,11 +906,26 @@ export class UiNode implements Clonable<UiNode>, Scrollable {
 			dy = 0;
 		}
 		if (dx != 0 || dy != 0) {
-			this.scrollLeft = `${s.left + dx}px`;
-			this.scrollTop = `${s.top + dy}px`;
-			result |= UiResult.AFFECTED;
+			let app = this.application;
+			let time = app.scrollAnimationTime;
+			if (time == 0) {
+				this.setScroll(s.left + dx, s.top + dy, 1.0);
+				result |= UiResult.AFFECTED;
+			} else {
+				app.runAnimation(this, 1, time, false, (step:number) => {
+					let sx = s.left + (dx * Math.min(step, 1.0));
+					let sy = s.top  + (dy * Math.min(step, 1.0));
+					this.setScroll(sx, sy, step);
+					return step >= 1.0 ? UiResult.EXIT : UiResult.EATEN;
+				});
+			}
 		}
 		return result;
+	}
+
+	protected setScroll(x:number, y:number, step:number):void {
+		this.scrollLeft = `${x}px`;
+		this.scrollTop = `${y}px`;
 	}
 
 	public get mounted():boolean {

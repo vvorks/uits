@@ -467,14 +467,15 @@ export class UiListNode extends UiNode {
 		}
 	}
 
-	public scrollFor(node:UiNode):UiResult {
-		let result = super.scrollFor(node);
-		if (this.vertical) {
-			result |= this.slideVertical(0);
-		} else {
-			result |= this.slideHorizontal(0);
+	protected setScroll(x:number, y:number, step:number):void {
+		super.setScroll(x, y, step);
+		if (step >= 1.0) {
+			if (this.vertical) {
+				this.slideVertical(0);
+			} else {
+				this.slideHorizontal(0);
+			}
 		}
-		return result;
 	}
 
 	protected slideVertical(dy:number):UiResult {
@@ -495,11 +496,13 @@ export class UiListNode extends UiNode {
 			index = (index + 1 + count) % count;
 		}
 		if (this._pageTopIndex != index) {
+			Logs.debug("*** pageTopIndex %d -> %d", this._pageTopIndex, index);
 			this._pageTopIndex = index;
 			this.renumberRecs(false);
 			result |= UiResult.AFFECTED;
 		}
 		if (y != scroll.y) {
+			Logs.debug("*** y %d -> %d", scroll.y, y);
 			this.scrollTop = `${y}px`;
 			this.relocateRecs();
 			this.setRecsVisiblity();
