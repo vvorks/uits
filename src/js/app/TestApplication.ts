@@ -1,4 +1,3 @@
-import { Properties } from "../lib/lang";
 import {
 	UiApplication,
 	UiNode, UiResult, UiNodeBuilder,
@@ -79,7 +78,7 @@ export class TestApplication extends UiApplication {
 
 	private _pos: number = 0;
 
-	protected initialize():void {
+	protected initialize(at:number):void {
 
 		this.addPageFactory("#vlist", (args) => new VerticalListPage(this, args));
 		this.addPageFactory("#hlist", (args) => new HorizontalListPage(this, args));

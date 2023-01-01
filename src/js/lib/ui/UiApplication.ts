@@ -26,6 +26,8 @@ type RunFinallyTask = () => void;
 
 type RunAfterTask = () => UiResult;
 
+type AnimationTask = (step:number) => UiResult;
+
 class LivePage {
 
 	private _pageNode:UiPageNode;
@@ -171,69 +173,127 @@ class DataSourceEntry {
 			this._attaches.splice(index, 1);
 		}
 	}
-	public onDataSourceChanged(): UiResult {
+	public onDataSourceChanged(at:number): UiResult {
 		let result:UiResult = UiResult.IGNORED;
 		for (let node of this._attaches) {
-			result |= node.onDataSourceChanged(this._tag, this._dataSource as DataSource);
+			result |= node.onDataSourceChanged(this._tag, this._dataSource as DataSource, at);
 		}
 		return result;
 	}
 
 }
 
-class RunAfterEntry {
-	private _timeoutId: number;
+class RunEntry<T> {
+
 	private _node: UiNode;
+
 	private _id: number;
-	private _task: RunAfterTask;
-	public constructor(timeoutId:number, node:UiNode, id:number, task:RunAfterTask) {
-		this._timeoutId = timeoutId;
+
+	private _task: T;
+
+	public constructor(node:UiNode, id:number, task:T) {
 		this._node = node;
 		this._id = id;
 		this._task = task;
 	}
+
+	public get node(): UiNode {
+		return this._node;
+	}
+
+	public match(node: UiNode, id:number):boolean {
+		return this._node.id == node.id && this._id == id;
+	}
+
+	protected get task():T {
+		return this._task;
+	}
+
+}
+
+class RunAfterEntry extends RunEntry<RunAfterTask> {
+
+	private _timeoutId: number;
+
+	public constructor(node:UiNode, id:number, timeoutId:number, task:RunAfterTask) {
+		super(node, id, task);
+		this._timeoutId = timeoutId;
+	}
+
 	public get timeoutId():number {
 		return this._timeoutId;
 	}
-	public get node(): UiNode {
-		return this._node;
+
+	public run():UiResult {
+		return this.task();
 	}
-	public match(node: UiNode, id:number):boolean {
-		return this._node.id == node.id && this._id == id;
-	}
-	public task(): UiResult {
-		return this._task();
-	}
+
 }
 
-class RunIntervalEntry {
-	private _node: UiNode;
-	private _id: number;
+class RunIntervalEntry extends RunEntry<RunAfterTask> {
+
 	private _cycle: number;
+
 	private _lastTime: number;
-	private _task: RunAfterTask;
+
+	private _exit: boolean;
+
 	public constructor(node:UiNode, id:number, cycle:number, task:RunAfterTask) {
-		this._node = node;
-		this._id = id;
+		super(node, id, task);
 		this._cycle = cycle;
 		this._lastTime = new Date().getTime();
-		this._task = task;
+		this._exit = false;
 	}
-	public get node(): UiNode {
-		return this._node;
+
+	public get exit():boolean {
+		return this._exit;
 	}
-	public match(node: UiNode, id:number):boolean {
-		return this._node.id == node.id && this._id == id;
-	}
-	public task(now:number):UiResult {
+
+	public run(now:number):UiResult {
 		let result = UiResult.IGNORED;
 		if (Math.floor(this._lastTime / this._cycle) != Math.floor(now / this._cycle)) {
-			result |= this._task();
+			result = this.task();
+			this._exit = !!(result & UiResult.EXIT);
+			result &= UiResult.EXIT;
 			this._lastTime = now;
 		}
 		return result;
 	}
+
 }
+
+class RunAnimationEntry extends RunEntry<AnimationTask> {
+
+	private _limit: number;
+
+	private _baseTime:number;
+
+	private _exit: boolean;
+
+	public constructor(node:UiNode, id:number, limit:number, task:AnimationTask) {
+		super(node, id, task);
+		this._limit = limit;
+		this._baseTime = 0;
+		this._exit = false;
+	}
+
+	public get exit():boolean {
+		return this._exit;
+	}
+
+	public run(now:number):UiResult {
+		if (this._baseTime == 0) {
+			this._baseTime = now;
+		}
+		let step = (now - this._baseTime) / this._limit;
+		let result = this.task(step);
+		this._exit = !!(result & UiResult.EXIT);
+		result &= UiResult.EXIT;
+		return result;
+	}
+
+}
+
 
 type PageFactory = (args:Properties<string>) => UiPageNode;
 
@@ -265,9 +325,11 @@ export class UiApplication {
 
 	private _finallyTasks: RunFinallyTask[];
 
-	private _runAfterTasks: RunAfterEntry[];
+	private _afterTasks: RunAfterEntry[];
 
-	private _runIntervalTasks: RunIntervalEntry[];
+	private _intervalTasks: RunIntervalEntry[];
+
+	private _animationTasks: RunAnimationEntry[];
 
 public constructor(selector:string) {
 		this._selector = selector;
@@ -282,8 +344,9 @@ public constructor(selector:string) {
 		this._wheelScale = DEFAULT_WHEEL_SCALE;
 		this._intervalPrecision = DEFAULT_INTERVAL_PRECISION;
 		this._finallyTasks = [];
-		this._runAfterTasks = [];
-		this._runIntervalTasks = [];
+		this._afterTasks = [];
+		this._intervalTasks = [];
+		this._animationTasks = [];
 		window.onload = (evt:Event) => {this.onLoad(evt)};
 	}
 
@@ -347,14 +410,19 @@ public constructor(selector:string) {
 		root.addEventListener("wheel", (evt) => {this.processMouseWheel(evt)})
 		window.addEventListener("resize", (evt) => {this.processResize(evt)});
 		window.addEventListener('hashchange', (evt) => {this.processHashChanged()});
-		window.setTimeout(()=>{this.processInterval()}, this.getNextInterval());
+		window.setTimeout(()=>{this.processIntervalTasks()}, this.getNextInterval());
+		const aniFunc = (at:number) => {
+			this.processAnimationFrame(at);
+			window.requestAnimationFrame(aniFunc);
+		}
+		window.requestAnimationFrame(aniFunc);
 		//派生クラス初期化
-		this.initialize();
+		this.initialize(evt.timeStamp);
 		//初回のロード処理
 		this.processHashChanged();
 	}
 
-	protected initialize():void {
+	protected initialize(at:number):void {
 	}
 
 	public addPageFactory(tag:string, func:PageFactory):void {
@@ -436,8 +504,9 @@ public constructor(selector:string) {
 			let pageNode = page.pageNode;
 			pageNode.onUnmount();
 			this.rootNode.removeChild(pageNode);
-			this.cancelRunAfterIn(pageNode);
-			this.cancelRunIntervalIn(pageNode);
+			this.cancelAfterTasksIn(pageNode);
+			this.cancelIntervalTasksIn(pageNode);
+			this.cancelAnimationTasksIn(pageNode);
 		}
 		this._pageStack.splice(0, pageTail);
 	}
@@ -482,8 +551,9 @@ public constructor(selector:string) {
 		this._pageStack.splice(index, 1);
 		pageNode.onUnmount();
 		this.rootNode.removeChild(pageNode);
-		this.cancelRunAfterIn(pageNode);
-		this.cancelRunIntervalIn(pageNode);
+		this.cancelAfterTasksIn(pageNode);
+		this.cancelIntervalTasksIn(pageNode);
+		this.cancelAnimationTasksIn(pageNode);
 	}
 
 	public isFocusable(e:UiNode):boolean {
@@ -596,10 +666,6 @@ public constructor(selector:string) {
 		Logs.info("sync");
 		this.rootNode.sync();
 		this._busy = true;
-		window.requestAnimationFrame((t:number) => {
-			this._busy = false;
-		});
-
 	}
 
 	public runFinally(task:RunFinallyTask):void {
@@ -617,35 +683,35 @@ public constructor(selector:string) {
 	}
 
 	public runAfter(node:UiNode, id:number, msec:number, task:RunAfterTask):void {
-		this.cancelRunAfter(node, id);
-		let timeoutId = window.setTimeout(()=>this.processRunAfter(node, id), msec);
-		let entry = new RunAfterEntry(timeoutId, node, id, task);
-		this._runAfterTasks.push(entry);
+		this.cancelAfter(node, id);
+		let timeoutId = window.setTimeout(()=>this.processAfterTasks(node, id), msec);
+		let entry = new RunAfterEntry(node, id, timeoutId, task);
+		this._afterTasks.push(entry);
 	}
 
-	public cancelRunAfter(node:UiNode, id:number) {
-		let divided = Arrays.divide(this._runAfterTasks, (e)=>e.match(node, id));
-		this._runAfterTasks = divided[1];
+	public cancelAfter(node:UiNode, id:number) {
+		let divided = Arrays.divide(this._afterTasks, (e)=>e.match(node, id));
+		this._afterTasks = divided[1];
 		for (let e of divided[0]) {
 			window.clearTimeout(e.timeoutId);
 		}
 	}
 
-	private cancelRunAfterIn(page:UiPageNode) {
-		let divided = Arrays.divide(this._runAfterTasks, (e)=>page.isAncestorOf(e.node));
-		this._runAfterTasks = divided[1];
+	private cancelAfterTasksIn(page:UiPageNode) {
+		let divided = Arrays.divide(this._afterTasks, (e)=>page.isAncestorOf(e.node));
+		this._afterTasks = divided[1];
 		for (let e of divided[0]) {
 			window.clearTimeout(e.timeoutId);
 		}
 	}
 
-	private processRunAfter(node:UiNode, id:number):void {
-		let divided = Arrays.divide(this._runAfterTasks, (e)=>e.match(node, id));
-		this._runAfterTasks = divided[1];
+	private processAfterTasks(node:UiNode, id:number):void {
+		let divided = Arrays.divide(this._afterTasks, (e)=>e.match(node, id));
+		this._afterTasks = divided[1];
 		let result:UiResult = UiResult.IGNORED;
 		try {
 			for (let e of divided[0]) {
-				result |= e.task();
+				result |= e.run();
 			}
 			//後処理
 			this.postProcessEvent(null, result);
@@ -656,32 +722,38 @@ public constructor(selector:string) {
 
 	public runInterval(node:UiNode, id:number, cycle:number, task:RunAfterTask) {
 		let entry = new RunIntervalEntry(node, id, cycle, task);
-		this._runIntervalTasks.push(entry);
+		this._intervalTasks.push(entry);
 	}
 
-	public cancelRunInterval(node:UiNode, id:number, cycle:number, task:RunAfterTask) {
-		let divided = Arrays.divide(this._runIntervalTasks, (e)=>e.match(node, id));
-		this._runIntervalTasks = divided[1];
+	public cancelInterval(node:UiNode, id:number) {
+		let divided = Arrays.divide(this._intervalTasks, (e)=>e.match(node, id));
+		this._intervalTasks = divided[1];
 	}
 
-	private cancelRunIntervalIn(page:UiPageNode) {
-		let divided = Arrays.divide(this._runIntervalTasks, (e)=>page.isAncestorOf(e.node));
-		this._runIntervalTasks = divided[1];
+	private cancelIntervalTasksIfExit() {
+		let divided = Arrays.divide(this._intervalTasks, (e)=>e.exit);
+		this._intervalTasks = divided[1];
 	}
 
-	private processInterval():void {
+	private cancelIntervalTasksIn(page:UiPageNode) {
+		let divided = Arrays.divide(this._intervalTasks, (e)=>page.isAncestorOf(e.node));
+		this._intervalTasks = divided[1];
+	}
+
+	private processIntervalTasks():void {
 		let result:UiResult = UiResult.IGNORED;
 		try {
 			let now = new Date().getTime();
-			for (let e of this._runIntervalTasks) {
-				result |= e.task(now);
+			for (let e of this._intervalTasks) {
+				result |= e.run(now);
 			}
 			//後処理
 			this.postProcessEvent(null, result);
+			this.cancelIntervalTasksIfExit();
 		} finally {
 			this.flushFinally();
 		}
-		window.setTimeout(()=>{this.processInterval()}, this.getNextInterval());
+		window.setTimeout(()=>{this.processIntervalTasks()}, this.getNextInterval());
 	}
 
 	private getNextInterval():number {
@@ -689,6 +761,41 @@ public constructor(selector:string) {
 		let unit = this._intervalPrecision;
 		let next = Math.floor((now + unit) / unit) * unit;
 		return next - now;
+	}
+
+	public runAnimation(node:UiNode, id:number, limit:number, task:RunAfterTask) {
+		let entry = new RunAnimationEntry(node, id, limit, task);
+		this._animationTasks.push(entry);
+	}
+
+	public cancelAnimation(node:UiNode, id:number) {
+		let divided = Arrays.divide(this._animationTasks, (e)=>e.match(node, id));
+		this._animationTasks = divided[1];
+	}
+
+	private cancelAnimationTasksIfExit() {
+		let divided = Arrays.divide(this._animationTasks, (e)=>e.exit);
+		this._animationTasks = divided[1];
+	}
+
+	private cancelAnimationTasksIn(page:UiPageNode) {
+		let divided = Arrays.divide(this._animationTasks, (e)=>page.isAncestorOf(e.node));
+		this._animationTasks = divided[1];
+	}
+
+	private processAnimationFrame(at:number):void {
+		let result:UiResult = UiResult.IGNORED;
+		try {
+			for (let e of this._animationTasks) {
+				result |= e.run(at);
+			}
+			//後処理
+			this.postProcessEvent(null, result);
+			this.cancelAnimationTasksIfExit();
+		} finally {
+			this.flushFinally();
+		}
+		this._busy = false;
 	}
 
 	private processKeyDown(evt:KeyboardEvent):void {
@@ -1088,12 +1195,13 @@ public constructor(selector:string) {
 
 	public processDataSourceChanged(ds:DataSource):void {
 		Logs.info("processDataSourceChanged");
+		let at = this.newTimestamp();
 		try {
 			let result:UiResult = UiResult.IGNORED;
 			for (const [tag, entry] of Object.entries(this._dataSources)) {
 				if (entry !== undefined) {
 					if (ds == entry.dataSource) {
-						result |= entry.onDataSourceChanged();
+						result |= entry.onDataSourceChanged(at);
 					}
 				}
 			}
@@ -1114,6 +1222,10 @@ public constructor(selector:string) {
 				evt.preventDefault();
 			}
 		}
+	}
+
+	private newTimestamp():number {
+		return document.createEvent("Event").timeStamp;
 	}
 
 	protected onKeyDown(target:UiNode, key:number, ch:number, mod:number, at:number):UiResult {

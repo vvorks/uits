@@ -229,7 +229,7 @@ export class UiListNode extends UiNode {
 		super.onMount();
 	}
 
-	public onDataSourceChanged(tag:string, ds:DataSource):UiResult {
+	public onDataSourceChanged(tag:string, ds:DataSource, at:number):UiResult {
 		if (tag != this.dataSourceName) {
 			return UiResult.IGNORED;
 		}

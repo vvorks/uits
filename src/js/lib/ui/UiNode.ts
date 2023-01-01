@@ -85,11 +85,25 @@ export enum Changed {
 
 }
 
+/**
+ * Uiイベントハンドラの戻り値
+ */
 export enum UiResult {
+
+	/** イベントは無視された */
 	IGNORED = 0,
+
+	/** イベントを消費した */
 	CONSUMED = 1,
+
+	/** イベントにより内部状態が変化した */
 	AFFECTED = 2,
-	EATEN = 3
+	/** イベントを消費し、かつ内部状態も変化した */
+	EATEN = CONSUMED|AFFECTED,
+
+	/** イベントハンドラ呼び出し終了要求（Timer系のイベントハンドラで使用）  */
+	EXIT = 4,
+
 }
 
 class VoidDataHolder implements DataHolder {
@@ -1240,7 +1254,7 @@ export class UiNode implements Clonable<UiNode>, Scrollable {
 		return result;
 	}
 
-	public onDataSourceChanged(tag:string, ds:DataSource):UiResult {
+	public onDataSourceChanged(tag:string, ds:DataSource, at:number):UiResult {
 		return UiResult.IGNORED;
 	}
 
