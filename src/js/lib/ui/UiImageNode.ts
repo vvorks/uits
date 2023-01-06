@@ -1,5 +1,6 @@
 import { Logs } from "../lang";
 import { UiNode } from "./UiNode";
+import { TextAlign, VerticalAlign } from "./UiStyle";
 
 export class UiImageNode extends UiNode {
 
@@ -31,20 +32,26 @@ export class UiImageNode extends UiNode {
 	}
 
 	protected renderContent():void {
+		if (this._imageContent === undefined || this._imageContent == null) {
+			return;
+		}
 		let dom = this.domElement as HTMLElement;
 		let img = dom.firstChild as HTMLImageElement;
 		let cssStyle = img.style;
 		let uiStyle = this.style.getEffectiveStyle(this);
-		let align = uiStyle.textAlign;
-		let valign = uiStyle.verticalAlign;
-		if (align == "left" || align == "justify") {
+		let align:TextAlign = uiStyle.textAlign;
+		let valign:VerticalAlign = uiStyle.verticalAlign;
+		if (align == "left") {
 			cssStyle.left = "0px";
 		} else if (align == "right" ) {
 			cssStyle.right = "0px";
-		} else {
+		} else if (align == "center") {
 			cssStyle.left = "0px";
 			cssStyle.right = "0px";
 			cssStyle.margin = "auto";
+		} else {
+			cssStyle.width = "100%";
+			cssStyle.height = "auto";
 		}
 		if (valign == "top") {
 			cssStyle.top = "0px";

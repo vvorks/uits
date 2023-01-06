@@ -19,6 +19,9 @@ export { UiTextNode };
 import { UiTextField } from "./ui/UiTextField"
 export { UiTextField };
 
+import { UiImageField } from "./ui/UiImageField"
+export { UiImageField };
+
 import { UiCheckbox } from "./ui/UiCheckbox"
 export { UiCheckbox };
 

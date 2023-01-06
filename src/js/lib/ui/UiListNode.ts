@@ -496,13 +496,11 @@ export class UiListNode extends UiNode {
 			index = (index + 1 + count) % count;
 		}
 		if (this._pageTopIndex != index) {
-			Logs.debug("*** pageTopIndex %d -> %d", this._pageTopIndex, index);
 			this._pageTopIndex = index;
 			this.renumberRecs(false);
 			result |= UiResult.AFFECTED;
 		}
 		if (y != scroll.y) {
-			Logs.debug("*** y %d -> %d", scroll.y, y);
 			this.scrollTop = `${y}px`;
 			this.relocateRecs();
 			this.setRecsVisiblity();
@@ -637,4 +635,16 @@ export class UiListNode extends UiNode {
 		return result;
 	}
 
+	public scrollRecord(dir:number): UiResult {
+		let dx:number;
+		let dy:number;
+		if (this.vertical) {
+			dx = 0;
+			dy = this._recSize * Math.sign(dir);
+		} else {
+			dx = this._recSize * Math.sign(dir);
+			dy = 0;
+		}
+		return this.scrollInside(dx, dy);
+	}
 }

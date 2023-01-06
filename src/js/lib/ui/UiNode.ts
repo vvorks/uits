@@ -906,19 +906,27 @@ export class UiNode implements Clonable<UiNode>, Scrollable {
 			dy = 0;
 		}
 		if (dx != 0 || dy != 0) {
-			let app = this.application;
-			let time = app.scrollAnimationTime;
-			if (time == 0) {
-				this.setScroll(s.left + dx, s.top + dy, 1.0);
-				result |= UiResult.AFFECTED;
-			} else {
-				app.runAnimation(this, 1, time, false, (step:number) => {
-					let sx = s.left + (dx * Math.min(step, 1.0));
-					let sy = s.top  + (dy * Math.min(step, 1.0));
-					this.setScroll(sx, sy, step);
-					return step >= 1.0 ? UiResult.EXIT : UiResult.EATEN;
-				});
-			}
+			result |= this.scrollInside(dx, dy);
+		}
+		return result;
+	}
+
+	public scrollInside(dx:number, dy:number):UiResult {
+		let app = this.application;
+		let time = app.scrollAnimationTime;
+		let s = this.getViewRect();
+		let result;
+		if (time == 0) {
+			this.setScroll(s.left + dx, s.top + dy, 1.0);
+			result = UiResult.AFFECTED;
+		} else {
+			app.runAnimation(this, 1, time, false, (step:number) => {
+				let sx = s.left + (dx * Math.min(step, 1.0));
+				let sy = s.top  + (dy * Math.min(step, 1.0));
+				this.setScroll(sx, sy, step);
+				return step >= 1.0 ? UiResult.EXIT : UiResult.EATEN;
+			});
+			result = UiResult.IGNORED;
 		}
 		return result;
 	}
@@ -926,6 +934,9 @@ export class UiNode implements Clonable<UiNode>, Scrollable {
 	protected setScroll(x:number, y:number, step:number):void {
 		this.scrollLeft = `${x}px`;
 		this.scrollTop = `${y}px`;
+		if (step >= 1.0) {
+			this.application.updateAxis(this);
+		}
 	}
 
 	public get mounted():boolean {

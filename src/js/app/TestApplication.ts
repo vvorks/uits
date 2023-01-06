@@ -9,9 +9,16 @@ import {
 } from "../lib/ui";
 import { GridPage } from "./GridPage";
 import { HorizontalListPage } from "./HorizontalListPage";
+import { SlidePage } from "./SlidePage";
 import { TestDataSource } from "./TestDataSource";
 import { VerticalListPage } from "./VerticalListPage";
 import { VolumeToast } from "./VolumeToast";
+import hokusai1 from "@images/hokusai1.jpg";
+import hokusai2 from "@images/hokusai2.jpg";
+import hokusai3 from "@images/hokusai3.jpg";
+import hokusai4 from "@images/hokusai4.jpg";
+import hokusai5 from "@images/hokusai5.jpg";
+
 
 export const DEFAULT_STYLE:UiStyle = new UiStyleBuilder()
 	.textColor(Colors.BLACK)
@@ -64,6 +71,11 @@ export const THUMB_STYLE:UiStyle = new UiStyleBuilder()
 	.backgroundColor(Colors.WHITE)
 	.build();
 
+export const IMAGE_STYLE = new UiStyleBuilder()
+	.basedOn(DEFAULT_STYLE)
+	.textAlign("justify")
+	.build();
+
 const LONG_NAME_JA =
 	"寿限無寿限無五劫のすりきれ海砂利水魚の水行末雲来末風来末食う寝るところに住むところ" +
 	"やぶらこうじのぶらこうじパイポパイポパイポのシューリンガンシューリンガンのグーリンダイ" +
@@ -83,6 +95,7 @@ export class TestApplication extends UiApplication {
 		this.addPageFactory("#vlist", (args) => new VerticalListPage(this, args));
 		this.addPageFactory("#hlist", (args) => new HorizontalListPage(this, args));
 		this.addPageFactory("#grid", (args) => new GridPage(this, args));
+		this.addPageFactory("#slide", (args) => new SlidePage(this, args));
 		this.addPageFactory("#volume", (args) => new VolumeToast(this, args));
 
 		this.addDataSource("sample", new TestDataSource(() => {
@@ -102,6 +115,7 @@ export class TestApplication extends UiApplication {
 			this._pos = (this._pos + 1) % this._datas.length;
 			return theData;
 		}));
+
 		this.addDataSource("sample2", new TestDataSource(() => {
 			let theData: DataRecord[] = [];
 			theData.push({"key": "1", "title": "時政"});
@@ -112,6 +126,25 @@ export class TestApplication extends UiApplication {
 			theData.push({"key": "6", "title": "長時"});
 			theData.push({"key": "7", "title": "政村"});
 			theData.push({"key": "8", "title": "時宗"});
+			return theData;
+		}));
+
+		this.addDataSource("hokusai", new TestDataSource(() => {
+			let jpegs = [hokusai1, hokusai2, hokusai3, hokusai4, hokusai5];
+			let theData: DataRecord[] = [];
+			for (let i = 0; i < 5; i++) {
+				theData.push({
+					"a": "Aでーす" + "[" + i + "]",
+					"b": "Bでーす" + "[" + i + "]",
+					"c": "Cでーす" + "[" + i + "]",
+					"d": "Dでーす" + "[" + i + "]",
+					"e": jpegs[i],
+					"f": "Fでーす" + "[" + i + "]",
+					"g": "Gでーす" + "[" + i + "]",
+					"h": "Hでーす" + "[" + i + "]",
+					"i": "Iでーす" + "[" + i + "]",
+				});
+			}
 			return theData;
 		}));
 

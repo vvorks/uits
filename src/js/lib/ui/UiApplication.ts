@@ -42,6 +42,7 @@ class LivePage {
 	private _yAxis: number;
 	private _focusNode: UiNode | null;
 	private _clickNode: UiNode | null;
+	private _lastAxis: UiAxis;
 
 	public constructor(pageNode:UiPageNode, type:PageType = PageType.NORMAL) {
 		this._pageNode = pageNode;
@@ -50,6 +51,7 @@ class LivePage {
 		this._yAxis = 0;
 		this._focusNode = null;
 		this._clickNode = null;
+		this._lastAxis = UiAxis.NONE;
 	}
 
 	public get pageNode():UiPageNode {
@@ -107,6 +109,7 @@ class LivePage {
 			}
 		}
 		//AXIS更新
+		this._lastAxis = axis;
 		let rect = newNode.getRectOnRoot();
 		if (axis & UiAxis.X) {
 			this.xAxis = rect.centerX;
@@ -116,6 +119,21 @@ class LivePage {
 		}
 		Logs.info("page %s focus %s axis %d,%d", this._pageNode.name, this._focusNode.name, this.xAxis, this.yAxis);
 		return result;
+	}
+
+	public updateAxis():void {
+		let node = this._focusNode;
+		if (node != null) {
+			let axis = this._lastAxis;
+			let rect = node.getRectOnRoot();
+			if (axis & UiAxis.X) {
+				this.xAxis = rect.centerX;
+			}
+			if (axis & UiAxis.Y) {
+				this.yAxis = rect.top;
+			}
+			Logs.info("update axis %d,%d", this.xAxis, this.yAxis);
+		}
 	}
 
 	public get clickNode(): UiNode|null {
@@ -644,6 +662,16 @@ public constructor(selector:string) {
 		let result = UiResult.IGNORED;
 		if (page != null) {
 			page.focus(node, axis);
+			result |= UiResult.AFFECTED;
+		}
+		return result;
+	}
+
+	public updateAxis(node:UiNode):UiResult {
+		let page = this.getLivePageOf(node);
+		let result = UiResult.IGNORED;
+		if (page != null) {
+			page.updateAxis();
 			result |= UiResult.AFFECTED;
 		}
 		return result;
