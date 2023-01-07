@@ -156,6 +156,10 @@ export class UiListNode extends UiNode {
 
 	private _templateRect: Rect | null;
 
+	private _templateBottom: number | null;
+
+	private _templateRight: number | null;
+
 	private _recSize: number;
 
 	private _pageSize:number;
@@ -179,6 +183,8 @@ export class UiListNode extends UiNode {
 			this._listFlags = src._listFlags;
 			this._template = src._template;
 			this._templateRect = src._templateRect;
+			this._templateBottom = src._templateBottom;
+			this._templateRight = src._templateRight;
 			this._recSize = src._recSize;
 			this._pageSize = src._pageSize;
 			this._recsPerPage = src._recsPerPage;
@@ -188,7 +194,9 @@ export class UiListNode extends UiNode {
 			this._listFlags = ListFlags.INITIAL;
 			this._template = null;
 			this._templateRect = null;
-			this.vertical = true; //TODO kari
+			this._templateBottom = null;
+			this._templateRight = null;
+			this.vertical = true;
 			this._recSize = 0;
 			this._pageSize = 0;
 			this._recsPerPage = 0;
@@ -259,8 +267,7 @@ export class UiListNode extends UiNode {
 
 	public onMount():void {
 		if (this._template == null) {
-			this._templateRect = this.getChildrenRect();
-			this._template = this.makeTemplate(this._templateRect);
+			this._template = this.makeTemplate();
 		}
 		this.measureSize();
 		this.prepareArea();
@@ -269,6 +276,28 @@ export class UiListNode extends UiNode {
 		this.renumberRecs(true);
 		this.setRecsVisiblity();
 		super.onMount();
+	}
+
+	public onResize(): UiResult {
+		super.onResize();
+		if (this._templateRect == null) {
+			throw new StateError();
+		}
+		if (this._templateRight != null) {
+			this._templateRect.width =
+				(this.innerWidth - this._templateRight) - this._templateRect.x;
+		}
+		if (this._templateBottom != null) {
+			this._templateRect.height =
+				(this.innerHeight - this._templateBottom) - this._templateRect.y;
+		}
+		this.measureSize();
+		this.prepareArea();
+		this.prepareRecs();
+		this.relocateRecs();
+		this.renumberRecs(true);
+		this.setRecsVisiblity();
+		return UiResult.AFFECTED;
 	}
 
 	public onDataSourceChanged(tag:string, ds:DataSource, at:number):UiResult {
@@ -344,29 +373,44 @@ export class UiListNode extends UiNode {
 		return (e != null) ? e as UiRecord : null;
 	}
 
-	private makeTemplate(rTemplate:Rect):UiRecord {
+	private makeTemplate():UiRecord {
+		let rTemplate = this.getChildrenRect();
+		let maxRight = 0;
+		let maxBottom = 0;
+		for (let c of this._children) {
+			let r = c.getRect();
+			if (c.right != null) {
+				maxRight = Math.max(maxRight, r.right);
+			}
+			if (c.bottom != null) {
+				maxBottom = Math.max(maxBottom, r.bottom);
+			}
+		}
+		this._templateRect = rTemplate;
 		let template = new UiRecord(this.application);
 		if (this.vertical) {
+			this._templateBottom = (rTemplate.bottom == maxBottom ? this.innerHeight - maxBottom: null);
 			template.left = "0px";
-			template.right = "0px"
-			template.top = "0px";
+			template.right = "0px";
+			template.top = `${rTemplate.top}px`;
 			template.height = `${rTemplate.height}px`;
 			for (let c of this._children) {
 				let rChild = c.getRect();
-				c.top = `${rChild.top - rTemplate.top}px`;
-				c.height = `${rChild.height}px`;
-				c.bottom = null;
+				if (c.top != null) {
+					c.top = `${rChild.top - rTemplate.top}px`;
+				}
 			}
 		} else {
-			template.left = "0px";
+			this._templateRight = (rTemplate.right == maxRight ? this.innerWidth - maxRight : null);
+			template.left = `${rTemplate.left}px`;
 			template.width = `${rTemplate.width}px`;
 			template.top = "0px";
 			template.bottom = "0px";
 			for (let c of this._children) {
 				let rChild = c.getRect();
-				c.left = `${rChild.left - rTemplate.left}px`;
-				c.width = `${rChild.width}px`;
-				c.right = null;
+				if (c.left != null) {
+					c.left = `${rChild.left - rTemplate.left}px`;
+				}
 			}
 		}
 		template.adoptChildren(this);
@@ -376,11 +420,15 @@ export class UiListNode extends UiNode {
 		return template;
 	}
 
-	protected measureSize():void {
+	protected getTemplateRect(): Rect {
 		if (this._templateRect == null) {
 			throw new StateError();
 		}
-		let rTemplate = this._templateRect;
+		return this._templateRect as Rect;
+	}
+
+	protected measureSize():void {
+		let rTemplate = this.getTemplateRect();
 		if (this.vertical) {
 			this._recSize = rTemplate.top + rTemplate.height;
 			this._pageSize = this.innerHeight;
@@ -392,10 +440,7 @@ export class UiListNode extends UiNode {
 	}
 
 	protected prepareArea():void {
-		if (this._templateRect == null) {
-			throw new StateError();
-		}
-		let rTemplate = this._templateRect;
+		let rTemplate = this.getTemplateRect();
 		let n = this._recsPerPage + MARGIN * 2;
 		if (this.vertical) {
 			this.scrollLeft = "0px";
@@ -429,22 +474,24 @@ export class UiListNode extends UiNode {
 	}
 
 	protected relocateRecs():void {
-		if (this._template == null || this._templateRect == null) {
+		if (this._template == null) {
 			throw new StateError();
 		}
 		let n = this._children.length;
-		let r = this._templateRect as Rect;
+		let r = this.getTemplateRect();
 		if (this.vertical) {
 			for (let i = 0; i < n; i++) {
 				let rec = this._children[i] as UiRecord;
 				let y = r.top + i * (r.top + r.height);
 				rec.top = `${y}px`
+				rec.height = `${r.height}px`;
 			}
 		} else {
 			for (let i = 0; i < n; i++) {
 				let rec = this._children[i] as UiRecord;
 				let x = r.left + i * (r.left + r.width);
 				rec.left = `${x}px`
+				rec.width = `${r.width}px`;
 			}
 		}
 	}
@@ -609,7 +656,7 @@ export class UiListNode extends UiNode {
 			//NOP
 		} else if (count >= this._recsPerPage) {
 			let scroll = this.getScrollRect();
-			let rTemplate = this._templateRect as Rect;
+			let rTemplate = this.getTemplateRect();
 			let margin = this._recSize * MARGIN;
 			let index = this._pageTopIndex;
 			let offset = index * this._recSize + (scroll.y - margin);
@@ -630,7 +677,7 @@ export class UiListNode extends UiNode {
 			//NOP
 		} else if (count >= this._recsPerPage) {
 			let scroll = this.getScrollRect();
-			let rTemplate = this._templateRect as Rect;
+			let rTemplate = this.getTemplateRect();
 			let margin = this._recSize * MARGIN;
 			let index = this._pageTopIndex;
 			let offset = index * this._recSize + (scroll.x - margin);
@@ -656,7 +703,7 @@ export class UiListNode extends UiNode {
 		}
 		let scroll = this.getScrollRect();
 		let margin = this._recSize * MARGIN;
-		let rTemplate = this._templateRect as Rect;
+		let rTemplate = this.getTemplateRect();
 		if (this.vertical) {
 			if (!this.loop) {
 				let maxOffset = count * this._recSize + rTemplate.top - this._pageSize;

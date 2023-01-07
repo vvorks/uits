@@ -368,8 +368,11 @@ export class UiApplication {
 	/** ドキュメント全体高 */
 	private _clientHeight:number;
 
-	/** ビシーフラグ */
-	private _busy:boolean = false;
+	/** ビジーフラグ */
+	private _busy:boolean;
+
+	/** ビジーで保留になったResizeイベント */
+	private _savedResizeEvent:UIEvent|null;
 
 	/** システムWheel調整比  */
 	private _wheelScale: number;
@@ -408,6 +411,8 @@ export class UiApplication {
 		this._captureNode = null;
 		this._clientWidth = 0;
 		this._clientHeight = 0;
+		this._busy = false;
+		this._savedResizeEvent = null;
 		this._wheelScale = DEFAULT_WHEEL_SCALE;
 		this._intervalPrecision = DEFAULT_INTERVAL_PRECISION;
 		this._scrollAnimationTime = DEFAULT_SCROLL_ANIMATION_TIME;
@@ -941,6 +946,11 @@ export class UiApplication {
 			this.flushFinally();
 		}
 		this._busy = hasAnimation;
+		if (!this._busy && this._savedResizeEvent != null) {
+			let evt = this._savedResizeEvent;
+			this._savedResizeEvent = null;
+			this.processResize(evt);
+		}
 	}
 
 	private processKeyDown(evt:KeyboardEvent):void {
@@ -1289,8 +1299,21 @@ export class UiApplication {
 
 	private processResize(evt:UIEvent):void {
 		try {
-			let result:UiResult = UiResult.IGNORED;
-			Logs.info("TODO resize");
+			//busyチェック
+			if (this._busy) {
+				Logs.warn("BUSY");
+				this.postProcessEvent(evt, UiResult.CONSUMED);
+				this._savedResizeEvent = evt;
+				return;
+			}
+			let at = evt.timeStamp;
+			let docElement = document.documentElement;
+			let w = docElement.clientWidth;
+			let h = docElement.clientHeight;
+			Logs.info("resize width=%d height=%d at %d", w, h, at);
+			this._clientWidth = w;
+			this._clientHeight = h;
+			let result = this.rootNode.onResize();
 			//後処理
 			this.postProcessEvent(evt, result);
 		} finally {

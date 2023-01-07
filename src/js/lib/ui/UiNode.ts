@@ -1306,6 +1306,17 @@ export class UiNode implements Clonable<UiNode>, Scrollable {
 		return result;
 	}
 
+	public onResize():UiResult {
+		this.onLocationChanged();
+		this.onScrollChanged();
+		this.onStyleChanged();
+		let result = UiResult.AFFECTED;
+		for (let c of this._children) {
+			result |= c.onResize();
+		}
+		return result;
+	}
+
 	public onDataSourceChanged(tag:string, ds:DataSource, at:number):UiResult {
 		return UiResult.IGNORED;
 	}

@@ -20,9 +20,9 @@ export class HorizontalListPage extends UiPageNode {
 						.style(DEFAULT_STYLE).focusable(true).leave();
 				b.enter(new UiTextField(app, "c")).th(4, 2).lw( 0, 10)
 						.style(DEFAULT_STYLE).focusable(true).leave();
-				b.enter(new UiTextField(app, "d")).th(6, 2).lw( 0, 10)
+				b.enter(new UiTextField(app, "d")).tb(6, 4).lw( 0, 10)
 						.style(DEFAULT_STYLE).focusable(true).leave();
-				b.enter(new UiCheckbox(app, "e")).tb(8, 0).lw( 0, 10)
+				b.enter(new UiCheckbox(app, "e")).bh(2, 2).lw( 0, 10)
 						.style(DEFAULT_STYLE).focusable(true).leave();
 				b.leave();
 			}
