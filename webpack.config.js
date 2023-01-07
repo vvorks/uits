@@ -21,12 +21,17 @@ module.exports = {
                 test: /\.(svg|png|jpe?g)$/i,
                 type: 'asset/resource',
 			},
+			{
+				test: /\.json/,
+				type: 'asset/resource',
+			},
 		],
 	},
 	resolve: {
 		extensions: ['.ts', '.js'],
 		alias: {
 			"@images": __dirname + "/src/assets/images",
+			"@texts": __dirname + "/src/assets/texts",
 		},
 		fallback: {
 			path: require.resolve("path-browserify"),

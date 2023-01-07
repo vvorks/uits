@@ -29,4 +29,8 @@ export class Types {
 		return v !== null && typeof v === "object";
 	}
 
+	public static isArray(v:any) {
+		return Types.isObject(v) && Array.isArray(v);
+	}
+
 }

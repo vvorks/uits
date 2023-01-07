@@ -18,7 +18,8 @@ import hokusai2 from "@images/hokusai2.jpg";
 import hokusai3 from "@images/hokusai3.jpg";
 import hokusai4 from "@images/hokusai4.jpg";
 import hokusai5 from "@images/hokusai5.jpg";
-
+import resource from "@texts/resource.json";
+import { Logs, Properties } from "../lib/lang";
 
 export const DEFAULT_STYLE:UiStyle = new UiStyleBuilder()
 	.textColor(Colors.BLACK)
@@ -84,6 +85,14 @@ const LONG_NAME_JA =
 const LONG_NAME_ES =
 	"Pablo Diego José Francisco de Paula Juan Nepomuceno Cipriano de la Santísima Trinidad Ruiz y Picasso";
 
+class RES {
+	msg001!: string;
+	msg002!: string;
+	msg003!: string;
+	msg004!: string;
+	msg005!: string;
+}
+
 export class TestApplication extends UiApplication {
 
 	private _datas:number[] = [40, 4, 14, 2, 30];
@@ -148,6 +157,7 @@ export class TestApplication extends UiApplication {
 			return theData;
 		}));
 
+		this.setTextResource(resource);
 	}
 
 	protected onKeyDown(target:UiNode, key:number, ch:number, mod:number, at:number):UiResult {

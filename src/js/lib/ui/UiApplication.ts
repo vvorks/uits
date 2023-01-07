@@ -1,4 +1,4 @@
-import { Asserts, Properties, Logs, StateError, ParamError, Arrays } from "../lang";
+import { Asserts, Properties, Logs, StateError, ParamError, Arrays, Value, Types } from "../lang";
 import { Metrics } from "./Metrics";
 import { UiNode, UiResult } from "./UiNode";
 import { UiRootNode } from "./UiRootNode";
@@ -332,8 +332,9 @@ class RunAnimationEntry extends RunEntry<AnimationTask> {
 
 }
 
-
 type PageFactory = (args:Properties<string>) => UiPageNode;
+
+export type Resource = Properties<Value|Resource>;
 
 export class UiApplication {
 
@@ -388,7 +389,10 @@ export class UiApplication {
 	/** アニメーション用タスクのリスト */
 	private _animationTasks: RunAnimationEntry[];
 
-public constructor(selector:string) {
+	/** テキストリソース */
+	private _textResource: Resource;
+
+	public constructor(selector:string) {
 		this._selector = selector;
 		this._rootElement = null;
 		this._rootNode = null;
@@ -405,6 +409,7 @@ public constructor(selector:string) {
 		this._afterTasks = [];
 		this._intervalTasks = [];
 		this._animationTasks = [];
+		this._textResource = {}
 		window.onload = (evt:Event) => {this.onLoad(evt)};
 	}
 
@@ -540,6 +545,46 @@ public constructor(selector:string) {
 		if (entry !== undefined) {
 			entry.detach(node);
 		}
+	}
+
+	public setTextResource(resourceUrl:string):void {
+		fetch(resourceUrl).then((resp) => resp.json()).then((json) => {
+			this._textResource = json as Resource;
+		});
+	}
+
+	public findTextResourceAsString(path:string, defaultValue:string): string {
+		let ret = this.findTextResource(path, defaultValue);
+		return Types.isString(ret) ? ret as string : defaultValue;
+	}
+
+	public findTextResourceAsNumber(path:string, defaultValue:number): number {
+		let ret = this.findTextResource(path, defaultValue);
+		return Types.isNumber(ret) ? ret as number : defaultValue;
+	}
+
+	public findTextResourceAsBoolean(path:string, defaultValue:boolean): boolean {
+		let ret = this.findTextResource(path, defaultValue);
+		return Types.isBoolean(ret) ? ret as boolean : defaultValue;
+	}
+
+	public findTextResource(path:string, defaultValue:Value): Value {
+		let array = path.split("/");
+		let node = this._textResource;
+		for (let i = 0; i < array.length - 1; i++) {
+			let name = array[i];
+			let t = node[name];
+			if (!Types.isObject(t)) {
+				return defaultValue;
+			}
+			node = t as Resource;
+		}
+		let lastName = array[array.length - 1];
+		let result = node[lastName];
+		if (result === undefined || Types.isObject(result)) {
+			return defaultValue;
+		}
+		return result as Value;
 	}
 
 	public transit(tag:string, args:Properties<string>):UiResult {
