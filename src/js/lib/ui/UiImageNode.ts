@@ -1,10 +1,13 @@
 import { Logs } from "../lang";
+import { CssLength } from "./CssLength";
 import { UiNode } from "./UiNode";
 import { TextAlign, VerticalAlign } from "./UiStyle";
 
 export class UiImageNode extends UiNode {
 
 	private _imageContent:any;
+
+	private _imageSize: CssLength = new CssLength("100%");
 
 	public clone():UiImageNode {
 		return new UiImageNode(this);
@@ -19,6 +22,14 @@ export class UiImageNode extends UiNode {
 			this._imageContent = value;
 			this.onContentChanged();
 		}
+	}
+
+	public get imageSize():string {
+		return this._imageSize.toString();
+	}
+
+	public set imageSize(size:string) {
+		this._imageSize = new CssLength(size);
 	}
 
 	protected createDomElement(target:UiNode, tag:string):HTMLElement {
@@ -41,6 +52,8 @@ export class UiImageNode extends UiNode {
 		let uiStyle = this.style.getEffectiveStyle(this);
 		let align:TextAlign = uiStyle.textAlign;
 		let valign:VerticalAlign = uiStyle.verticalAlign;
+		cssStyle.width = this._imageSize.toString();
+		cssStyle.height = "auto";
 		if (align == "left") {
 			cssStyle.left = "0px";
 		} else if (align == "right" ) {
@@ -49,9 +62,6 @@ export class UiImageNode extends UiNode {
 			cssStyle.left = "0px";
 			cssStyle.right = "0px";
 			cssStyle.margin = "auto";
-		} else {
-			cssStyle.width = "100%";
-			cssStyle.height = "auto";
 		}
 		if (valign == "top") {
 			cssStyle.top = "0px";

@@ -28,6 +28,7 @@ export class UiCheckbox extends UiImageNode {
 	public set value(on:boolean) {
 		this._value = on;
 		this.imageContent = (on ? onImage : offImage);
+		this.imageSize = "1rem";
 		this._dataHolder.setValue(this.name, this._value);
 		this.onContentChanged();
 	}

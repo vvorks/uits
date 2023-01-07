@@ -85,14 +85,6 @@ const LONG_NAME_JA =
 const LONG_NAME_ES =
 	"Pablo Diego José Francisco de Paula Juan Nepomuceno Cipriano de la Santísima Trinidad Ruiz y Picasso";
 
-class RES {
-	msg001!: string;
-	msg002!: string;
-	msg003!: string;
-	msg004!: string;
-	msg005!: string;
-}
-
 export class TestApplication extends UiApplication {
 
 	private _datas:number[] = [40, 4, 14, 2, 30];
@@ -118,7 +110,8 @@ export class TestApplication extends UiApplication {
 						"title": "時政",
 					},
 					"d": (i % 2) == 0 ? LONG_NAME_JA : LONG_NAME_ES,
-					"e": false
+					"e": false,
+					"f": (i % 3) + 1
 				});
 			}
 			this._pos = (this._pos + 1) % this._datas.length;

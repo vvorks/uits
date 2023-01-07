@@ -37,12 +37,49 @@ class FocusInfo {
  */
 class UiRecord extends UiNode implements DataHolder {
 
-	private _index:number = 0;
+	private _index:number;
 
-	private _record:DataRecord|null = null;
+	private _record:DataRecord|null;
+
+	private _sharedNames: Set<string>;
 
 	public clone():UiRecord {
 		return new UiRecord(this);
+	}
+
+	public constructor(app:UiApplication, name?:string);
+	public constructor(src:UiRecord);
+	public constructor(param:any, name?:string) {
+		if (param instanceof UiRecord) {
+			super(param as UiRecord);
+			let src = param as UiRecord;
+			this._index = src._index;
+			this._record = src._record;
+			this._sharedNames = src._sharedNames;
+		} else {
+			super(param as UiApplication, name);
+			this._index = 0;
+			this._record = null;
+			this._sharedNames = new Set<string>();
+		}
+	}
+
+	public adoptChildren(other: UiNode): void {
+		super.adoptChildren(other);
+		this.collectSharedNames(this._sharedNames);
+	}
+
+	private collectSharedNames(sharedNames:Set<string>):Set<string> {
+		let names = new Set<string>();
+		for (let t of this.getDescendants()) {
+			let name = t.name;
+			if (names.has(name)) {
+				sharedNames.add(name);
+			} else {
+				names.add(name);
+			}
+		}
+		return sharedNames;
 	}
 
 	public get index():number {
@@ -55,7 +92,7 @@ class UiRecord extends UiNode implements DataHolder {
 		}
 		this._index = newIndex;
 		this._record = (newIndex < 0) ? null : this.owner.getRecord(newIndex);
-		for (let c of this.getDescendantsIf(()=>true)) {
+		for (let c of this.getDescendants()) {
 			c.onDataHolderChanged(this);
 		}
 	}
@@ -74,6 +111,11 @@ class UiRecord extends UiNode implements DataHolder {
 		}
 		if (this._record[name] != value) {
 			this._record[name] = value;
+			if (this._sharedNames.has(name)) {
+				for (let c of this.getDescendantsIf((e) => (e.name == name))) {
+					c.onDataHolderChanged(this);
+				}
+			}
 			this.owner.setRecord(this._record);
 		}
 	}

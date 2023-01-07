@@ -1,7 +1,7 @@
 import {Rect} from "./Rect";
 import {CssLength} from "./CssLength"
 import { UiStyle } from "./UiStyle"
-import { Asserts, Clonable, UnsupportedError, Value } from "../lang";
+import { Asserts, Clonable, Properties, UnsupportedError, Value } from "../lang";
 import type { UiApplication } from "./UiApplication";
 import { DataRecord, DataSource } from "./DataSource";
 import { DataHolder } from "./DataHolder";
@@ -41,8 +41,11 @@ export enum Flags {
 	/** DOM接続済みフラグ */
 	BINDED			= 0x00000080,
 
+	/** 初期化済みフラグ */
+	INITIALIZED		= 0x00000100,
+
 	/** 予約領域 */
-	RESERVED		= 0xFFFFFF00,
+	RESERVED		= 0xFFFFFE00,
 
 	/** 初期フラグ値 */
 	INITIAL			= ENABLE|VISIBLE,
@@ -1005,6 +1008,14 @@ export class UiNode implements Clonable<UiNode>, Scrollable {
 		this.setFlag(Flags.EDITABLE, on);
 	}
 
+	public get initialized():boolean {
+		return this.getFlag(Flags.INITIALIZED);
+	}
+
+	public set initialized(on:boolean) {
+		this.setFlag(Flags.INITIALIZED, on);
+	}
+
 	protected get binded():boolean {
 		return this.getFlag(Flags.BINDED);
 	}
@@ -1049,7 +1060,18 @@ export class UiNode implements Clonable<UiNode>, Scrollable {
 		return this == focusNode || this.isAncestorOf(focusNode);
 	}
 
+	protected initialize(args:Properties<string>):void {
+	}
+
+	protected arguments(): Properties<string> {
+		return {};
+	}
+
 	public onMount():void {
+		if (!this.initialized) {
+			this.initialize(this.arguments());
+			this.initialized = true;
+		}
 		for (let c of this._children) {
 			c.onMount();
 		}
@@ -1099,6 +1121,10 @@ export class UiNode implements Clonable<UiNode>, Scrollable {
 			p = p.parent;
 		}
 		return list;
+	}
+
+	public getDescendants():UiNode[] {
+		return this.getDescendantsIf(e=>true);
 	}
 
 	public getDescendantsIf(filter:(e:UiNode)=>boolean, limit:number = Number.MAX_SAFE_INTEGER, list:UiNode[] = []):UiNode[] {

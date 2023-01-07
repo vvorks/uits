@@ -1,5 +1,6 @@
 import { Properties } from "../lib/lang";
 import { DataSource, KeyCodes, UiCheckbox, UiListNode, UiLookupField, UiNode, UiNodeBuilder, UiPageNode, UiResult, UiScrollbar, UiTextField } from "../lib/ui";
+import { UiRadio } from "../lib/ui/UiRadio";
 import { GROUP_STYLE, DEFAULT_STYLE, LIST_STYLE, SB_STYLE } from "./TestApplication";
 
 export class VerticalListPage extends UiPageNode {
@@ -25,8 +26,14 @@ export class VerticalListPage extends UiPageNode {
 				}
 				b.enter(new UiTextField(app, "d")).th(1, 4).lr(21,  5)
 						.style(DEFAULT_STYLE).focusable(true).leave();
-				b.enter(new UiCheckbox(app, "e")).th(1, 4).rw( 1,  4)
+				b.enter(new UiCheckbox(app, "e")).th(1, 1).rw( 1,  4)
 						.style(DEFAULT_STYLE).focusable(true).leave();
+				b.enter(new UiRadio(app, "f", 1)).th(2, 1).rw( 1,  4)
+					.style(DEFAULT_STYLE).focusable(true).leave();
+				b.enter(new UiRadio(app, "f", 2)).th(3, 1).rw( 1,  4)
+					.style(DEFAULT_STYLE).focusable(true).leave();
+				b.enter(new UiRadio(app, "f", 3)).th(4, 1).rw( 1,  4)
+					.style(DEFAULT_STYLE).focusable(true).leave();
 				b.leave();
 			}
 			b.enter(new UiScrollbar(app)).tb(4, 4).rw(4, 1).style(SB_STYLE).vscroll("v").leave();
