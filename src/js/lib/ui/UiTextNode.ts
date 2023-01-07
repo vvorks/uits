@@ -1,6 +1,9 @@
 import { Logs, Properties, Types, Value } from "../lang";
 import { UiNode } from "./UiNode";
 
+const RESOURCE_HEAD_MARKER = "{{";
+const RESOURCE_TAIL_MARKER = "}}";
+
 export class UiTextNode extends UiNode {
 
 	private _textContent: Value = null;
@@ -55,7 +58,7 @@ export class UiTextNode extends UiNode {
 	protected asString(value:Value):string {
 		let result:string;
 		if (Types.isString(value)) {
-			result = value as string;
+			result = this.retrieveTextResource(value as string);
 		} else if (Types.isNumber(value)) {
 			result = "" + value;
 		} else if (Types.isBoolean(value)) {
@@ -63,6 +66,26 @@ export class UiTextNode extends UiNode {
 		} else {
 			result = "";
 		}
+		return result;
+	}
+
+	protected retrieveTextResource(raw:string):string {
+		let str = raw.trim();
+		if (str !== raw) {
+			return str;
+		}
+		let len = raw.length;
+		if (len <= RESOURCE_HEAD_MARKER.length + RESOURCE_TAIL_MARKER.length) {
+			return raw;
+		}
+		let head = raw.substring(0   , RESOURCE_HEAD_MARKER.length);
+		let tail = raw.substring(len - RESOURCE_TAIL_MARKER.length);
+		if (head != RESOURCE_HEAD_MARKER || tail != RESOURCE_TAIL_MARKER) {
+			return raw;
+		}
+		let tag = raw.substring(RESOURCE_HEAD_MARKER.length, len - RESOURCE_TAIL_MARKER.length);
+		let app = this.application;
+		let result = app.findTextResourceAsString(tag, raw);
 		return result;
 	}
 

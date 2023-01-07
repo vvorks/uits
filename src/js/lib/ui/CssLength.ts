@@ -19,9 +19,9 @@ export class CssLength {
 			let str = (arg as string).toLowerCase();
 			this._unit = defaultUnit;
 			for (let u of CssLength.UNITS) {
-				if (str.endsWith(u)) {
-					let mid = str.length - u.length;
-					this._unit = str.substring(mid);
+				let mid = str.length - u.length;
+				if (mid > 0 && str.substring(mid) == u) {
+					this._unit = u;
 					str = str.substring(0, mid);
 					break;
 				}

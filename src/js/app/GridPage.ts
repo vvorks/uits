@@ -14,7 +14,7 @@ export class GridPage extends UiPageNode {
 		for (let col = 0; col < COL; col++) {
 			b.enter(new UiTextNode(app)).style(DEFAULT_STYLE).tb(0, 0).lw(col*10, 10);
 			b.focusable(false);
-			b.textContent(`COL[${col}]`);
+			b.textContent(`{{col.${col}}}`);
 			b.leave();
 		}
 		b.leave();
@@ -23,7 +23,7 @@ export class GridPage extends UiPageNode {
 		for (let row = 0; row < ROW; row++) {
 			b.enter(new UiTextNode(app)).style(DEFAULT_STYLE).lr(0, 0).th(row*3, 3);
 			b.focusable(false);
-			b.textContent(`ROW[${row}]`);
+			b.textContent(`{{row.${row}}}`);
 			b.leave();
 		}
 		b.leave();

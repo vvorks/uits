@@ -16,6 +16,9 @@ const DEFAULT_INTERVAL_PRECISION = 500;
 /** スクロールアニメーション時間の既定値 */
 const DEFAULT_SCROLL_ANIMATION_TIME = 100;
 
+/** リソース読み込み時のセパレータ */
+const RESOURCE_NAME_SEPARATOR = ".";
+
 export enum UiAxis {
 	NONE = 0,
 	X = 1,
@@ -389,6 +392,9 @@ export class UiApplication {
 	/** アニメーション用タスクのリスト */
 	private _animationTasks: RunAnimationEntry[];
 
+	/** テキストリソースURL */
+	private _textResourceUrl:string|null;
+
 	/** テキストリソース */
 	private _textResource: Resource;
 
@@ -409,6 +415,7 @@ export class UiApplication {
 		this._afterTasks = [];
 		this._intervalTasks = [];
 		this._animationTasks = [];
+		this._textResourceUrl = null;
 		this._textResource = {}
 		window.onload = (evt:Event) => {this.onLoad(evt)};
 	}
@@ -455,7 +462,7 @@ export class UiApplication {
 		this._scrollAnimationTime = time;
 	}
 
-	public onLoad(evt:Event):void {
+	public async onLoad(evt:Event):Promise<void> {
 		//root準備
 		this._rootNode = new UiRootNode(this, "root");
 		this._rootNode.inset = "0px";
@@ -489,6 +496,10 @@ export class UiApplication {
 		window.requestAnimationFrame(aniFunc);
 		//派生クラス初期化
 		this.initialize(evt.timeStamp);
+		//リソース読み込み
+		if (this._textResourceUrl != null) {
+			this._textResource = await this.loadTextResource(this._textResourceUrl);
+		}
 		//初回のロード処理
 		this.processHashChanged();
 	}
@@ -548,9 +559,13 @@ export class UiApplication {
 	}
 
 	public setTextResource(resourceUrl:string):void {
-		fetch(resourceUrl).then((resp) => resp.json()).then((json) => {
-			this._textResource = json as Resource;
-		});
+		this._textResourceUrl = resourceUrl;
+	}
+
+	private async loadTextResource(url:string):Promise<Resource> {
+		let resp = await fetch(url);
+		let json = await resp.json();
+		return json;
 	}
 
 	public findTextResourceAsString(path:string, defaultValue:string): string {
@@ -569,7 +584,7 @@ export class UiApplication {
 	}
 
 	public findTextResource(path:string, defaultValue:Value): Value {
-		let array = path.split("/");
+		let array = path.split(RESOURCE_NAME_SEPARATOR);
 		let node = this._textResource;
 		for (let i = 0; i < array.length - 1; i++) {
 			let name = array[i];
