@@ -12,7 +12,7 @@ export class PaneTestPage extends UiPageNode {
 		//ドックの設定
 		let left1 = new UiPane(app, "left1");
 		let left2 = new UiPane(app, "left2");
-		b.enter(new UiDock(app, "dock")).style(GROUP_STYLE).inset(1);
+		b.enter(new UiDock(app, "dock")).style(GROUP_STYLE).inset(1).listen((src, act)=>this.watchDock(src, act));
 		{
 			//左ペイン
 			b.enter(left1).style(DEFAULT_STYLE).location("left").flexSize(4, 20);
@@ -20,7 +20,7 @@ export class PaneTestPage extends UiPageNode {
 				//メニュー項目
 				b.enter(new UiTextButton(app, "text"+i)).style(DEFAULT_STYLE)
 					.lr(1,1).th(i*3+1, 2).focusable(true).textContent("メニュー"+i)
-					.action((source)=>this.addSubMenu(source))
+					.listen((src, act)=>this.watchTextButton(src, act))
 					//.nextFocusFilter((e)=> (e.parent == left1 || e.parent == left2))
 					;
 				b.leave();
@@ -53,7 +53,7 @@ export class PaneTestPage extends UiPageNode {
 		(app.getDataSource("hokusai") as DataSource).select({});
 		(app.getDataSource("hiroshige") as DataSource).select({});
 		//自動ページめくり開始
-		let interval = 3000 * 0;
+		let interval = 3000 * 1;
 		if (interval > 0) {
 			app.runInterval(this, 1, interval, () => {
 				let focus = app.getFocusOf(this);
@@ -71,27 +71,42 @@ export class PaneTestPage extends UiPageNode {
 		}
 	}
 
-	public addSubMenu(source: UiNode): UiResult {
-		let app = this.application;
-		let main = this.findNodeByPath("dock/left1") as UiPane;
-		let pane = this.findNodeByPath("dock/left2") as UiPane;
-		//一旦全部クリア
-		pane.removeChildren();
-		//新項目追加
-		let text = (source as UiTextButton).textContent;
-		let b = new UiNodeBuilder(pane, "1rem");
-		for (let i = 0; i < 3; i++) {
-			//メニュー項目
-			b.enter(new UiTextNode(app, "subtext"+i)).style(DEFAULT_STYLE)
-				.lr(0,0).th(i*3+1, 2).focusable(true).textContent(text + " - " + i)
-				//.nextFocusFilter((e)=> (e.parent == main || e.parent == pane))
-				;
-			b.leave();
+	public watchTextButton(src: UiNode, act:string): UiResult {
+		let result = UiResult.IGNORED;
+		if (act == "click") {
+			//left2への要素追加
+			let app = this.application;
+			let pane = this.findNodeByPath("dock/left2") as UiPane;
+			//念のため一旦クリア
+			pane.removeChildren();
+			//新項目追加
+			let text = (src as UiTextButton).textContent;
+			let b = new UiNodeBuilder(pane, "1rem");
+			for (let i = 0; i < 3; i++) {
+				//メニュー項目
+				b.enter(new UiTextNode(app, "subtext"+i)).style(DEFAULT_STYLE)
+					.lr(0,0).th(i*3+1, 2).focusable(true).textContent(text + " - " + i);
+				b.leave();
+			}
+			//先頭にフォーカスをあてる
+			let first = this.findNodeByPath("dock/left2/subtext0") as UiTextNode;
+			app.setFocus(first, UiAxis.XY);
+			result = UiResult.EATEN;
 		}
-		//先頭にフォーカスをあてる
-		let first = this.findNodeByPath("dock/left2/subtext0") as UiTextNode;
-		app.setFocus(first, UiAxis.XY);
-		return UiResult.EATEN;
+		return result;
+	}
+
+	public watchDock(src: UiNode, act:string): UiResult {
+		let result = UiResult.IGNORED;
+		if (act == "relocatePane") {
+			let pane = this.findNodeByPath("dock/left2") as UiPane;
+			if (!pane.isExpanded()) {
+				//left2ペーンが閉じたら内容をクリア
+				pane.removeChildren();
+				result = UiResult.AFFECTED;
+			}
+		}
+		return result;
 	}
 
 	protected resetFocus():void {

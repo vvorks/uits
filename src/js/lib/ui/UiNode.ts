@@ -130,6 +130,11 @@ class VoidDataHolder implements DataHolder {
 }
 
 /**
+ * ActionListener
+ */
+export type ActionListener = (source:UiNode, action:string) => UiResult;
+
+/**
  * UiNode
  */
 export class UiNode implements Clonable<UiNode>, Scrollable {
@@ -181,6 +186,8 @@ export class UiNode implements Clonable<UiNode>, Scrollable {
 	protected _children:UiNode[];
 
 	protected _nextFocusFilter: Predicate<UiNode>;
+
+	private _actionListeners: ActionListener[];
 
 	private _flags: Flags;
 
@@ -235,6 +242,7 @@ export class UiNode implements Clonable<UiNode>, Scrollable {
 				this.appendChild(c.clone());
 			}
 			this._nextFocusFilter = src._nextFocusFilter;
+			this._actionListeners = src._actionListeners.slice();
 			this._flags = src._flags & Flags.CLONABLE_FLAGS;
 			this._changed = src._changed;
 			this._domElement = null;
@@ -264,6 +272,7 @@ export class UiNode implements Clonable<UiNode>, Scrollable {
 			this._parent = null;
 			this._children = [];
 			this._nextFocusFilter = (e)=>true;
+			this._actionListeners = [];
 			this._flags = Flags.INITIAL;
 			this._changed = Changed.ALL;
 			this._domElement = null;
@@ -621,6 +630,25 @@ export class UiNode implements Clonable<UiNode>, Scrollable {
 
 	public set nextFocusFilter(filter: Predicate<UiNode>) {
 		this._nextFocusFilter = filter;
+	}
+
+	public addActionListener(listener:ActionListener):void {
+		this._actionListeners.push(listener);
+	}
+
+	public removeActionListener(listener:ActionListener):void {
+		let index = this._actionListeners.indexOf(listener);
+		if (index >= 0) {
+			this._actionListeners.splice(index, 1);
+		}
+	}
+
+	protected fireActionEvent(action:string):UiResult {
+		let result = UiResult.IGNORED;
+		for (let func of this._actionListeners) {
+			result |= func(this, action);
+		}
+		return result;
 	}
 
 	public getPageNode():UiNode|null {

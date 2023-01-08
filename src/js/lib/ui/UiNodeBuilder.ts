@@ -2,9 +2,8 @@ import { Predicate, Types, Value } from "../lang";
 import { PaneLocation, UiPane } from "../ui";
 import { CssLength } from "./CssLength";
 import { UiListNode } from "./UiListNode";
-import { UiNode } from "./UiNode";
+import { ActionListener, UiNode } from "./UiNode";
 import { UiStyle } from "./UiStyle";
-import { ActionFunc, UiTextButton } from "./UiTextButton";
 import { UiTextNode } from "./UiTextNode";
 
 type Size = string|number;
@@ -167,13 +166,6 @@ export class UiNodeBuilder<T extends UiNode> {
 		return this;
 	}
 
-	public action(func:ActionFunc):UiNodeBuilder<T> {
-		if (this._node instanceof UiTextButton) {
-			(this._node as UiTextButton).action = func;
-		}
-		return this;
-	}
-
 	public nextFocusFilter(func:Predicate<UiNode>):UiNodeBuilder<T> {
 		this._node.nextFocusFilter = func;
 		return this;
@@ -183,6 +175,11 @@ export class UiNodeBuilder<T extends UiNode> {
 		if (this._node instanceof UiListNode) {
 			(this._node as UiListNode).scrollLock = on;
 		}
+		return this;
+	}
+
+	public listen(listener:ActionListener):UiNodeBuilder<T> {
+		this._node.addActionListener(listener);
 		return this;
 	}
 

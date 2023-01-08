@@ -56,7 +56,7 @@ export class UiPane extends UiNode {
 		return size.toPixel(() => this.parentSize);
 	}
 
-	protected isExpanded():boolean {
+	public isExpanded():boolean {
 		let app = this.application;
 		let focus = app.getFocusOf(this);
 		return (focus != null && this.isAncestorOf(focus));
@@ -133,6 +133,7 @@ export class UiDock extends UiNode {
 				break;
 			}
 		}
+		this.fireActionEvent("relocatePane");
 	}
 
 	public onFocus(target: UiNode|null, gained: boolean, other:UiNode|null):UiResult {

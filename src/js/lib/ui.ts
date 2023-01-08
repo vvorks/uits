@@ -76,5 +76,5 @@ export { KeyCodes };
 import { PaneLocation as RawPaneLocation } from "./ui/UiPane";
 export type PaneLocation = RawPaneLocation;
 
-import { ActionFunc as RawActionFunc } from "./ui/UiTextButton"
-export type ActionFunc = RawActionFunc;
+import { ActionListener as RawActionListener } from "./ui/UiNode"
+export type ActionListener = RawActionListener;
