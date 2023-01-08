@@ -1,6 +1,5 @@
 import { Properties } from "../lib/lang";
-import { DataSource, KeyCodes, UiCheckbox, UiListNode, UiLookupField, UiNode, UiNodeBuilder, UiPageNode, UiResult, UiScrollbar, UiTextField } from "../lib/ui";
-import { UiRadio } from "../lib/ui/UiRadio";
+import { DataSource, UiCheckbox, UiListNode, UiLookupField, UiNode, UiNodeBuilder, UiPageNode, UiRadio, UiScrollbar, UiTextField } from "../lib/ui";
 import { GROUP_STYLE, DEFAULT_STYLE, LIST_STYLE, SB_STYLE } from "./TestApplication";
 
 export class VerticalListPage extends UiPageNode {

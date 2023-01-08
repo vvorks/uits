@@ -96,9 +96,10 @@ class LivePage {
 		}
 		let result = UiResult.IGNORED;
 		let luca:UiNode|null = oldNode != null && newNode != null ? oldNode.getLucaNodeWith(newNode) : null;
+		let lucaParent = (luca != null ? luca.parent : null);
 		if (oldNode != null) {
 			let node:UiNode|null = oldNode;
-			while (node != null && node != luca) {
+			while (node != null && node != lucaParent) {
 				result |= node.onFocus(oldNode, false, newNode);
 				node = node.parent;
 			}
@@ -106,7 +107,7 @@ class LivePage {
 		this._focusNode = newNode;
 		if (newNode != null) {
 			let node:UiNode|null = newNode;
-			while (node != null && node != luca) {
+			while (node != null && node != lucaParent) {
 				result |= node.onFocus(newNode, true, oldNode);
 				node = node.parent;
 			}

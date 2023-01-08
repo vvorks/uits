@@ -1,4 +1,5 @@
 import { Types, Value } from "../lang";
+import { PaneLocation, UiPane } from "../ui";
 import { CssLength } from "./CssLength";
 import { UiListNode } from "./UiListNode";
 import { UiNode } from "./UiNode";
@@ -145,6 +146,22 @@ export class UiNodeBuilder<T extends UiNode> {
 	public vertical(value:boolean):UiNodeBuilder<T> {
 		if (this._node instanceof UiListNode) {
 			(this._node as UiListNode).vertical = value;
+		}
+		return this;
+	}
+
+	public location(value:PaneLocation):UiNodeBuilder<T> {
+		if (this._node instanceof UiPane) {
+			(this._node as UiPane).location = value;
+		}
+		return this;
+	}
+
+	public flexSize(size1:Size, size2:Size):UiNodeBuilder<T> {
+		if (this._node instanceof UiPane) {
+			(this._node as UiPane).setFlexSize(
+				this.toValue(size1),
+				this.toValue(size2));
 		}
 		return this;
 	}

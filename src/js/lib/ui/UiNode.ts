@@ -194,12 +194,12 @@ export class UiNode implements Clonable<UiNode>, Scrollable {
 		return ++UiNode._counter;
 	}
 
-	public clone():UiNode {
-		return new UiNode(this);
-	}
-
 	public get className():string {
 		return this.constructor.name;
+	}
+
+	public clone():UiNode {
+		return new UiNode(this);
 	}
 
 	constructor(app:UiApplication, name?:string);
@@ -445,6 +445,9 @@ export class UiNode implements Clonable<UiNode>, Scrollable {
 
 	protected onLocationChanged():void {
 		this._rect = null;
+		for (let c of this._children) {
+			c.onLocationChanged();
+		}
 		this.setChanged(Changed.LOCATION, true);
 	}
 
@@ -527,7 +530,7 @@ export class UiNode implements Clonable<UiNode>, Scrollable {
 		this.insertChild(child, null);
 	}
 
-	public insertChild(child:UiNode, after:UiNode|null) {
+	public insertChild(child:UiNode, after:UiNode|null):void {
 		if (child.parent != null) {
 			child.parent.removeChild(child);
 		}
@@ -781,7 +784,7 @@ export class UiNode implements Clonable<UiNode>, Scrollable {
 		return new Inset(left, top, right, bottom);
 	}
 
-	protected get innerWidth(): number {
+	public get innerWidth(): number {
 		let r = this.getRect();
 		let s = this.style.getEffectiveStyle(this);
 		let left = s.borderLeftAsLength.toPixel(() => r.width);
@@ -789,7 +792,7 @@ export class UiNode implements Clonable<UiNode>, Scrollable {
 		return r.width - left - right;
 	}
 
-	protected get innerHeight(): number {
+	public get innerHeight(): number {
 		let r = this.getRect();
 		let s = this.style.getEffectiveStyle(this);
 		let top = s.borderTopAsLength.toPixel(() => r.height);

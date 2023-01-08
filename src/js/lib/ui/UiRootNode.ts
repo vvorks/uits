@@ -17,11 +17,11 @@ export class UiRootNode extends UiNode {
 		return rect;
 	}
 
-	protected get innerWidth(): number {
+	public get innerWidth(): number {
 		return this.application.clientWidth;
 	}
 
-	protected get innerHeight(): number {
+	public get innerHeight(): number {
 		return this.application.clientHeight;
 	}
 

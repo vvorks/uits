@@ -44,6 +44,7 @@ export class UiPageNode extends UiNode {
 		this.initScroll(this._hScrollables, (s)=>s.fireHScroll());
 		this.initScroll(this._vScrollables, (s)=>s.fireVScroll());
 		this.setChanged(Changed.STYLE, true);
+		this.resetFocus();
 	}
 
 	private initScroll(prop:Properties<Scrollable[]>, func:(s:Scrollable)=>void) {
@@ -53,6 +54,9 @@ export class UiPageNode extends UiNode {
 				func(s[0]);
 			}
 		}
+	}
+
+	protected resetFocus():void {
 	}
 
 	public onUnmount():void {

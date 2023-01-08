@@ -20,6 +20,7 @@ import hokusai4 from "@images/hokusai4.jpg";
 import hokusai5 from "@images/hokusai5.jpg";
 import resource from "@texts/resource.json";
 import { Logs, Properties } from "../lib/lang";
+import { PaneTestPage } from "./PaneTestPage";
 
 export const DEFAULT_STYLE:UiStyle = new UiStyleBuilder()
 	.textColor(Colors.BLACK)
@@ -97,6 +98,7 @@ export class TestApplication extends UiApplication {
 		this.addPageFactory("#hlist", (args) => new HorizontalListPage(this, args));
 		this.addPageFactory("#grid", (args) => new GridPage(this, args));
 		this.addPageFactory("#slide", (args) => new SlidePage(this, args));
+		this.addPageFactory("#pane", (args) => new PaneTestPage(this, args));
 		this.addPageFactory("#volume", (args) => new VolumeToast(this, args));
 
 		this.addDataSource("sample", new TestDataSource(() => {
