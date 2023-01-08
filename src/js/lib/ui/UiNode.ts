@@ -1,7 +1,7 @@
 import {Rect} from "./Rect";
 import {CssLength} from "./CssLength"
 import { UiStyle } from "./UiStyle"
-import { Asserts, Clonable, Properties, UnsupportedError, Value } from "../lang";
+import { Asserts, Clonable, Predicate, Properties, UnsupportedError, Value } from "../lang";
 import type { UiApplication } from "./UiApplication";
 import { DataRecord, DataSource } from "./DataSource";
 import { DataHolder } from "./DataHolder";
@@ -180,6 +180,8 @@ export class UiNode implements Clonable<UiNode>, Scrollable {
 
 	protected _children:UiNode[];
 
+	protected _nextFocusFilter: Predicate<UiNode>;
+
 	private _flags: Flags;
 
 	private _changed: Changed;
@@ -232,6 +234,7 @@ export class UiNode implements Clonable<UiNode>, Scrollable {
 			for (let c of src._children) {
 				this.appendChild(c.clone());
 			}
+			this._nextFocusFilter = src._nextFocusFilter;
 			this._flags = src._flags & Flags.CLONABLE_FLAGS;
 			this._changed = src._changed;
 			this._domElement = null;
@@ -260,6 +263,7 @@ export class UiNode implements Clonable<UiNode>, Scrollable {
 			this._rect = null;
 			this._parent = null;
 			this._children = [];
+			this._nextFocusFilter = (e)=>true;
 			this._flags = Flags.INITIAL;
 			this._changed = Changed.ALL;
 			this._domElement = null;
@@ -541,6 +545,9 @@ export class UiNode implements Clonable<UiNode>, Scrollable {
 			this._children.splice(index, 0 , child);
 		}
 		child.parent = this;
+		if (this.mounted) {
+			child.onMount();
+		}
 		this.fireHScroll();
 		this.fireVScroll();
 		this.onScrollChanged();
@@ -551,8 +558,26 @@ export class UiNode implements Clonable<UiNode>, Scrollable {
 		if (index < 0) {
 			return;
 		}
+		if (this.mounted) {
+			child.onUnmount();
+		}
 		this._children.splice(index, 1);
 		child.parent = null;
+		this.fireHScroll();
+		this.fireVScroll();
+		this.onScrollChanged();
+	}
+
+	public removeChildren():void {
+		if (this.mounted) {
+			for (let c of this._children) {
+				c.onUnmount();
+			}
+		}
+		for (let c of this._children) {
+			c.parent = null;
+		}
+		this._children.splice(0);
 		this.fireHScroll();
 		this.fireVScroll();
 		this.onScrollChanged();
@@ -563,8 +588,13 @@ export class UiNode implements Clonable<UiNode>, Scrollable {
 			return;
 		}
 		let child = this._children[index];
+		if (this.mounted) {
+			child.onUnmount();
+		}
 		this._children.splice(index, 1);
 		child.parent = null;
+		this.fireHScroll();
+		this.fireVScroll();
 		this.onScrollChanged();
 	}
 
@@ -583,6 +613,14 @@ export class UiNode implements Clonable<UiNode>, Scrollable {
 				this.appendChild(c);
 			}
 		}
+	}
+
+	public get nextFocusFilter(): Predicate<UiNode> {
+		return this._nextFocusFilter;
+	}
+
+	public set nextFocusFilter(filter: Predicate<UiNode>) {
+		this._nextFocusFilter = filter;
 	}
 
 	public getPageNode():UiNode|null {
@@ -684,7 +722,7 @@ export class UiNode implements Clonable<UiNode>, Scrollable {
 	protected onStyleChanged():void {
 		let page:UiNode|null = this.getPageNode();
 		if (page != null) {
-			this.setChanged(Changed.STYLE, true);
+			page.setChanged(Changed.STYLE, true);
 		}
 	}
 
@@ -888,7 +926,7 @@ export class UiNode implements Clonable<UiNode>, Scrollable {
 		return this.translateOn(result, ans);
 	}
 
-	public scrollFor(target:UiNode):UiResult {
+	public scrollFor(prev:UiNode, target:UiNode):UiResult {
 		if (!this.isAncestorOf(target)) {
 			return UiResult.IGNORED;
 		}

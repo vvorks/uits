@@ -19,6 +19,9 @@ export { UiTextNode };
 import { UiTextField } from "./ui/UiTextField"
 export { UiTextField };
 
+import { UiTextButton } from "./ui/UiTextButton"
+export { UiTextButton };
+
 import { UiImageField } from "./ui/UiImageField"
 export { UiImageField };
 
@@ -72,3 +75,6 @@ export { KeyCodes };
 
 import { PaneLocation as RawPaneLocation } from "./ui/UiPane";
 export type PaneLocation = RawPaneLocation;
+
+import { ActionFunc as RawActionFunc } from "./ui/UiTextButton"
+export type ActionFunc = RawActionFunc;

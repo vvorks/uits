@@ -25,3 +25,6 @@ export interface Properties<T> {
 export interface Clonable<T extends Clonable<T>> {
 	clone():T;
 }
+
+export type Predicate<T> = (arg:T) => boolean;
+export type Function<T, U> = (arg:T) => U;

@@ -142,6 +142,7 @@ enum ListFlags {
 	VERTICAL		= 0x00000001,
 	LOOP			= 0x00000002,
 	ITEM_FOCUSABLE	= 0x00000004,
+	SCROLL_LOCK		= 0x00000008,
 	INITIAL			= VERTICAL|LOOP
 }
 
@@ -233,6 +234,15 @@ export class UiListNode extends UiNode {
 
 	protected set itemFocusable(on:boolean) {
 		this.setListFlag(ListFlags.ITEM_FOCUSABLE, on);
+	}
+
+	public get scrollLock():boolean {
+		return this.getListFlag(ListFlags.SCROLL_LOCK);
+	}
+
+	public set scrollLock(on:boolean) {
+		Asserts.assume(this._template == null);
+		this.setListFlag(ListFlags.SCROLL_LOCK, on);
 	}
 
 	protected getListFlag(bit:ListFlags):boolean {
@@ -554,6 +564,41 @@ export class UiListNode extends UiNode {
 				rec.visible = (sp <= i && i < ep);
 			}
 		}
+	}
+
+	public scrollFor(curr:UiNode, next:UiNode):UiResult {
+		if (this.scrollLock) {
+			let currRec = this.getRecordOf(curr);
+			let nextRec = this.getRecordOf(next);
+			if (currRec != null && nextRec != null) {
+				if (this._pageTopIndex < this.count() - this._recsPerPage) {
+					let dx = 0;
+					let dy = 0;
+					if (nextRec.index > currRec.index) {
+						dx = +this._recSize * (this.vertical ? 0 : 1);
+						dy = +this._recSize * (this.vertical ? 1 : 0);
+					} else if (nextRec.index < currRec.index && this._pageTopIndex > 0) {
+						dx = -this._recSize * (this.vertical ? 0 : 1);
+						dy = -this._recSize * (this.vertical ? 1 : 0);
+					}
+					if (dx != 0 || dy != 0) {
+						return this.scrollInside(dx, dy);
+					}
+				}
+			}
+		}
+		return super.scrollFor(curr, next);
+	}
+
+	protected getRecordOf(node:UiNode):UiRecord|null {
+		if (node instanceof UiRecord) {
+			return node as UiRecord;
+		}
+		let recs = node.getAncestorsIf(e => e instanceof UiRecord, 1);
+		if (recs.length > 0) {
+			return recs[0] as UiRecord;
+		}
+		return null;
 	}
 
 	protected setScroll(x:number, y:number, step:number):void {

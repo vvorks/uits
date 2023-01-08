@@ -121,7 +121,7 @@ class LivePage {
 		if (axis & UiAxis.Y) {
 			this.yAxis = rect.top;
 		}
-		Logs.info("page %s focus %s axis %d,%d", this._pageNode.name, this._focusNode.name, this.xAxis, this.yAxis);
+		Logs.info("focus %s axis %d,%d", this._focusNode.name, this.xAxis, this.yAxis);
 		return result;
 	}
 
@@ -1396,40 +1396,40 @@ export class UiApplication {
 		return document.createEvent("Event").timeStamp;
 	}
 
-	protected onKeyDown(target:UiNode, key:number, ch:number, mod:number, at:number):UiResult {
+	protected onKeyDown(curr:UiNode, key:number, ch:number, mod:number, at:number):UiResult {
 		let result:UiResult = UiResult.IGNORED;
-		let tRect = target.getRectOnRoot();
+		let tRect = curr.getRectOnRoot();
 		let next:UiNode|null = null;
 		let axis = UiAxis.NONE;
 		switch (key|(mod & KeyCodes.MOD_ACS)) {
 		case KeyCodes.LEFT:
-			next = this.getNearestNode(target, c => c.getRectOnRoot().right <= tRect.left);
+			next = this.getNearestNode(curr, c => c.getRectOnRoot().right <= tRect.left);
 			axis = UiAxis.X;
 			break;
 		case KeyCodes.RIGHT:
-			next = this.getNearestNode(target, c => c.getRectOnRoot().left >= tRect.right);
+			next = this.getNearestNode(curr, c => c.getRectOnRoot().left >= tRect.right);
 			axis = UiAxis.X;
 			break;
 		case KeyCodes.UP:
-			next = this.getNearestNode(target, c => c.getRectOnRoot().bottom <= tRect.top);
+			next = this.getNearestNode(curr, c => c.getRectOnRoot().bottom <= tRect.top);
 			axis = UiAxis.Y;
 			break;
 		case KeyCodes.DOWN:
-			next = this.getNearestNode(target, c => c.getRectOnRoot().top >= tRect.bottom);
+			next = this.getNearestNode(curr, c => c.getRectOnRoot().top >= tRect.bottom);
 			axis = UiAxis.Y;
 			break;
 		case KeyCodes.TAB:
-			next = this.getAdjacentNode(target, +1);
+			next = this.getAdjacentNode(curr, +1);
 			axis = UiAxis.XY;
 			result |= UiResult.CONSUMED;
 			break;
 		case KeyCodes.TAB|KeyCodes.MOD_SHIFT:
-			next = this.getAdjacentNode(target, -1);
+			next = this.getAdjacentNode(curr, -1);
 			axis = UiAxis.XY;
 			result |= UiResult.CONSUMED;
 			break;
 		case KeyCodes.ENTER:
-			result |= (this.getLivePageOf(target) as LivePage).click(target);
+			result |= (this.getLivePageOf(curr) as LivePage).click(curr);
 			break;
 		case KeyCodes.KEY_Q|KeyCodes.MOD_CTRL:
 			//debug print
@@ -1450,18 +1450,18 @@ export class UiApplication {
 			break;
 		}
 		if (next != null) {
-			result |= this.scrollFor(next);
+			result |= this.scrollFor(curr, next);
 			result |= this.setFocus(next, axis);
 		}
 		return result;
 	}
 
-	public scrollFor(node:UiNode):UiResult {
+	public scrollFor(curr:UiNode, next:UiNode):UiResult {
 		let result = UiResult.IGNORED;
-		let target = node;
-		let parent = node.parent;
+		let target = next;
+		let parent = next.parent;
 		while (parent != null) {
-			result |= parent.scrollFor(target);
+			result |= parent.scrollFor(curr, target);
 			target = parent;
 			parent = target.parent;
 		}
@@ -1489,7 +1489,7 @@ export class UiApplication {
 		let minDegree = 0;
 		let minDistance = 0;
 		let candidates = page.pageNode.getVisibleDescendantsIf((c) => {
-			if (!(c != curr && this.isFocusable(c) && filter(c))) {
+			if (!(c != curr && this.isFocusable(c) && filter(c) && curr.nextFocusFilter(c))) {
 				return false;
 			}
 			let blocker = c.getBlockerNode();
@@ -1531,11 +1531,19 @@ export class UiApplication {
 	}
 
 	protected onMouseDown(target:UiNode, x:number, y:number, mod:number, at:number):UiResult {
-		return UiResult.IGNORED;
+		let result = UiResult.IGNORED;
+		if (this.isFocusable(target)) {
+			result |= (this.getLivePageOf(target) as LivePage).click(target);
+		}
+		return result;
 	}
 
 	protected onMouseUp(target:UiNode, x:number, y:number, mod:number, at:number):UiResult {
-		return UiResult.IGNORED;
+		let result = UiResult.IGNORED;
+		if (this.isFocusable(target)) {
+			result |= (this.getLivePageOf(target) as LivePage).click(null);
+		}
+		return result;
 	}
 
 	protected onMouseClick(target:UiNode, x:number, y:number, mod:number, at:number):UiResult {
