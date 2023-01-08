@@ -1,4 +1,4 @@
-import { Logs, ParamError, StateError } from "../lang";
+import { ParamError } from "../lang";
 import { CssLength } from "./CssLength";
 import { Inset } from "./Inset";
 import { UiApplication } from "./UiApplication";
@@ -82,7 +82,7 @@ export class UiPane extends UiNode {
 
 }
 
-export class UiPaneFrame extends UiNode {
+export class UiDock extends UiNode {
 
 	public insertChild(child:UiNode, after:UiNode|null):void {
 		if (!(child instanceof UiPane)) {
@@ -97,7 +97,6 @@ export class UiPaneFrame extends UiNode {
 	}
 
 	protected relocatePane():void {
-		Logs.debug("**relocatePane**");
 		let inset:Inset = new Inset(0, 0, 0, 0);
 		for (let c of this._children) {
 			let p = c as UiPane;

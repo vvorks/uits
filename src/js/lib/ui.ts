@@ -37,8 +37,8 @@ export { UiScrollbar };
 import { COMPONENT_THUMB as RAW_COMPONNT_THUMB } from "./ui/UiScrollbar"
 export const COMPONENT_THUMB = RAW_COMPONNT_THUMB;
 
-import { UiPaneFrame, UiPane } from "./ui/UiPaneFrame"
-export { UiPaneFrame, UiPane };
+import { UiPane, UiDock } from "./ui/UiPane"
+export { UiPane, UiDock };
 
 import { UiApplication } from "./ui/UiApplication";
 export { UiApplication };
@@ -70,5 +70,5 @@ export type VerticalAlign = RawVertialAlign;
 import { KeyCodes } from "./ui/KeyCodes";
 export { KeyCodes };
 
-import { PaneLocation as RawPaneLocation } from "./ui/UiPaneFrame";
+import { PaneLocation as RawPaneLocation } from "./ui/UiPane";
 export type PaneLocation = RawPaneLocation;

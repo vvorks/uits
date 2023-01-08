@@ -86,6 +86,20 @@ const LONG_NAME_JA =
 const LONG_NAME_ES =
 	"Pablo Diego José Francisco de Paula Juan Nepomuceno Cipriano de la Santísima Trinidad Ruiz y Picasso";
 
+const CITIES = [
+	"日本橋",		"品川宿",		"川崎宿",		"神奈川宿",		"保土ヶ谷宿",
+	"戸塚宿",		"藤沢宿",		"平塚宿",		"大磯宿",		"小田原宿",
+	"箱根宿",		"三島宿",		"沼津宿",		"原宿",			"吉原宿",
+	"蒲原宿",		"由比宿",		"興津宿",		"江尻宿",		"府中宿",
+	"鞠子宿",		"岡部宿",		"藤枝宿",		"島田宿",		"金谷宿",
+	"日坂宿",		"掛川宿",		"袋井宿",		"見付宿",		"浜松宿",
+	"舞坂宿",		"新居宿",		"白須賀宿",		"二川宿",		"吉田宿",
+	"御油宿",		"赤坂宿",		"藤川宿",		"岡崎宿",		"池鯉鮒宿",
+	"鳴海宿",		"宮宿",			"桑名宿",		"四日市宿",		"石薬師宿",
+	"庄野宿",		"亀山宿",		"関宿",			"坂下宿",		"土山宿",
+	"水口宿",		"石部宿",		"草津宿",		"大津宿",		"三条大橋",
+];
+
 export class TestApplication extends UiApplication {
 
 	private _datas:number[] = [40, 4, 14, 2, 30];
@@ -148,6 +162,14 @@ export class TestApplication extends UiApplication {
 					"h": "Hでーす" + "[" + i + "]",
 					"i": "Iでーす" + "[" + i + "]",
 				});
+			}
+			return theData;
+		}));
+
+		this.addDataSource("hiroshige", new TestDataSource(() => {
+			let theData: DataRecord[] = [];
+			for (let s of CITIES) {
+				theData.push({"title": s});
 			}
 			return theData;
 		}));
