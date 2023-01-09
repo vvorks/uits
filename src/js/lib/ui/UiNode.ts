@@ -1,7 +1,7 @@
 import {Rect} from "./Rect";
 import {CssLength} from "./CssLength"
 import { UiStyle } from "./UiStyle"
-import { Asserts, Clonable, Predicate, Properties, UnsupportedError, Value } from "../lang";
+import { Asserts, Clonable, ParamError, Predicate, Properties, UnsupportedError, Value } from "../lang";
 import type { UiApplication } from "./UiApplication";
 import { DataRecord, DataSource } from "./DataSource";
 import { DataHolder } from "./DataHolder";
@@ -132,7 +132,7 @@ class VoidDataHolder implements DataHolder {
 /**
  * ActionListener
  */
-export type ActionListener = (source:UiNode, action:string) => UiResult;
+export type ActionListener = (source:UiNode, action:string, param?:any) => UiResult;
 
 /**
  * UiNode
@@ -539,6 +539,17 @@ export class UiNode implements Clonable<UiNode>, Scrollable {
 		}
 	}
 
+	public getChildCount():number {
+		return this._children.length;
+	}
+
+	public getChildAt(index:number):UiNode {
+		if (!(0 <= index && index < this._children.length)) {
+			throw new ParamError();
+		}
+		return this._children[index];
+	}
+
 	public appendChild(child:UiNode):void {
 		this.insertChild(child, null);
 	}
@@ -643,10 +654,10 @@ export class UiNode implements Clonable<UiNode>, Scrollable {
 		}
 	}
 
-	protected fireActionEvent(action:string):UiResult {
+	protected fireActionEvent(action:string, param?:any):UiResult {
 		let result = UiResult.IGNORED;
 		for (let func of this._actionListeners) {
-			result |= func(this, action);
+			result |= func(this, action, param);
 		}
 		return result;
 	}
@@ -1129,7 +1140,10 @@ export class UiNode implements Clonable<UiNode>, Scrollable {
 		return this == focusNode || this.isAncestorOf(focusNode);
 	}
 
-	protected initialize(args:Properties<string>):void {
+	protected initialize():void {
+	}
+
+	protected start(args:Properties<string>):void {
 	}
 
 	protected arguments(): Properties<string> {
@@ -1138,7 +1152,7 @@ export class UiNode implements Clonable<UiNode>, Scrollable {
 
 	public onMount():void {
 		if (!this.initialized) {
-			this.initialize(this.arguments());
+			this.initialize();
 			this.initialized = true;
 		}
 		for (let c of this._children) {
@@ -1154,6 +1168,7 @@ export class UiNode implements Clonable<UiNode>, Scrollable {
 		if (this._vScrollName != null) {
 			page.attachVScroll(this._vScrollName, this);
 		}
+		this.start(this.arguments());
 		this.mounted = true;
 	}
 

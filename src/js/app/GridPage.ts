@@ -4,7 +4,7 @@ import { DEFAULT_STYLE, GROUP_STYLE, SB_STYLE } from "./TestApplication";
 
 export class GridPage extends UiPageNode {
 
-	protected initialize(args:Properties<string>):void {
+	protected initialize():void {
 		let app = this.application;
 		const ROW = 30;
 		const COL = 30;

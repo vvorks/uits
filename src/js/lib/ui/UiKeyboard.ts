@@ -573,7 +573,7 @@ export class UiKeyboard extends UiPageNode {
 		return new UiKeyboard(this);
 	}
 
-	protected initialize(args:Properties<string>):void {
+	protected initialize():void {
 		//処理準備
 		let app = this.application;
 		//サイズ計算
@@ -619,6 +619,9 @@ export class UiKeyboard extends UiPageNode {
 		this.bottom = "24px";
 		this.width  = `${maxWidth}px`;
 		this.height = `${maxHeight}px`;
+	}
+
+	protected start(args:Properties<string>):void {
 		//初期データ設定
 		let value = args["value"];
 		if (value !== undefined) {
@@ -682,6 +685,20 @@ export class UiKeyboard extends UiPageNode {
 		let editArea = this.findNodeByPath("edit") as UiEditArea;
 		editArea.moveCursor(dir);
 
+	}
+
+	public onKeyDown(target: UiNode | null, key: number, ch: number, mod: number, at: number): UiResult {
+		let result = UiResult.IGNORED;
+		switch (key|(mod & KeyCodes.MOD_ACS)) {
+		case KeyCodes.ESCAPE:
+			this.application.dispose(this);
+			result |= UiResult.EATEN;
+			break;
+		default:
+			result |= super.onKeyDown(target, key, ch, mod, at);
+			break;
+		}
+		return result;
 	}
 
 }

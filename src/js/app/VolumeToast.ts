@@ -9,7 +9,7 @@ export class VolumeToast extends UiPageNode {
 
 	private _value:number = 20; //kari
 
-	protected initialize(args:Properties<string>):void {
+	protected initialize():void {
 		let app = this.application;
 		let b = new UiNodeBuilder(this, "1rem").style(TOAST_STYLE).bh(2, 5).rw(2,15);
 		b.enter(new UiTextNode(app, "test")).style(DEFAULT_STYLE).inset(1).leave();

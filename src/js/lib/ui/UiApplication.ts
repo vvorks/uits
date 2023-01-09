@@ -444,6 +444,10 @@ export class UiApplication {
 		return this._clientHeight;
 	}
 
+	public getClientRect():Rect {
+		return new Rect().locate(0, 0, this._clientWidth, this._clientHeight);
+	}
+
 	public get wheelScale(): number {
 		return this._wheelScale;
 	}

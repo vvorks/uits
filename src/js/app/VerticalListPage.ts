@@ -1,10 +1,11 @@
 import { Properties } from "../lib/lang";
 import { DataSource, UiCheckbox, UiListNode, UiLookupField, UiNode, UiNodeBuilder, UiPageNode, UiRadio, UiScrollbar, UiTextField } from "../lib/ui";
+import { UiDateField } from "../lib/ui/UiDateField";
 import { GROUP_STYLE, DEFAULT_STYLE, LIST_STYLE, SB_STYLE } from "./TestApplication";
 
 export class VerticalListPage extends UiPageNode {
 
-	protected initialize(args: Properties<string>): void {
+	protected initialize(): void {
 		let app = this.application;
 		let b = new UiNodeBuilder(this, "1rem");
 		b.inset(1).style(GROUP_STYLE);
@@ -16,7 +17,7 @@ export class VerticalListPage extends UiPageNode {
 				.dataSource("sample").vscroll("v").loop(true);
 				b.enter(new UiTextField(app, "a")).th(1, 4).lw( 1, 10)
 						.style(DEFAULT_STYLE).focusable(true).leave();
-				b.enter(new UiTextField(app, "b")).th(1, 2).lw(11, 10)
+				b.enter(new UiDateField(app, "b")).th(1, 2).lw(11, 10)
 						.style(DEFAULT_STYLE).focusable(true).leave();
 				{
 					b.enter(new UiLookupField(app, "c")).th(3, 2).lw(11, 10)

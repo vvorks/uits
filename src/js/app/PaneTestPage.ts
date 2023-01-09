@@ -5,7 +5,7 @@ import { DEFAULT_STYLE, GROUP_STYLE, IMAGE_STYLE, LIST_STYLE } from "./TestAppli
 
 export class PaneTestPage extends UiPageNode {
 
-	protected initialize(args:Properties<string>):void {
+	protected initialize():void {
 		let app = this.application;
 		//ページ全体の指定
 		let b = new UiNodeBuilder(this, "1rem").style(GROUP_STYLE).inset(1);
@@ -69,6 +69,9 @@ export class PaneTestPage extends UiPageNode {
 				return result;
 			});
 		}
+	}
+
+	protected start(args:Properties<string>):void {
 	}
 
 	public watchTextButton(src: UiNode, act:string): UiResult {

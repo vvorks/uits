@@ -1,8 +1,6 @@
 import {
 	UiApplication,
-	UiNode, UiResult, UiNodeBuilder,
-	UiPageNode, UiListNode, UiTextNode, UiScrollbar,
-	UiTextField, UiCheckbox, UiLookupField,
+	UiNode, UiResult,
 	UiStyle, UiStyleBuilder,
 	DataSource,
 	Colors, KeyCodes, DataRecord, COMPONENT_THUMB
@@ -19,7 +17,7 @@ import hokusai3 from "@images/hokusai3.jpg";
 import hokusai4 from "@images/hokusai4.jpg";
 import hokusai5 from "@images/hokusai5.jpg";
 import resource from "@texts/resource.json";
-import { Logs, Properties } from "../lib/lang";
+import { Dates } from "../lib/lang";
 import { PaneTestPage } from "./PaneTestPage";
 
 export const DEFAULT_STYLE:UiStyle = new UiStyleBuilder()
@@ -78,6 +76,24 @@ export const IMAGE_STYLE = new UiStyleBuilder()
 	.textAlign("justify")
 	.build();
 
+export const SMALL_STYLE:UiStyle = new UiStyleBuilder()
+	.basedOn(DEFAULT_STYLE)
+	.fontSize("10pt")
+	.build();
+
+export const SMALL_FOCUS:UiStyle = new UiStyleBuilder()
+	.basedOn(SMALL_STYLE)
+	.condition("FOCUS")
+	.textColor(Colors.BLUE)
+	.borderColor(Colors.RED)
+	.build();
+
+	export const SMALL_CLICKING:UiStyle = new UiStyleBuilder()
+	.basedOn(SMALL_FOCUS)
+	.condition("CLICKING")
+	.textColor(Colors.RED)
+	.build();
+
 const LONG_NAME_JA =
 	"寿限無寿限無五劫のすりきれ海砂利水魚の水行末雲来末風来末食う寝るところに住むところ" +
 	"やぶらこうじのぶらこうじパイポパイポパイポのシューリンガンシューリンガンのグーリンダイ" +
@@ -117,10 +133,11 @@ export class TestApplication extends UiApplication {
 
 		this.addDataSource("sample", new TestDataSource(() => {
 			let theData: DataRecord[] = [];
+			let date = new Date();
 			for (let i = 0; i < this._datas[this._pos]; i++) {
 				theData.push({
 					"a": i,
-					"b": i * 2,
+					"b": date.getTime(),
 					"c": {
 						"key": "1",
 						"title": "時政",
@@ -129,6 +146,7 @@ export class TestApplication extends UiApplication {
 					"e": false,
 					"f": (i % 3) + 1
 				});
+				date = Dates.getNextMonth(date);
 			}
 			this._pos = (this._pos + 1) % this._datas.length;
 			return theData;

@@ -4,7 +4,7 @@ import { GROUP_STYLE, DEFAULT_STYLE, LIST_STYLE, SB_STYLE } from "./TestApplicat
 
 export class HorizontalListPage extends UiPageNode {
 
-	protected initialize(args: Properties<string>): void {
+	protected initialize(): void {
 		let app = this.application;
 		let b = new UiNodeBuilder(this, "1rem");
 		b.inset(1).style(GROUP_STYLE);

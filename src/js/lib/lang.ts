@@ -13,6 +13,9 @@ export {Strings};
 import {Arrays} from "./lang/Arrays";
 export {Arrays};
 
+import {Dates} from "./lang/Dates";
+export {Dates}
+
 import {Logs} from "./lang/Logs";
 export {Logs}
 

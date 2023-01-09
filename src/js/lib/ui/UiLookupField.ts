@@ -101,7 +101,7 @@ export class UiLookupPopup extends UiPageNode {
 		return new UiLookupPopup(this);
 	}
 
-	protected initialize(args:Properties<string>):void {
+	protected initialize():void {
 		//処理準備
 		let app = this.application;
 		//Popupの表示位置設定
@@ -140,7 +140,11 @@ export class UiLookupPopup extends UiPageNode {
 				.style(this._owner.style).leave();
 		}
 		b.leave();
-		//dataSource準備
+	}
+
+	protected start(args:Properties<string>):void {
+		let app = this.application;
+		let dsName = this._owner.dataSourceName as string;
 		(app.getDataSource(dsName) as DataSource).select({});
 	}
 

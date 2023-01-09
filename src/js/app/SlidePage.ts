@@ -4,7 +4,7 @@ import { DEFAULT_STYLE, GROUP_STYLE, IMAGE_STYLE, LIST_STYLE } from "./TestAppli
 
 export class SlidePage extends UiPageNode {
 
-	protected initialize(args: Properties<string>): void {
+	protected initialize(): void {
 		let app = this.application;
 		let b = new UiNodeBuilder(this, "1rem");
 		b.inset(0).style(GROUP_STYLE);
@@ -35,7 +35,6 @@ export class SlidePage extends UiPageNode {
 			}
 			return result;
 		});
-
 	}
 
 }

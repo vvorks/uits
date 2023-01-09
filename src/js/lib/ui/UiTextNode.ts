@@ -1,4 +1,5 @@
-import { Logs, Properties, Types, Value } from "../lang";
+import { Types, Value } from "../lang";
+import { Color, Colors } from "./Colors";
 import { UiNode } from "./UiNode";
 
 const RESOURCE_HEAD_MARKER = "{{";
@@ -7,6 +8,8 @@ const RESOURCE_TAIL_MARKER = "}}";
 export class UiTextNode extends UiNode {
 
 	private _textContent: Value = null;
+
+	private _textColor: Color|null = null;
 
 	public clone():UiTextNode {
 		return new UiTextNode(this);
@@ -19,6 +22,17 @@ export class UiTextNode extends UiNode {
 	public set textContent(value:Value) {
 		if (this._textContent != value) {
 			this._textContent = value;
+			this.onContentChanged();
+		}
+	}
+
+	public get textColor():Color|null {
+		return this._textColor;
+	}
+
+	public set textColor(value:Color|null) {
+		if (this._textColor != value) {
+			this._textColor = value;
 			this.onContentChanged();
 		}
 	}
@@ -51,6 +65,11 @@ export class UiTextNode extends UiNode {
 		} else {
 			cssStyle.top = "50%";
 			cssStyle.transform = "translate(0,-50%)";
+		}
+		if (this._textColor != null) {
+			cssStyle.color = Colors.toCssColor(this._textColor);
+		} else {
+			cssStyle.removeProperty("color");
 		}
 		div.innerText = this.asString(this.textContent);
 	}

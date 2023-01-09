@@ -1,0 +1,314 @@
+import { DEFAULT_STYLE, GROUP_STYLE, SMALL_STYLE } from "../../app/TestApplication";
+import { Dates, Logs, Properties, Types, Value } from "../lang";
+import { Colors } from "./Colors";
+import { DataHolder } from "./DataHolder";
+import { KeyCodes } from "./KeyCodes";
+import { Rect } from "./Rect";
+import { UiApplication, UiAxis } from "./UiApplication";
+import { UiNode, UiResult } from "./UiNode";
+import { UiNodeBuilder } from "./UiNodeBuilder";
+import { UiPageNode } from "./UiPageNode";
+import { UiTextButton } from "./UiTextButton";
+import { UiTextNode } from "./UiTextNode";
+
+/* 曜日データ（暫定：本当はI18nライブラリから取らないと・・・） */
+const WEEKS = ["日", "月", "火", "水", "木", "金", "土"];
+
+class UiMonthNode extends UiTextNode {
+
+	private _yearMode: boolean = false;
+
+	private _month: Date = new Date();
+
+	public clone():UiMonthNode {
+		return new UiMonthNode(this);
+	}
+
+	public setMonth(month:Date):void {
+		this._month = month;
+		this.updateContent();
+	}
+
+	private updateContent():void {
+		if (this._yearMode) {
+			this.textContent = `◀◀ ${this._month.getFullYear()}年${this._month.getMonth() + 1}月 ▶▶`;
+		} else {
+			this.textContent = `◀ ${this._month.getFullYear()}年${this._month.getMonth() + 1}月 ▶`;
+		}
+	}
+
+	public onKeyDown(target: UiNode | null, key: number, ch: number, mod: number, at: number): UiResult {
+		let result = UiResult.IGNORED;
+		switch (key|(mod & KeyCodes.MOD_ACS)) {
+		case KeyCodes.UP:
+			if (!this._yearMode) {
+				this._yearMode = true;
+				this.updateContent();
+				result = UiResult.EATEN;
+			}
+			break;
+		case KeyCodes.DOWN:
+			if (this._yearMode) {
+				this._yearMode = false;
+				this.updateContent();
+				result = UiResult.EATEN;
+			}
+			break;
+		case KeyCodes.LEFT:
+			if (this._yearMode) {
+				this.fireActionEvent("changeTo", Dates.getLastYear(this._month));
+			} else {
+				this.fireActionEvent("changeTo", Dates.getLastMonth(this._month));
+			}
+			result = UiResult.AFFECTED;
+			break;
+		case KeyCodes.RIGHT:
+			if (this._yearMode) {
+				this.fireActionEvent("changeTo", Dates.getNextYear(this._month));
+			} else {
+				this.fireActionEvent("changeTo", Dates.getNextMonth(this._month));
+			}
+			result = UiResult.AFFECTED;
+			break;
+		}
+		return result;
+	}
+
+}
+
+class UiDateNode extends UiTextButton {
+
+	private _month: Date = new Date();
+
+	private _date: Date = new Date();
+
+	public clone():UiDateNode {
+		return new UiDateNode(this);
+	}
+
+	public setDate(month:Date, date:Date, i:number):void {
+		this._month = month;
+		this._date = date;
+		this.textContent = date.getDate();
+		//色指定
+		let week = date.getDay();
+		if (!Dates.isSameMonth(month, date)) {
+			this.textColor = Colors.SILVER;
+		} else if (week == 0) {
+			this.textColor = Colors.RED;
+		} else if (week == 6) {
+			this.textColor = Colors.BLUE;
+		} else {
+			this.textColor = null;
+		}
+	}
+
+	public doAction():UiResult {
+		if (!Dates.isSameMonth(this._month, this._date)) {
+			this.fireActionEvent("changeTo", this._date);
+		} else {
+			this.fireActionEvent("select", this._date);
+		}
+		return UiResult.EATEN;
+	}
+
+}
+
+class UiDatePopup extends UiPageNode {
+
+	private _owner: UiDateField;
+
+	constructor(app:UiApplication, args:Properties<string>, owner:UiDateField);
+	constructor(src:UiDatePopup);
+	public constructor(param:any, args?:Properties<string>, owner?:UiDateField) {
+		if (param instanceof UiDatePopup) {
+			super(param as UiDatePopup);
+			let src = param as UiDatePopup;
+			this._owner = src._owner;
+		} else {
+			super(param as UiApplication, args as Properties<string>);
+			this._owner = owner as UiDateField;
+		}
+	}
+
+	public clone():UiDatePopup {
+		return new UiDatePopup(this);
+	}
+
+	protected initialize():void {
+		//処理準備
+		let app = this.application;
+		let arg = new Date();//new Date(Number.parseInt(args["value"] as string));
+		let bom = Dates.getBeginningOfMonth(arg);
+		let lm  = Dates.getLastMonth(bom);
+		let top = Dates.addDay(lm, -lm.getDay());
+		let b = new UiNodeBuilder(this, "1px");
+		const UNIT = 24;
+		//レイアウト定義
+		b.enter(new UiNode(app, "frame")).inset(0);
+		b.enter(new UiMonthNode(app, "month")).style(DEFAULT_STYLE).th(0,1*UNIT).lr(0, 0).focusable(true)
+			.listen((src,act,arg)=>this.watchMonth(src,act,arg))
+			.leave();
+		//曜日行
+		for (let c = 0; c < WEEKS.length; c++) {
+			b.enter(new UiTextNode(app))
+				.style(DEFAULT_STYLE)
+				.th(1*UNIT,1*UNIT).lw(c*UNIT,1*UNIT)
+				.textContent(WEEKS[c])
+				.leave();
+		}
+		//日付ブロック
+		b.enter(new UiNode(app, "days")).style(GROUP_STYLE).th(2*UNIT,6*UNIT).lw(0,WEEKS.length*UNIT);
+		for (let i = 0; i < WEEKS.length * 6; i++) {
+			const day = Dates.addDay(top, i);
+			b.enter(new UiDateNode(app))
+				.style(SMALL_STYLE)
+				.th(Math.floor(i/7)*UNIT,1*UNIT).lw(Math.floor(i%7)*UNIT,1*UNIT)
+				.focusable(true)
+				.listen((src,act,arg)=>this.watchDate(src,act,arg))
+				.leave();
+		}
+		b.leave();
+		//位置設定
+		let rOwner = this._owner.getRectOnRoot();
+		let rPopup = new Rect().locate(0, 0, 7*UNIT, 8*UNIT);
+		let rClient = app.getClientRect();
+		this.relocate(rPopup, rOwner, rClient);
+		this.left   = `${rPopup.left  }px`;
+		this.top    = `${rPopup.top   }px`;
+		this.width  = `${rPopup.width }px`;
+		this.height = `${rPopup.height}px`;
+	}
+
+	private relocate(rPopup:Rect, rOwner:Rect, rClient:Rect) {
+		//Y軸調整
+		if (rClient.bottom - rOwner.bottom >= rPopup.height) {
+			rPopup.position(rOwner.left, rOwner.bottom);
+		} else if (rOwner.top >= rPopup.height) {
+			rPopup.position(rOwner.left, rOwner.top - rPopup.height);
+		} else {
+			rPopup.position(rOwner.left, (rClient.bottom - rPopup.height) / 2);
+		}
+		//X軸補正
+		if (rPopup.right > rClient.right) {
+			rPopup.move(rClient.right - rPopup.right, 0);
+		}
+	}
+
+	protected start(args:Properties<string>):void {
+		let value = new Date(Number.parseInt(args["value"] as string));
+		this.reload(value, true);
+	}
+
+	private reload(date:Date, doFocus:boolean):void {
+		let app = this.application;
+		let bom = Dates.getBeginningOfMonth(date);
+		let lm  = Dates.getLastMonth(bom);
+		let top = Dates.addDay(lm, -lm.getDay());
+		let month = this.findNodeByPath("frame/month") as UiMonthNode;
+		month.setMonth(bom);
+		let days = this.findNodeByPath("frame/days") as UiTextNode;
+		for (let i = 0; i < 7 * 6; i++) {
+			const day = Dates.addDay(top, i);
+			let e = days.getChildAt(i) as UiDateNode;
+			e.setDate(bom, day, i);
+			if (doFocus && Dates.isSameDay(date, day)) {
+				app.setFocus(e, UiAxis.XY);
+			}
+		}
+	}
+
+	private watchMonth(src:UiNode, act:string, arg:any):UiResult {
+		if (act == "changeTo") {
+			this.reload(arg as Date, false);
+		}
+		return UiResult.EATEN;
+	}
+
+	private watchDate(src:UiNode, act:string, arg:any):UiResult {
+		if (act == "changeTo") {
+			this.reload(arg as Date, true);
+		} else if (act == "select") {
+			this._owner.updateValue((arg as Date).getTime());
+			this.application.dispose(this);
+		}
+		return UiResult.EATEN;
+	}
+
+	public onKeyDown(target: UiNode | null, key: number, ch: number, mod: number, at: number): UiResult {
+		let result = UiResult.IGNORED;
+		switch (key|(mod & KeyCodes.MOD_ACS)) {
+		case KeyCodes.ESCAPE:
+			this.application.dispose(this);
+			result |= UiResult.EATEN;
+			break;
+		default:
+			result |= super.onKeyDown(target, key, ch, mod, at);
+			break;
+		}
+		return result;
+	}
+
+}
+
+export class UiDateField extends UiTextNode {
+
+	private _dataHolder: DataHolder = UiNode.VOID_DATA_HOLDER;
+
+	public clone():UiDateField {
+		return new UiDateField(this);
+	}
+
+	public onDataHolderChanged(holder:DataHolder):UiResult {
+		let result = UiResult.IGNORED;
+		this._dataHolder = holder;
+		let value = this._dataHolder.getValue(this.name);
+		if (value != null && Types.isValueType(value)) {
+			this.textContent = this.formatDate(this.toDate(value as Value));
+			result |= UiResult.AFFECTED;
+		}
+		return result;
+	}
+
+	private formatDate(date: Date): string {
+		return date.toISOString().substring(0, 10);
+	}
+
+	private toDate(v:Value):Date {
+		if (Types.isString(v)) {
+			return new Date(Date.parse(v as string));
+		} else if (Types.isNumber(v)) {
+			return new Date(v as number);
+		}
+		return new Date();
+	}
+
+	public onKeyDown(target: UiNode | null, key: number, ch: number, mod: number, at: number): UiResult {
+		let result = UiResult.IGNORED;
+		switch (key|(mod & KeyCodes.MOD_ACS)) {
+		case KeyCodes.ENTER:
+			result |= this.showPopup();
+			break;
+		}
+		return result;
+	}
+
+	public onMouseClick(target: UiNode, x: number, y: number, mod: number, at: number): UiResult {
+		return this.showPopup();
+	}
+
+	public showPopup():UiResult {
+		let args:Properties<string> = {};
+		let value = this._dataHolder.getValue(this.name);
+		if (value != null && Types.isValueType(value)) {
+			args["value"] = this.asString(value as Value);
+		}
+		this.application.call(new UiDatePopup(this.application, args, this));
+		return UiResult.AFFECTED;
+	}
+
+	public updateValue(value:Value):void {
+		this._dataHolder.setValue(this.name, value);
+	}
+
+}
