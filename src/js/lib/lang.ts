@@ -10,6 +10,9 @@ export {Types};
 import {Strings} from "./lang/Strings";
 export {Strings};
 
+import {Formatter} from "./lang/Formatter";
+export {Formatter};
+
 import {Arrays} from "./lang/Arrays";
 export {Arrays};
 
@@ -19,7 +22,7 @@ export {Dates}
 import {Logs} from "./lang/Logs";
 export {Logs}
 
-export type Value = string|number|boolean|null;
+export type Value = string|number|boolean|null; //TODO Date(とBigIntも？)をValue型の一部として認めるべき？
 
 export interface Properties<T> {
 	[prop: string]: T|undefined;

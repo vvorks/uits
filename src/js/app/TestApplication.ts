@@ -17,7 +17,7 @@ import hokusai3 from "@images/hokusai3.jpg";
 import hokusai4 from "@images/hokusai4.jpg";
 import hokusai5 from "@images/hokusai5.jpg";
 import resource from "@texts/resource.json";
-import { Dates } from "../lib/lang";
+import { Dates, Formatter, Logs } from "../lib/lang";
 import { PaneTestPage } from "./PaneTestPage";
 
 export const DEFAULT_STYLE:UiStyle = new UiStyleBuilder()
@@ -193,6 +193,14 @@ export class TestApplication extends UiApplication {
 		}));
 
 		this.setTextResource(resource);
+
+
+		let nav = window.navigator;
+		let locale = nav.languages && nav.languages.length > 0 ? nav.languages[0] : nav.language;
+		Logs.debug("locale %s", locale);
+
+		Formatter.parse("%4.3d%.5d%6.d%-07s").format(100);
+
 	}
 
 	protected onKeyDown(target:UiNode, key:number, ch:number, mod:number, at:number):UiResult {
