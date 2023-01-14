@@ -1,7 +1,7 @@
-import { Logs, ParamError, Strings, Types, Value } from "../lang";
+import { Arrays, Logs, ParamError, Properties, Strings, Types, Value } from "../lang";
 
-type PatternType = "b"|"o"|"d"|"x"|"c"|"s"|"G"|"Y"|"m"|"D"|"A"|"P"|"H"|"M"|"S"|"L"|"Z"|"F"|"T"|"%"|"n";
-const PATTERNS = /[bodxcsGYmDAPHMSLZFT%n]/
+type PatternType = "b"|"o"|"d"|"x"|"X"|"c"|"s"|"G"|"Y"|"m"|"D"|"A"|"P"|"H"|"M"|"S"|"L"|"Z"|"F"|"T"|"%"|"n";
+const PATTERNS = /[bodxXcsGYmDAPHMSLZFT%n]/
 
 const FLAG_SYMBOLS = "-0+ ,$¥€£¤#";
 enum Flags {
@@ -18,16 +18,52 @@ enum Flags {
 	ALTERNATIVE	= 10,
 }
 
+const FULLWIDTH_CODEPOINTS = [
+	0x01100, 0x011FF,	//Hangul Jamo	ハングル字母
+	0x02E80, 0x02EFF,	//CJK Radicals Supplement	CJK部首補助
+	0x02F00, 0x02FDF,	//Kangxi Radicals	康煕部首
+	0x02FF0, 0x02FFF,	//Ideographic Description Characters	漢字構成記述文字
+	0x03000, 0x0303F,	//CJK Symbols and Punctuation	CJKの記号及び句読点
+	0x03040, 0x0309F,	//Hiragana	平仮名
+	0x030A0, 0x030FF,	//Katakana	片仮名
+	0x03100, 0x0312F,	//Bopomofo	注音字母
+	0x03130, 0x0318F,	//Hangul Compatibility Jamo	ハングル互換字母
+	0x03190, 0x0319F,	//Kanbun	漢文用記号
+	0x031A0, 0x031BF,	//Bopomofo Extended	注音字母拡張
+	0x031C0, 0x031EF,	//CJK Strokes	CJKの筆画
+	0x031F0, 0x031FF,	//Katakana Phonetic Extensions	片仮名拡張
+	0x03200, 0x032FF,	//Enclosed CJK Letters and Months	囲みCJK文字・月
+	0x03300, 0x033FF,	//CJK Compatibility	CJK互換用文字
+	0x03400, 0x04DBF,	//CJK Unified Ideographs Extension A	CJK統合漢字拡張A
+	0x04DC0, 0x04DFF,	//Yijing Hexagram Symbols	易経記号
+	0x04E00, 0x09FFF,	//CJK Unified Ideographs	CJK統合漢字
+	0x0AC00, 0x0D7AF,	//Hangul Syllables	ハングル音節文字
+	0x0D7B0, 0x0D7FF,	//Hangul Jamo Extended-B	ハングル字母拡張B
+	0x0F900, 0x0FAFF,	//CJK Compatibility Ideographs	CJK互換漢字
+	0x0FE10, 0x0FE1F,	//Vertical Forms	縦書き形
+	0x0FE30, 0x0FE4F,	//CJK Compatibility Forms	CJK互換形
+	0x0FF01, 0x0FF5E,	//Fullwidth Forms	全角形
+	0x20000, 0x2A6DF,	//CJK Unified Ideographs Extension B	CJK統合漢字拡張B
+	0x2A700, 0x2B73F,	//CJK Unified Ideographs Extension C	CJK統合漢字拡張C
+	0x2B740, 0x2B81F,	//CJK Unified Ideographs Extension D	CJK統合漢字拡張D
+	0x2B820, 0x2CEAF,	//CJK Unified Ideographs Extension E	CJK統合漢字拡張E
+	0x2CEB0, 0x2EBEF,	//CJK Unified Ideographs Extension F	CJK統合漢字拡張F
+	0x2F800, 0x2FA1F,	//CJK Compatibility Ideographs Supplement	CJK互換漢字補助
+	0x30000, 0x3134F,	//CJK Unified Ideographs Extension G	CJK統合漢字拡張G
+];
+
 class Pattern {
 
 	 private _type: PatternType;
 	 private _flags: number[];
+	 private _order: number;
 	 private _width: number;
 	 private _precision: number;
 	 private _text: string;
 
-	public constructor(type:PatternType, flags:number[]|null, width:number, precision:number, text:string) {
+	public constructor(type:PatternType, order:number, flags:number[]|null, width:number, precision:number, text:string) {
 		this._type = type;
+		this._order = order;
 		this._flags = (flags != null ? flags : new Array(FLAG_SYMBOLS.length).fill(0));
 		this._width = width;
 		this._precision = precision;
@@ -36,6 +72,26 @@ class Pattern {
 
 	public get type():PatternType {
 		return this._type;
+	}
+
+	public get flags(): number[] {
+		return this._flags;
+	}
+
+	public get order():number {
+		return this._order;
+	}
+
+	public get width():number {
+		return this._width;
+	}
+
+	public get precision():number {
+		return this._precision;
+	}
+
+	public get text():string {
+		return this._text;
 	}
 
 	public get leftSide():boolean {
@@ -85,16 +141,8 @@ class Pattern {
 		return this._flags[Flags.ALTERNATIVE] > 0;
 	}
 
-	public alternativeCount():number {
+	public get alternativeCount():number {
 		return this._flags[Flags.ALTERNATIVE];
-	}
-
-	public get width():number {
-		return this._width;
-	}
-
-	public get precision():number {
-		return this._precision;
 	}
 
 	public get preferrdWidth():number {
@@ -103,7 +151,7 @@ class Pattern {
 		preferred += this.currencyChar.length;
 		preferred += this.width;
 		if (this.grouping && this.width > 3) {
-			preferred += (this.width - 1) / 3;
+			preferred += Math.floor((this.width - 1) / 3);
 		}
 		if (this.precision > 0) {
 			preferred += 1 + this.precision;
@@ -111,25 +159,110 @@ class Pattern {
 		return preferred;
 	}
 
-}
-
-export class Formatter {
-
-	public static parse(formatString:string):Formatter {
-		return Parser.INSTANCE.parse(formatString);
+	public isWidthedString():boolean {
+		return (this._type == "s" && this._width > 0);
 	}
 
-	public format(value:Value|Date):string {
+	public isLiteral():boolean {
+		return this._type == "%";
+	}
+
+	public isDateTimeStyle():boolean {
+		return "FT".indexOf(this._type) >= 0;
+	}
+
+	public isDateTime():boolean {
+		return "GYmDAPHMSLZ".indexOf(this._type) >= 0;
+	}
+
+}
+
+abstract class Fragment {
+
+	public abstract format(value:Value|Date):string;
+
+	protected measureText(str:string):number {
+		let len = 0;
+		for (let ch of str) {
+			len += this.isFullWidth(ch.charCodeAt(0)) ? 2 : 1;
+		}
+		return len;
+	}
+
+	protected isFullWidth(codePoint:number):boolean {
+		for (let i = 0; i < FULLWIDTH_CODEPOINTS.length; i += 2) {
+			if (FULLWIDTH_CODEPOINTS[i] <= codePoint && codePoint <= FULLWIDTH_CODEPOINTS[i + 1]) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	protected fill(str:string, p:Pattern, zeroFill:boolean):string {
+		let width = p.preferrdWidth;
+		let len = this.measureText(str);
+		let orgStr = str;
+		if (len < width) {
+			let size = width - len;
+			if (p.leftSide) {
+				str = str + Strings.repeat(" ", size);
+			} else if (zeroFill && p.zeroFill) {
+				str = Strings.repeat("0", size) + str;
+			} else {
+				str = Strings.repeat(" ", size) + str;
+		}
+		}
+		return str;
+	}
+
+	protected asNumber(value:Value|Date):number {
+		if (value == null) {
+			return 0;
+		} else if (Types.isNumber(value)) {
+			return value as number;
+		} else if (Types.isString(value)) {
+			return Number(value);
+		} else if (Types.isBoolean(value)) {
+			return (value as boolean) ? 1 : 0;
+		} else if (value instanceof Date) {
+			return (value as Date).getTime();
+		}
+		return 0;
+	}
+
+	protected asString(value:Value|Date):string {
+		if (value == null) {
+			return "null";
+		} else if (Types.isNumber(value)) {
+			return "" + value;
+		} else if (Types.isString(value)) {
+			return value as string;
+		} else if (Types.isBoolean(value)) {
+			return (value as boolean) ? "true" : "false";
+		} else if (value instanceof Date) {
+			return (value as Date).toISOString();
+		}
 		return "";
 	}
 
-	protected measureText(str:string):number {
-		return str.length; //TODO 仮。正確には半角１、全角２として返したい。
+	protected asDate(value:Value|Date):Date {
+		if (value == null) {
+			return new Date(0);
+		} else if (Types.isNumber(value)) {
+			return new Date(value as number);
+		} else if (Types.isString(value)) {
+			return new Date(Date.parse(value as string));
+		} else if (Types.isBoolean(value)) {
+			return (value as boolean) ? new Date() : new Date(0);
+		} else if (value instanceof Date) {
+			return (value as Date);
+		}
+		return new Date(0);
 	}
 
 }
 
-class LiteralFormatter extends Formatter {
+class LiteralFragment extends Fragment {
 
 	private _text: string;
 
@@ -144,27 +277,7 @@ class LiteralFormatter extends Formatter {
 
 }
 
-class BundleFormatter extends Formatter {
-
-	private _formatters: Formatter[];
-
-	public constructor(formatters:Formatter[]) {
-		super();
-		this._formatters = formatters;
-	}
-
-	public format(value:Value|Date):string {
-		//TODO スプリットモードサポート
-		let s = "";
-		for (let f of this._formatters) {
-			s += f.format(value);
-		}
-		return s;
-	}
-
-}
-
-class PatternFormatter extends Formatter {
+abstract class PatternFragment extends Fragment {
 
 	private _pattern: Pattern;
 
@@ -177,134 +290,673 @@ class PatternFormatter extends Formatter {
 		return this._pattern;
 	}
 
-	protected asNumber(value:Value|Date):number {
-		if (Types.isNumber(value)) {
-			return value as number;
-		} else if (Types.isString(value)) {
-			return Number(value);
-		} else if (Types.isBoolean(value)) {
-			return (value as boolean) ? 1 : 0;
-		} else if (value instanceof Date) {
-			return (value as Date).getTime();
-		}
-		return 0;
+}
+
+class RadixFragment extends PatternFragment {
+
+	private _radix:number;
+
+	private _uppercase:boolean
+
+	public constructor(p:Pattern, radix:number, uppercase:boolean=false) {
+		super(p);
+		this._radix = radix;
+		this._uppercase = uppercase;
 	}
 
-	protected asString(value:Value|Date):string {
-		if (Types.isNumber(value)) {
-			return "" + value;
-		} else if (Types.isString(value)) {
-			return value as string;
-		} else if (Types.isBoolean(value)) {
-			return (value as boolean) ? "true" : "false";
-		} else if (value instanceof Date) {
-			return (value as Date).toISOString();
+	public format(value:Value|Date):string {
+		let num = Math.floor(this.asNumber(value));
+		let str = num.toString(this._radix);
+		if (this._uppercase) {
+			str = str.toUpperCase();
 		}
-		return "";
-	}
-
-	protected fill(str:string, zeroFill:boolean):string {
-		let p = this.pattern;
-		let width = p.preferrdWidth;
-		let len = this.measureText(str);
-		if (len < width) {
-			let size = width - len;
-			if (p.leftSide) {
-				str = str + Strings.repeat(" ", size);
-			} else if (zeroFill && p.zeroFill) {
-				str = Strings.repeat("0", size) + str;
-			} else {
-				str = Strings.repeat(" ", size) + str;
-			}
-		}
-		return str;
+		return this.fill(str, this.pattern, true);
 	}
 
 }
 
-class RadixFormatter extends PatternFormatter {
+class DefaultOptions {
 
-	private _radix:number;
+	public static INSTANCE = new DefaultOptions();
 
-	public constructor(p:Pattern, radix:number) {
+	private _dateTimeOptions: Intl.ResolvedDateTimeFormatOptions;
+
+	private _numberOptions: Intl.ResolvedNumberFormatOptions;
+
+	private _groupSymbol:string;
+
+	private _decimalSymbol:string;
+
+	private constructor() {
+		this._dateTimeOptions = new Intl.DateTimeFormat().resolvedOptions();
+		this._numberOptions = new Intl.NumberFormat().resolvedOptions();
+		let f = new Intl.NumberFormat(this.locale, {useGrouping:true, minimumFractionDigits:3});
+		let gSym = ",";
+		let dSym = ".";
+		for (let p of f.formatToParts(1234.567)) {
+			if (p.type == "group") {
+				gSym = p.value;
+			} else if (p.type == "decimal") {
+				dSym = p.value;
+			}
+		}
+		this._groupSymbol = gSym;
+		this._decimalSymbol = dSym;
+	}
+
+	public get locale():string {
+		return this._dateTimeOptions.locale;
+	}
+
+	public get currency():string {
+		let c = this._numberOptions.currency;
+		if (c === undefined) {
+			c = this.getDefaultCurrency(this.locale);
+		}
+		return c;
+	}
+
+	public get groupSymbol():string {
+		return this._groupSymbol;
+	}
+
+	public get decimalSymbol():string {
+		return this._decimalSymbol;
+	}
+
+	private getDefaultCurrency(locale:string):string {
+		//TODO 要実装。https://www.npmjs.com/package/country-locale-map を使うか検討
+		return "JPY";
+	}
+
+}
+
+class NumberFragment extends PatternFragment {
+
+	private _defaultOptions: DefaultOptions;
+	private _formatter: Intl.NumberFormat;
+
+	public constructor(p:Pattern) {
 		super(p);
-		this._radix = radix;
+		//処理準備
+		this._defaultOptions = DefaultOptions.INSTANCE;
+		let locale = this._defaultOptions.locale;
+		let options:Intl.NumberFormatOptions = {};
+		//通貨記号
+		let currency = p.currencyChar;
+		if (currency.length > 0) {
+			options.style = "currency";
+			options.currencyDisplay = "narrowSymbol";
+			options.currency = this.toCurrencyCode(currency);
+		}
+		//桁区切り
+		options.useGrouping = p.grouping;
+		//精度
+		let precision = p.precision;
+		if (precision >= 0) {
+			options.minimumFractionDigits = precision;
+			options.maximumFractionDigits = precision;
+		}
+		//符号
+		options.signDisplay = this.toSignDisplay(p.positiveChar);
+		//Intl作成
+		this._formatter = new Intl.NumberFormat(locale, options);
+	}
+
+	private toCurrencyCode(sym:string):string {
+		switch (sym) {
+		case '¥':
+			return "JPY";
+		case '€':
+			return "EUR";
+		case '£':
+			return "GBP";
+		case '$':
+			return "USD";
+		case '¤':
+		default:
+			return this._defaultOptions.currency;
+		}
+	}
+
+	private toSignDisplay(pc:string):"always"|"auto" {
+		switch (pc) {
+		case "+": return "always";
+		case " ": return "always";	//一旦'+'で整形。後処理で' 'に置換
+		default:  return "auto";
+		}
 	}
 
 	public format(value:Value|Date):string {
 		let num = this.asNumber(value);
-		return this.fill(num.toString(this._radix), true);
+		let parts = this._formatter.formatToParts(num);
+		let p = this.pattern;
+		if (p.precision < 0) {
+			//通貨によって、自動的に小数桁が付与されるため、パターンを補正する
+			let fractionPart = parts.find(e => (e.type == "fraction"));
+			if (fractionPart !== undefined) {
+				let modPrecition = fractionPart.value.length;
+				p = new Pattern(p.type, p.order, p.flags, p.width, modPrecition, p.text);
+			}
+		}
+		let str = this.composeText(parts, p);
+		return this.fill(str, this.pattern, true);
+	}
+
+	private composeText(parts: Intl.NumberFormatPart[], p:Pattern):string {
+		let zeros:string|null = p.zeroFill ? this.getZeros(parts, p) : null;
+		let sb = "";
+		for (let f of parts) {
+			let type = f.type;
+			let value = f.value;
+			if (type == "integer" && zeros != null) {
+				sb += zeros;
+				zeros = null;
+			}
+			if (type == "plusSign" && p.positiveChar == " ") {
+				sb += " ";
+			} else if (type == "currency" && value == "￥") {
+				sb += "¥";
+			} else {
+				sb += value;
+			}
+		}
+		return sb;
+	}
+
+	private getZeros(parts:Intl.NumberFormatPart[], p:Pattern):string|null {
+		let zeros:string|null = null;
+		//整数桁長を調べる
+		let len = 0;
+		let len1st = 0;
+		for (let f of parts) {
+			if (f.type == "integer") {
+				len += f.value.length;
+				if (len1st == 0) {
+					len1st = len;
+				}
+			}
+		}
+		//zeroFill文字列を作成
+		let width = p.width;
+		if (len < width) {
+			let remain = width - len;
+			if (p.grouping) {
+				zeros = this.makeGroupedZeros(remain, len1st);
+			} else {
+				zeros = Strings.repeat("0", remain);
+			}
+		}
+		return zeros;
+	}
+
+	private makeGroupedZeros(remain:number, len1st:number):string {
+		let sb = "";
+		let sep = this._defaultOptions.groupSymbol;
+		let n = 3 - len1st;
+		sb += Strings.repeat("0", Math.min(remain, n));
+		remain -= n;
+		while (remain > 0) {
+			sb += sep;
+			sb += Strings.repeat("0", Math.min(remain, 3));
+			remain -= 3;
+		}
+		return Strings.reverse(sb);
 	}
 
 }
 
-class NumberFormatter extends PatternFormatter {
-	//TODO 実装
-}
-
-class DateTimeFormatter extends PatternFormatter {
-	//TODO 実装
-}
-
-class CharFormatter extends PatternFormatter {
+class CharFragment extends PatternFragment {
 
 	public format(value:Value|Date):string {
 		let num = this.asNumber(value);
 		let str = String.fromCharCode(num);
-		return this.fill(str, false);
+		return this.fill(str, this.pattern, false);
 	}
 
 }
 
-class StringFormatter extends PatternFormatter {
+class StringFragment extends PatternFragment {
 
 	public format(value:Value|Date):string {
 		let str = this.asString(value);
-		return this.fill(str, false);
+		return this.fill(str, this.pattern, false);
 	}
 
 }
 
-class Parser {
+class TextFragment extends Fragment {
 
-	public static INSTANCE = new Parser();
+	private _patterns:Pattern[];
 
-	public parse(src:string):Formatter {
+	public constructor(patterns:Pattern[]) {
+		super();
+		this._patterns = patterns;
+	}
+
+	public format(value:Value|Date):string {
+		let s = "";
+		let t = this.asString(value);
+		for (let p of this._patterns) {
+			if (p.type == "s") {
+				let width = p.width;
+				if (t.length <= width) {
+					s += t;//this.fill(t, p, false);
+					break;
+				}
+				let t1 = t.substring(0, width);
+				let t2 = t.substring(width);
+				s += this.fill(t1, p, false);
+				t = t2;
+			} else if (p.type == "%") {
+				s += p.text;
+			}
+		}
+		return s;
+	}
+
+}
+
+class DateTimeFragment extends Fragment {
+
+	private _patterns:Pattern[];
+
+	private _defaultOptions: DefaultOptions;
+
+	private _formatter: Intl.DateTimeFormat;
+
+	public constructor(patterns:Pattern[]) {
+		super();
+		//処理準備
+		this._patterns = patterns;
+		this._defaultOptions = DefaultOptions.INSTANCE;
+		let locale = this._defaultOptions.locale;
+		let options:Intl.DateTimeFormatOptions = {};
+		for (let p of patterns) {
+			this.addOptions(p, options);
+		}
+		//オプション設定
+		this._formatter = new Intl.DateTimeFormat(locale, options);
+	}
+
+	private addOptions(p:Pattern, options:Intl.DateTimeFormatOptions):Intl.DateTimeFormatOptions {
+		switch (p.type) {
+			case "G": return this.addEraOptions(p, options);
+			case "Y": return this.addYearOptions(p, options);
+			case "m": return this.addMonthOptions(p, options);
+			case "D": return this.addDayOptions(p, options);
+			case "A": return this.addWeekOpttions(p, options);
+			case "P": return this.addAmPmOptions(p, options);
+			case "H": return this.addHourOptions(p, options);
+			case "M": return this.addMinuteOptions(p, options);
+			case "S": return this.addSecondOptions(p, options);
+			case "L": return this.addMillisecondOptions(p, options);
+			case "Z": return this.addTimezoneOptions(p, options);
+			case "F": return this.addDateStyleOptions(p, options);
+			case "T": return this.addTimeStyleOptions(p, options);
+			default: return options;
+		}
+	}
+
+	private addEraOptions(p:Pattern, options: Intl.DateTimeFormatOptions): Intl.DateTimeFormatOptions {
+		let positiveCount = p.positiveCount;
+		if (positiveCount == 0) {
+			options.era = "narrow"
+		} else if (positiveCount == 1) {
+			options.era = "short";
+		} else {
+			options.era = "long";
+		}
+		return options;
+	}
+
+	private addYearOptions(p:Pattern, options: Intl.DateTimeFormatOptions): Intl.DateTimeFormatOptions {
+		if (p.alternative) {
+			let locale = this._defaultOptions.locale;
+			options.calendar = this.getAlternativeCalendar(locale, p.alternativeCount);
+		}
+		if (p.zeroFill && p.width == 2) {
+			options.year = "2-digit";
+		} else {
+			options.year = "numeric";
+		}
+		return options;
+	}
+
+	private getAlternativeCalendar(locale:string, count:number):string {
+		if (locale.startsWith("ja") && count > 0) {
+			return "japanese";
+		} else {
+			return "gregory";
+		}
+	}
+
+	private addMonthOptions(p:Pattern, options: Intl.DateTimeFormatOptions): Intl.DateTimeFormatOptions {
+		let positiveCount = p.positiveCount;
+		if (positiveCount == 0) {
+			if (p.zeroFill && p.width == 2) {
+				options.month = "2-digit";
+			} else {
+				options.month = "numeric";
+			}
+		} else if (positiveCount == 1) {
+			options.month = "narrow";
+		} else if (positiveCount == 2) {
+			options.month = "short";
+		} else {
+			options.month = "long";
+		}
+		return options;
+	}
+
+	private addDayOptions(p:Pattern, options: Intl.DateTimeFormatOptions): Intl.DateTimeFormatOptions {
+		if (p.zeroFill && p.width) {
+			options.day = "2-digit";
+		} else {
+			options.day = "numeric";
+		}
+		return options;
+	}
+
+	private addWeekOpttions(p:Pattern, options: Intl.DateTimeFormatOptions): Intl.DateTimeFormatOptions {
+		let positiveCount = p.positiveCount;
+		if (positiveCount == 0) {
+			options.weekday = "narrow";
+		} else if (positiveCount == 1) {
+			options.weekday = "short";
+		} else {
+			options.weekday = "long";
+		}
+		return options;
+	}
+
+	private addAmPmOptions(p:Pattern, options: Intl.DateTimeFormatOptions): Intl.DateTimeFormatOptions {
+		options.hour12 = true;
+		let positiveCount = p.positiveCount;
+		if (positiveCount > 0) {
+			if (positiveCount == 1) {
+				//apply locale default pattern.
+			} else if (positiveCount == 2) {
+				options.dayPeriod = "narrow";
+			} else if (positiveCount == 3) {
+				options.dayPeriod = "short";
+			} else {
+				options.dayPeriod = "long";
+			}
+		}
+		return options;
+	}
+
+	private addHourOptions(p:Pattern, options: Intl.DateTimeFormatOptions): Intl.DateTimeFormatOptions {
+		if (p.zeroFill && p.width == 2) {
+			options.hour = "2-digit";
+		} else {
+			options.hour = "numeric";
+		}
+		return options;
+	}
+
+	private addMinuteOptions(p:Pattern, options: Intl.DateTimeFormatOptions): Intl.DateTimeFormatOptions {
+		if (p.zeroFill && p.width == 2) {
+			options.minute = "2-digit";
+		} else {
+			options.minute = "numeric";
+		}
+		return options;
+	}
+
+	private addSecondOptions(p:Pattern, options: Intl.DateTimeFormatOptions): Intl.DateTimeFormatOptions {
+		if (p.zeroFill && p.width == 2) {
+			options.second = "2-digit";
+		} else {
+			options.second = "numeric";
+		}
+		return options;
+	}
+
+	private addMillisecondOptions(p:Pattern, options: Intl.DateTimeFormatOptions): Intl.DateTimeFormatOptions {
+		//TypeScript ライブラリのインターフェース定義もれ？回避
+		let opt2:Properties<any> = options;
+		let msecWidth = p.width;
+		if (!(1 <= msecWidth && msecWidth <= 3)) {
+			msecWidth = 3;
+		}
+		opt2["fractionalSecondDigits"] = msecWidth;
+		return opt2 as Intl.DateTimeFormatOptions;
+	}
+
+	private addTimezoneOptions(p:Pattern, options: Intl.DateTimeFormatOptions): Intl.DateTimeFormatOptions {
+		let positiveCount = p.positiveCount;
+		if (positiveCount == 0) {
+			options.timeZoneName = "longOffset";
+		} else if (positiveCount == 1) {
+			options.timeZoneName = "short";
+		} else {
+			options.timeZoneName = "long";
+		}
+		return options;
+	}
+
+	private addDateStyleOptions(p:Pattern, options: Intl.DateTimeFormatOptions): Intl.DateTimeFormatOptions {
+		if (p.alternative) {
+			let locale = this._defaultOptions.locale;
+			options.calendar = this.getAlternativeCalendar(locale, p.alternativeCount);
+		}
+		let positiveCount = p.positiveCount;
+		if (positiveCount == 0) {
+			options.dateStyle = "short";
+		} else if (positiveCount == 1) {
+			options.dateStyle = "medium";
+		} else if (positiveCount == 2) {
+			options.dateStyle = "long";
+		} else {
+			options.dateStyle = "full";
+		}
+		return options;
+	}
+
+	private addTimeStyleOptions(p:Pattern, options: Intl.DateTimeFormatOptions): Intl.DateTimeFormatOptions {
+		let positiveCount = p.positiveCount;
+		if (positiveCount == 0) {
+			options.timeStyle = "short";
+		} else if (positiveCount == 1) {
+			options.timeStyle = "medium";
+		} else if (positiveCount == 2) {
+			options.timeStyle = "long";
+		} else {
+			options.timeStyle = "full";
+		}
+		return options;
+	}
+
+	private static readonly TAGS:Properties<string> = {
+		"%":"literal",
+		"G":"era",
+		"Y":"year",
+		"m":"month",
+		"D":"day",
+		"A":"weekday",
+		"P":"dayPeriod",
+		"H":"hour",
+		"M":"minute",
+		"S":"second",
+		"L":"fractionalSecond",
+		"Z":"timeZoneName",
+	};
+
+	public format(value:Value|Date):string {
+		let date = this.asDate(value);
+		let parts = this._formatter.formatToParts(date);
+		let sb = "";
+		for (let p of this._patterns) {
+			if (p.type == "%") {
+				sb += p.text;
+			} else if (p.type == "F") {
+				sb += this.composeRange(parts, ["era", "year", "month", "day", "weekday"]);
+			} else if (p.type == "T") {
+				sb += this.composeRange(parts, ["dayPeriod", "hour", "minute", "second", "fractionalSecond", "timeZoneName"]);
+			} else if (p.type == "P" && p.positiveCount == 0) {
+				let v = this.findPartValue(parts, DateTimeFragment.TAGS[p.type]);
+				if (v != "") {
+					let hour24 = date.getHours();
+					sb += this.fill((hour24 < 12) ? "AM" : "PM", p, false);
+				}
+			} else if (p.type == "Z" && p.positiveCount == 0) {
+				let v = this.findPartValue(parts, DateTimeFragment.TAGS[p.type]);
+				if (v.startsWith("GMT") || v.startsWith("UTC")) {
+					v = v.substring(3);
+				}
+				sb += this.fill(v, p, false);
+			} else if ((p.type == "M" || p.type == "S")) {
+				let v = this.supressZero(this.findPartValue(parts, DateTimeFragment.TAGS[p.type]));
+				sb += this.fill(v, p, true);
+			} else {
+				let v = this.findPartValue(parts, DateTimeFragment.TAGS[p.type]);
+				sb += this.fill(v, p, this.isInteger(v));
+			}
+		}
+		return sb;
+
+	}
+
+	private composeRange(parts:Intl.DateTimeFormatPart[], tags:string[]):string {
+		//コピー範囲の調査
+		let n = parts.length;
+		let spos = -1;
+		let epos = n;
+		for (let i = 0; i < n; i++) {
+			let part = parts[i];
+			if (spos == -1) {
+				if (tags.indexOf(part.type) >= 0) {
+					spos = i;
+				}
+			} else {
+				if (tags.indexOf(part.type) < 0 && part.type != "literal") {
+					epos = i;
+					break;
+				}
+			}
+		}
+		if (spos == -1) {
+			return "";
+		}
+		//サブリストの値をコピー
+		let sb = "";
+		for (let part of parts.slice(spos, epos)) {
+			sb += part.value;
+		}
+		return sb.trim();
+	}
+
+	private findPartValue(parts:Intl.DateTimeFormatPart[], tag:string|undefined):string {
+		if (tag == undefined) {
+			return "";
+		}
+		for (let p of parts) {
+			if (p.type == tag) {
+				return p.value;
+			}
+		}
+		return "";
+	}
+
+	private supressZero(s:string):string {
+		let index = 0;
+		while (index < s.length && s.charAt(index) == '0') {
+			index++;
+		}
+		if (index == 0) {
+			return s;
+		} else if (index < s.length) {
+			return s.substring(index);
+		} else {
+			return s.substring(index - 1);
+		}
+
+	}
+
+	private isInteger(s:string):boolean {
+		let n = Number(s);
+		if (isNaN(n)) {
+			return false;
+		}
+		let m = Math.floor(n);
+		return n == m;
+	}
+
+}
+
+export class Formatter {
+
+	private _fragments: Fragment[];
+
+	public constructor(src:string) {
+		this._fragments = this.parse(src);
+	}
+
+	public format(value:Value|Date):string {
+		let s = "";
+		for (let f of this._fragments) {
+			s += f.format(value);
+		}
+		return s;
+	}
+
+	private parse(src:string):Fragment[] {
 		let str = src;
-		let formatters:Formatter[] = [];
+		let patterns:Pattern[] = [];
+		let lastOrder = 0;
 		while (str.length > 0) {
 			let index = str.indexOf('%');
 			if (index < 0) {
-				formatters.push(new LiteralFormatter(str));
+				patterns.push(new Pattern("%", 0, null, 0, 0, str));
 				str = "";
 			} else {
 				if (index > 0) {
-					formatters.push(new LiteralFormatter(str.substring(0, index)));
+					patterns.push(new Pattern("%", 0, null, 0, 0, str.substring(0, index)));
 				}
 				let tmp = str.substring(index);
 				str = tmp.substring(1);
 				let patIndex = str.search(PATTERNS);
 				if (patIndex < 0) {
-					formatters.push(new LiteralFormatter(tmp));
+					patterns.push(new Pattern("%", 0, null, 0, 0, tmp));
 					str = "";
 				} else {
 					let type = str.substring(patIndex, patIndex + 1) as PatternType;
-					let pattern = this.parsePattern(type, str.substring(0, patIndex));
-					formatters.push(this.createFormatter(pattern));
+					let pattern = this.parsePattern(type, str.substring(0, patIndex), lastOrder);
+					patterns.push(pattern);
+					lastOrder = pattern.order;
 					str = str.substring(patIndex + 1);
 				}
 			}
 		}
-		return new BundleFormatter(formatters);
+		return this.toFragments(patterns);
 	}
 
-	private parsePattern(type:PatternType, src:string):Pattern {
+	private parsePattern(type:PatternType, src:string, lastOrder:number):Pattern {
 		let str = src;
 		let pos = 0;
+		//引数番号指定の解釈
+		let order;
+		if (pos < str.length && str.charAt(pos) == "<") {
+			order = Math.max(1, lastOrder);
+			pos++;
+		} else if (pos < str.length && str.search(/[123456789][0123456789]*\$/) == 0) {
+			order = 0;
+			while (pos < str.length && str.charAt(pos) != "$") {
+				order *= 10;
+				order += (str.codePointAt(pos++) as number) - 0x30;
+			}
+			pos++;
+		} else {
+			order = lastOrder + 1;
+		}
+		//フラグの解釈
 		let flags:number[] = new Array(FLAG_SYMBOLS.length).fill(0);
 		for (let i = 0; pos < str.length && (i = FLAG_SYMBOLS.indexOf(str.charAt(pos))) >= 0; pos++) {
 			flags[i]++;
 		}
+		//幅と精度の解釈
 		let spos = pos;
 		let mpos = -1;
 		for (let i = 0; pos < str.length && (i = ".01234567890".indexOf(str.charAt(pos))) >= 0; pos++) {
@@ -330,33 +982,94 @@ class Parser {
 		} else {
 			width = parseInt(str.substring(spos, mpos));
 		}
-		return new Pattern(type, flags, width, precision, src);
+		return new Pattern(type, order, flags, width, precision, src);
 	}
 
-	private createFormatter(pattern:Pattern):Formatter {
+	private toFragments(patterns:Pattern[]):Fragment[] {
+		let pos = 0;
+		let p:Pattern|null = pos < patterns.length ? patterns[pos++] : null;
+		let fragments:Fragment[] = [];
+		while (p != null) {
+			if (p.isWidthedString()) {
+				let bundlePatterns:Pattern[] = [];
+				bundlePatterns.push(p);
+				let lastOrder = p.order;
+				p = pos < patterns.length ? patterns[pos++] : null;
+				let widthedCount = 1;
+				while (p != null && (p.isWidthedString() || p.isLiteral()) && this.isNearOrder(lastOrder, p.order)) {
+					if (p.isWidthedString()) {
+						widthedCount++;
+					}
+					lastOrder = (p.order > 0 ? p.order : lastOrder);
+					bundlePatterns.push(p);
+					p = pos < patterns.length ? patterns[pos++] : null;
+				}
+				if (widthedCount > 1) {
+					fragments.push(new TextFragment(bundlePatterns));
+				} else {
+					for (let q of bundlePatterns) {
+						fragments.push(this.createFragment(q));
+					}
+				}
+			} else if (p.isDateTimeStyle()) {
+				let bundlePatterns:Pattern[] = [];
+				bundlePatterns.push(p);
+				let lastOrder = p.order;
+				p = pos < patterns.length ? patterns[pos++] : null;
+				while (p != null && (p.isDateTimeStyle() || p.isLiteral()) && this.isNearOrder(lastOrder, p.order)) {
+					lastOrder = (p.order > 0 ? p.order : lastOrder);
+					bundlePatterns.push(p);
+					p = pos < patterns.length ? patterns[pos++] : null;
+				}
+				fragments.push(new DateTimeFragment(bundlePatterns));
+			} else if (p.isDateTime()) {
+				let bundlePatterns:Pattern[] = [];
+				bundlePatterns.push(p);
+				let lastOrder = p.order;
+				p = pos < patterns.length ? patterns[pos++] : null;
+				while (p != null && (p.isDateTime() || p.isLiteral()) && this.isNearOrder(lastOrder, p.order)) {
+					lastOrder = (p.order > 0 ? p.order : lastOrder);
+					bundlePatterns.push(p);
+					p = pos < patterns.length ? patterns[pos++] : null;
+				}
+				fragments.push(new DateTimeFragment(bundlePatterns));
+			} else {
+				fragments.push(this.createFragment(p));
+				p = pos < patterns.length ? patterns[pos++] : null;
+			}
+		}
+		return fragments;
+	}
+
+	private isNearOrder(prev:number, curr:number):boolean {
+		return	curr     == 0    ||
+				prev     == 0    ||
+				prev     == curr ||
+				prev + 1 == curr  ;
+	}
+
+	private createFragment(pattern:Pattern):Fragment {
 		switch (pattern.type) {
 		case "b":
-			return new RadixFormatter(pattern,  2);
+			return new RadixFragment(pattern,  2);
 		case "o":
-			return new RadixFormatter(pattern,  8);
+			return new RadixFragment(pattern,  8);
 		case "x":
-			return new RadixFormatter(pattern, 16);
+			return new RadixFragment(pattern, 16);
+		case "X":
+			return new RadixFragment(pattern, 16, true);
 		case "d":
-			return new NumberFormatter(pattern);
+			return new NumberFragment(pattern);
 		case "c":
-			return new CharFormatter(pattern);
+			return new CharFragment(pattern);
 		case "s":
-			return new StringFormatter(pattern);
-		case "%":
-			return new LiteralFormatter("%");
-		case "G":	case "Y":	case "m":	case "D":
-		case "A":	case "P":	case "H":	case "M":	case "S":	case "L":	case "Z":
-		case "F":	case "T":
-			return new DateTimeFormatter(pattern);
+			return new StringFragment(pattern);
+		case '%':
+			return new LiteralFragment(pattern.text);
 		case "n":
-			return new LiteralFormatter("\n");
+			return new LiteralFragment("\n");
 		default:
-			return new LiteralFormatter("");
+			return new LiteralFragment("");
 		}
 	}
 

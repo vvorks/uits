@@ -17,7 +17,7 @@ import hokusai3 from "@images/hokusai3.jpg";
 import hokusai4 from "@images/hokusai4.jpg";
 import hokusai5 from "@images/hokusai5.jpg";
 import resource from "@texts/resource.json";
-import { Dates, Formatter, Logs } from "../lib/lang";
+import { Dates, Formatter, Logs, Value } from "../lib/lang";
 import { PaneTestPage } from "./PaneTestPage";
 
 export const DEFAULT_STYLE:UiStyle = new UiStyleBuilder()
@@ -194,13 +194,7 @@ export class TestApplication extends UiApplication {
 
 		this.setTextResource(resource);
 
-
-		let nav = window.navigator;
-		let locale = nav.languages && nav.languages.length > 0 ? nav.languages[0] : nav.language;
-		Logs.debug("locale %s", locale);
-
-		Formatter.parse("%4.3d%.5d%6.d%-07s").format(100);
-
+		this.testFormatter();
 	}
 
 	protected onKeyDown(target:UiNode, key:number, ch:number, mod:number, at:number):UiResult {
@@ -218,6 +212,197 @@ export class TestApplication extends UiApplication {
 			break;
 		}
 		return result;
+	}
+
+	private checkFormat(expected:string|null, format:string, value:Date|Value) {
+		let result = new Formatter(format).format(value);
+		if (expected == null || expected == result) {
+			Logs.info(
+				"format('%s', %s) is '%s'",
+				format,
+				value,
+				result);
+		} else {
+			Logs.error(
+				"format('%s', %s) is '%s' (not '%s')",
+				format,
+				value,
+				result,
+				expected);
+		}
+	}
+
+	private testFormatter():void {
+		let now = new Date();
+		//binary
+		this.checkFormat("   1"   , "%4b" , 1);
+		this.checkFormat("0010"   , "%04b", 2);
+		this.checkFormat("11  "   , "%-4b", 3);
+		this.checkFormat("100"    , "%b",   4);
+		this.checkFormat("101"    , "%b", "5");
+		this.checkFormat("110"    , "%b", "6.2");
+		this.checkFormat("111"    , "%b", 7.12);
+		this.checkFormat(now.getTime().toString(2), "%b", now);
+		this.checkFormat("0",       "%b", null);
+		//octal
+		this.checkFormat("   1", "%4o" , 1);
+		this.checkFormat("0002", "%04o", 2);
+		this.checkFormat("3   ", "%-4o", 3);
+		this.checkFormat("4"   , "%o",   4);
+		this.checkFormat("5"   , "%o", "5");
+		this.checkFormat("6"   , "%o", "6.2");
+		this.checkFormat("7"   , "%o", 7.12);
+		this.checkFormat(now.getTime().toString(8), "%o", now);
+		this.checkFormat("0", "%o", null);
+		//decimal(simple)
+		this.checkFormat("   1", "%4d" , 1);
+		this.checkFormat("0002", "%04d", 2);
+		this.checkFormat("3   ", "%-4d", 3);
+		this.checkFormat("4"   , "%d",   4);
+		this.checkFormat("5"   , "%d", "5");
+		this.checkFormat("6.2" , "%d", "6.2");
+		this.checkFormat("7.12", "%d", 7.12);
+		this.checkFormat(now.getTime().toString(10), "%d", now);
+		this.checkFormat("0"   , "%d", null);
+		//hexadecimal
+		this.checkFormat("   1", "%4x" , 1);
+		this.checkFormat("0002", "%04x", 2);
+		this.checkFormat("3   ", "%-4x", 3);
+		this.checkFormat("4"   , "%x",   4);
+		this.checkFormat("5"   , "%x", "5");
+		this.checkFormat("6"   , "%x", "6.2");
+		this.checkFormat("7"   , "%x", 7.12);
+		this.checkFormat(now.getTime().toString(16), "%x", now);
+		this.checkFormat("0"   , "%x", null);
+		//string
+		this.checkFormat("   1", "%4s" , "1");
+		this.checkFormat("   2", "%04s", "2");
+		this.checkFormat("3   ", "%-4s", "3");
+		this.checkFormat("4"   , "%s",   "4");
+		this.checkFormat("5"   , "%s",   5);
+		this.checkFormat("6.2" , "%s",   "6.2");
+		this.checkFormat("7.12", "%s",   7.12);
+		this.checkFormat("@"   , "%s",   '@');
+		this.checkFormat("null", "%s",   null);
+		this.checkFormat("abcHELLOdef",  "abc%sdef", "HELLO");
+		this.checkFormat("123-4567",     "%3s-%4s",  "1234567");
+		this.checkFormat("123-45",       "%3s-%4s",  "12345");
+		this.checkFormat("123",          "%3s-%4s",  "123");
+		//char
+		this.checkFormat("abc@def",  "abc%cdef" , 0x40);
+		this.checkFormat("abcあdef", "abc%cdef" , 0x3042);
+		//decimal(ja)
+		this.checkFormat("1,234,567",		"%,7d" , +1234567);
+		this.checkFormat("1,234,567",		"%,07d", +1234567);
+		this.checkFormat("1,234,567",		"%,-7d", +1234567);
+		this.checkFormat("-1,234,567",		"%,7d" , -1234567);
+		this.checkFormat("-1,234,567",		"%,07d", -1234567);
+		this.checkFormat("-1,234,567",		"%,-7d", -1234567);
+
+		this.checkFormat("+1,234,567",		"%,+7d" , +1234567);
+		this.checkFormat("+1,234,567",		"%,+07d", +1234567);
+		this.checkFormat("+1,234,567",		"%,+-7d", +1234567);
+		this.checkFormat("-1,234,567",		"%,+7d" , -1234567);
+		this.checkFormat("-1,234,567",		"%,+07d", -1234567);
+		this.checkFormat("-1,234,567",		"%,+-7d", -1234567);
+
+		this.checkFormat(" +1,234,567",		"%,+8d" , +1234567);
+		this.checkFormat("+01,234,567",		"%,+08d", +1234567);
+		this.checkFormat("+1,234,567 ",		"%-,+8d", +1234567);
+		this.checkFormat(" -1,234,567",		"%,+8d" , -1234567);
+		this.checkFormat("-01,234,567",		"%,+08d", -1234567);
+		this.checkFormat("-1,234,567 ",		"%-,+8d", -1234567);
+		this.checkFormat("  ¥1,234,567",	"%, ¤8d" , +1234567);
+		this.checkFormat(" ¥01,234,567",	"%, ¤08d", +1234567);
+		this.checkFormat(" ¥1,234,567 ",	"%-, ¤8d", +1234567);
+		this.checkFormat(" -¥1,234,567",	"%, ¤8d" , -1234567);
+		this.checkFormat("-¥01,234,567",	"%, ¤08d", -1234567);
+		this.checkFormat("-¥1,234,567 ",	"%-, ¤8d", -1234567);
+		this.checkFormat(" $1,234,567.12",	"%, $8d" , +1234567.123);
+		this.checkFormat(" $01,234,567.46",	"%, $08d", +1234567.456);
+		this.checkFormat(" $1,234,567.00",	"%-, $8d", +1234567);
+		this.checkFormat("-$1,234,567.00",	"%, $8d" , -1234567);
+		this.checkFormat("-$01,234,567.00",	"%, $08d", -1234567);
+		this.checkFormat("-$1,234,567.00",	"%-, $8d", -1234567);
+		this.checkFormat("  ¥1,234,567",	"%, ¥8d" , +1234567);
+		this.checkFormat(" ¥01,234,567",	"%, ¥08d", +1234567);
+		this.checkFormat(" ¥1,234,567 ",	"%-, ¥8d", +1234567);
+		this.checkFormat(" -¥1,234,567",	"%, ¥8d" , -1234567);
+		this.checkFormat("-¥01,234,567",	"%, ¥08d", -1234567);
+		this.checkFormat("-¥1,234,567 ",	"%-, ¥8d", -1234567);
+		this.checkFormat(" €1,234,567.12",	"%, €8d" , +1234567.123);
+		this.checkFormat(" €01,234,567.46",	"%, €08d", +1234567.456);
+		this.checkFormat(" €1,234,567.00",	"%-, €8d", +1234567);
+		this.checkFormat("-€1,234,567.00",	"%, €8d" , -1234567);
+		this.checkFormat("-€01,234,567.00",	"%, €08d", -1234567);
+		this.checkFormat("-€1,234,567.00",	"%-, €8d", -1234567);
+		this.checkFormat(" £1,234,567.12",	"%, £8d" , +1234567.123);
+		this.checkFormat(" £01,234,567.46",	"%, £08d", +1234567.456);
+		this.checkFormat(" £1,234,567.00",	"%-, £8d", +1234567);
+		this.checkFormat("-£1,234,567.00",	"%, £8d" , -1234567);
+		this.checkFormat("-£01,234,567.00",	"%, £08d", -1234567);
+		this.checkFormat("-£1,234,567.00",	"%-, £8d", -1234567);
+		this.checkFormat("+1,234,567.123",	"%,+7.3d" , +1234567.1234);
+		this.checkFormat("+1,234,567.568",	"%,+07.3d", +1234567.5678);
+		this.checkFormat("+1,234,567.123",	"%-,+7.3d", +1234567.1234);
+		this.checkFormat("-1,234,567.568",	"%,+7.3d" , -1234567.5678);
+		this.checkFormat("-1,234,567.123",	"%,+07.3d", -1234567.1234);
+		this.checkFormat("-1,234,567.568",	"%-,+7.3d", -1234567.5678);
+		this.checkFormat(" +1,234,567.123",	"%,+8.3d" , +1234567.1234);
+		this.checkFormat("+01,234,567.568",	"%,+08.3d", +1234567.5678);
+		this.checkFormat("+1,234,567.123 ",	"%-,+8.3d", +1234567.1234);
+		this.checkFormat(" -1,234,567.568",	"%,+8.3d" , -1234567.5678);
+		this.checkFormat("-01,234,567.123",	"%,+08.3d", -1234567.1234);
+		this.checkFormat("-1,234,567.568 ",	"%-,+8.3d", -1234567.5678);
+		//date
+		let d = this.time(2020, 2, 3, 14, 5, 6, 789);
+		this.checkFormat("2020/02/03(月)",								"%Y/%02m/%02D(%A)",			d);
+		this.checkFormat("2020年2月3日(月)",							"%Y年%m月%D日(%+A)",		d);
+		this.checkFormat("R02.02.03(月)",								"%G%#02Y.%02m.%02D(%A)",	d);
+		this.checkFormat("令和2年2月3日(月曜日)",						"%+G%#Y年%m月%D日(%++A)",	d);
+		this.checkFormat("14:5:6",										"%H:%M:%S",					d);
+		this.checkFormat("14:05:06" ,									"%02H:%02M:%02S",			d);
+		this.checkFormat("PM 02:05:06",									"%P %02H:%02M:%02S",		d);
+		this.checkFormat("午後 02:05:06",								"%+P %02H:%02M:%02S",		d);
+		this.checkFormat("昼 02:05:06",									"%++P %02H:%02M:%02S",		d);
+		this.checkFormat("昼 02:05:06",									"%+++P %02H:%02M:%02S",		d);
+		this.checkFormat("  14時   5分   6秒", 							"%4H時%4M分%4S秒", 			d);
+		this.checkFormat("14:05:06.7",									"%02H:%02M:%02S.%1L",		d);
+		this.checkFormat("14:05:06.78",									"%02H:%02M:%02S.%2L",		d);
+		this.checkFormat("14:05:06.789",								"%02H:%02M:%02S.%3L",		d);
+		this.checkFormat("14:05:06.789+09:00" ,							"%02H:%02M:%02S.%3L%Z",		d);
+		this.checkFormat("14:05:06.789JST" ,							"%02H:%02M:%02S.%3L%+Z",	d);
+		this.checkFormat("14:05:06.789 日本標準時",						"%02H:%02M:%02S.%3L %++Z",	d);
+		this.checkFormat("2020-02-03T14:05:06.789+09:00" ,				"%04Y-%02m-%02DT%02H:%02M:%02S.%3L%Z", d);
+		this.checkFormat("2020/02/03", 									"%F" ,						d);
+		this.checkFormat("14:05", 										"%T" ,						d);
+		this.checkFormat("2020/02/03 14:05", 							"%F %T",					d);
+		this.checkFormat("2020/02/03 14:05:06", 						"%+F %+T",					d);
+		this.checkFormat("2020年2月3日 14:05:06 JST", 					"%++F %++T",				d);
+		this.checkFormat("2020年2月3日月曜日 14時05分06秒 日本標準時", 	"%+++F %+++T",				d);
+		this.checkFormat("R2/2/3 14:05", 								"%#F %T",					d);
+		this.checkFormat("令和2年2月3日 14:05:06",		 				"%#+F %+T",					d);
+		this.checkFormat("令和2年2月3日 14:05:06 JST",					"%#++F %++T",				d);
+		this.checkFormat("令和2年2月3日月曜日 14時05分06秒 日本標準時",	"%#+++F %+++T",				d);
+		this.checkFormat("慶応4年9月7日(月曜日)",						"%+G%#Y年%m月%D日(%++A)",	this.date(1868, 9, 7));
+		this.checkFormat("明治元年9月8日(火曜日)",						"%+G%#Y年%m月%D日(%++A)",	this.date(1868, 9, 8));
+		this.checkFormat("明治45年7月29日(月曜日)",						"%+G%#Y年%m月%D日(%++A)",	this.date(1912, 7,29));
+		this.checkFormat("大正元年7月30日(火曜日)",						"%+G%#Y年%m月%D日(%++A)",	this.date(1912, 7,30));
+		this.checkFormat("大正15年12月24日(金曜日)",					"%+G%#Y年%m月%D日(%++A)",	this.date(1926,12,24));
+		this.checkFormat("昭和元年12月25日(土曜日)",					"%+G%#Y年%m月%D日(%++A)",	this.date(1926,12,25));
+		this.checkFormat("昭和64年1月7日(土曜日)",						"%+G%#Y年%m月%D日(%++A)",	this.date(1989, 1, 7));
+		this.checkFormat("平成元年1月8日(日曜日)",						"%+G%#Y年%m月%D日(%++A)",	this.date(1989, 1, 8));
+		this.checkFormat("平成31年4月30日(火曜日)",						"%+G%#Y年%m月%D日(%++A)",	this.date(2019, 4,30));
+		this.checkFormat("令和元年5月1日(水曜日)",						"%+G%#Y年%m月%D日(%++A)",	this.date(2019, 5, 1));
+	}
+
+	private date(y:number, m:number, d:number):Date {
+		return new Date(y, m - 1, d);
+	}
+
+	private time(y:number, m:number, d:number, H:number, M:number, S:number, Z:number):Date {
+		let temp = new Date(y, m - 1, d, H, M, S);
+		return new Date(temp.getTime() + Z);
 	}
 
 }

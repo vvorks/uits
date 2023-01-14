@@ -13,4 +13,14 @@ export class Arrays {
 		return [matched, another];
 	}
 
+	public static first<T>(array:T[]):T|null {
+		let len = array.length;
+		return len > 0 ? array[0] : null;
+	}
+
+	public static last<T>(array:T[]):T|null {
+		let len = array.length;
+		return len > 0 ? array[len - 1] : null;
+	}
+
 }
