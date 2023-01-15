@@ -11,20 +11,27 @@ export class TestDataSource extends DataSource {
 
 	private _records: DataRecord[];
 
-	private _loader:()=>DataRecord[];
+	private _loader:(criteria: Properties<Value>)=>DataRecord[];
 
 	private _loaded:boolean;
 
-	public constructor(loader:()=>DataRecord[]) {
+	private _criteria: Properties<Value>
+
+	public constructor(loader:(criteria: Properties<Value>)=>DataRecord[]) {
 		super();
 		this._lastUpdateAt = new Date();
 		this._records = [];
 		this._loader = loader;
 		this._loaded = false;
+		this._criteria = {};
 	}
 
 	public lastUpdateAt(): Date {
 		return this._lastUpdateAt;
+	}
+
+	public criteria(): Properties<Value> {
+		return this._criteria;
 	}
 
 	public count():number {
@@ -48,7 +55,7 @@ export class TestDataSource extends DataSource {
 
 	public select(criteria:Properties<Value>):void {
 		this._loaded = false;
-		this.simulateLoad1();
+		this.simulateLoad1(criteria);
 	}
 
 	public insert(rec:DataRecord):void {
@@ -68,12 +75,13 @@ export class TestDataSource extends DataSource {
 		super.fireDataChanged();
 	}
 
-	private simulateLoad1():void {
-		window.setTimeout(() => this.simulateLoad2(), 0);
+	private simulateLoad1(criteria:Properties<Value>):void {
+		window.setTimeout(() => this.simulateLoad2(criteria), 0);
 	}
 
-	private simulateLoad2(): void {
-		this._records = this._loader();
+	private simulateLoad2(criteria:Properties<Value>): void {
+		this._records = this._loader(criteria);
+		this._criteria = criteria;
 		this._loaded = true;
 		super.fireDataChanged();
 	}

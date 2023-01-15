@@ -1,25 +1,25 @@
-import {ParamError, StateError, LogicalError, UnsupportedError} from "./lang/Error";
+import {ParamError, StateError, LogicalError, UnsupportedError} from "~/lib/lang/Error";
 export {ParamError, StateError, LogicalError, UnsupportedError}
 
-import {Asserts} from "./lang/Asserts";
+import {Asserts} from "~/lib/lang/Asserts";
 export {Asserts};
 
-import {Types} from "./lang/Types";
+import {Types} from "~/lib/lang/Types";
 export {Types};
 
-import {Strings} from "./lang/Strings";
+import {Strings} from "~/lib/lang/Strings";
 export {Strings};
 
-import {Formatter} from "./lang/Formatter";
+import {Formatter} from "~/lib/lang/Formatter";
 export {Formatter};
 
-import {Arrays} from "./lang/Arrays";
+import {Arrays} from "~/lib/lang/Arrays";
 export {Arrays};
 
-import {Dates} from "./lang/Dates";
+import {Dates} from "~/lib/lang/Dates";
 export {Dates}
 
-import {Logs} from "./lang/Logs";
+import {Logs} from "~/lib/lang/Logs";
 export {Logs}
 
 export type Value = string|number|boolean|null; //TODO Date(とBigIntも？)をValue型の一部として認めるべき？

@@ -57,6 +57,11 @@ export abstract class DataSource {
 	 public abstract lastUpdateAt(): Date;
 
 	 /**
+	  * DataSourceが保持するDataRecordの検索条件を返す
+	  */
+	 public abstract criteria():Properties<Value>;
+
+	 /**
 	  * DataSourceが保持するDataRecordの件数を返す
 	  *
 	  * 通常は０以上の数値を返すが、データ読み込みが完了していない場合、-1を返す

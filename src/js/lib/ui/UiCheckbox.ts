@@ -33,7 +33,7 @@ export class UiCheckbox extends UiImageNode {
 		this.onContentChanged();
 	}
 
-	public onKeyDown(target: UiNode | null, key: number, ch: number, mod: number, at: number): UiResult {
+	public onKeyDown(target: UiNode, key: number, ch: number, mod: number, at: number): UiResult {
 		let result = UiResult.IGNORED;
 		switch (key|(mod & KeyCodes.MOD_ACS)) {
 		case KeyCodes.ENTER:

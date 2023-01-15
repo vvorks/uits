@@ -20,7 +20,7 @@ export class VolumeToast extends UiPageNode {
 		this.application.runAfter(this, VOLUME_TIMEOUT_ID, VOLUME_TIMEOUT_MSEC, ()=>this.onTimeout());
 	}
 
-	public onKeyDown(target: UiNode | null, key: number, ch: number, mod: number, at: number): UiResult {
+	public onKeyDown(target: UiNode, key: number, ch: number, mod: number, at: number): UiResult {
 		let result:UiResult = UiResult.IGNORED;
 		switch (key|(mod & KeyCodes.MOD_ACS)) {
 		case KeyCodes.PAGEUP:

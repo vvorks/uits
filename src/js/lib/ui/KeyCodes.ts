@@ -127,6 +127,8 @@ export class KeyCodes {
 	public static readonly MBUTTON				= 0xF9;
 	public static readonly RBUTTON				= 0xFA;
 
+	public static readonly UNUSED				= 0xFF;
+
 	public static readonly MAX_KEY_CODE			= 0x100;
 
 	public static readonly MOD_LBUTTON			= 0x0001;

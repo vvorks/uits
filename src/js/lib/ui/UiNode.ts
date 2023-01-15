@@ -137,6 +137,11 @@ class VoidDataHolder implements DataHolder {
 export type ActionListener = (source:UiNode, action:string, param?:any) => UiResult;
 
 /**
+ * UiLocation
+ */
+export type UiLocation = "top"|"left"|"right"|"bottom"|"center";
+
+/**
  * UiNode
  */
 export class UiNode implements Clonable<UiNode>, Scrollable {
@@ -591,6 +596,9 @@ export class UiNode implements Clonable<UiNode>, Scrollable {
 	}
 
 	public removeChildren():void {
+		if (this._children.length == 0) {
+			return;
+		}
 		if (this.mounted) {
 			for (let c of this._children) {
 				c.onUnmount();
@@ -694,7 +702,7 @@ export class UiNode implements Clonable<UiNode>, Scrollable {
 		return node;
 	}
 
-	private findChildByName(name:string): UiNode|null {
+	public findChildByName(name:string): UiNode|null {
 		for (let c of this._children) {
 			if (c.name == name) {
 				return c;
@@ -871,12 +879,28 @@ export class UiNode implements Clonable<UiNode>, Scrollable {
 		return r.width - left - right;
 	}
 
+	protected set innerWidth(width:number) {
+		let r = this.getRect();
+		let s = this.style.getEffectiveStyle(this);
+		let left = s.borderLeftAsLength.toPixel(() => r.width);
+		let right = s.borderRightAsLength.toPixel(() => r.width);
+		this.width = width + left + right;
+	}
+
 	public get innerHeight(): number {
 		let r = this.getRect();
 		let s = this.style.getEffectiveStyle(this);
 		let top = s.borderTopAsLength.toPixel(() => r.height);
 		let bottom = s.borderBottomAsLength.toPixel(() => r.height);
 		return r.height - top - bottom;
+	}
+
+	protected set innerHeight(height:number) {
+		let r = this.getRect();
+		let s = this.style.getEffectiveStyle(this);
+		let top = s.borderTopAsLength.toPixel(() => r.height);
+		let bottom = s.borderBottomAsLength.toPixel(() => r.height);
+		this.height = height + top + bottom;
 	}
 
 	public getRectOnRoot():Rect {
@@ -1326,19 +1350,19 @@ export class UiNode implements Clonable<UiNode>, Scrollable {
 		return node != null ? number : -1;
 	}
 
-	public onFocus(target:UiNode|null, gained:boolean, other:UiNode|null):UiResult {
+	public onFocus(target:UiNode, gained:boolean, other:UiNode|null):UiResult {
 		return (this == target) ? UiResult.AFFECTED : UiResult.IGNORED;
 	}
 
-	public onKeyDown(target:UiNode|null, key:number, ch:number, mod:number, at:number):UiResult {
+	public onKeyDown(target:UiNode, key:number, ch:number, mod:number, at:number):UiResult {
 		return UiResult.IGNORED;
 	}
 
-	public onKeyPress(target:UiNode|null, key:number, ch:number, mod:number, at:number):UiResult {
+	public onKeyPress(target:UiNode, key:number, ch:number, mod:number, at:number):UiResult {
 		return UiResult.IGNORED;
 	}
 
-	public onKeyUp(target:UiNode|null, key:number, ch:number, mod:number, at:number):UiResult {
+	public onKeyUp(target:UiNode, key:number, ch:number, mod:number, at:number):UiResult {
 		return UiResult.IGNORED;
 	}
 

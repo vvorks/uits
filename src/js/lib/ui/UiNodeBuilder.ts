@@ -1,12 +1,13 @@
 import
 	{ Predicate, Types, Value }
 	from "~/lib/lang";
-import { PaneLocation, UiPane } from "~/lib/ui/UiPane";
+import { UiPane } from "~/lib/ui/UiPane";
 import { CssLength } from "~/lib/ui/CssLength";
 import { UiListNode } from "~/lib/ui/UiListNode";
-import { ActionListener, UiNode } from "~/lib/ui/UiNode";
+import { ActionListener, UiLocation, UiNode } from "~/lib/ui/UiNode";
 import { UiStyle } from "~/lib/ui/UiStyle";
 import { UiTextNode } from "~/lib/ui/UiTextNode";
+import { UiMenu } from "./UiMenu";
 
 type Size = string|number;
 
@@ -128,6 +129,13 @@ export class UiNodeBuilder<T extends UiNode> {
 		return this;
 	}
 
+	public contentNode(path:string):UiNodeBuilder<T> {
+		if (this._node instanceof UiMenu) {
+			(this._node as UiMenu).contentNodePath = path;
+		}
+		return this;
+	}
+
 	public vscroll(name:string):UiNodeBuilder<T> {
 		this._node.vScrollName = name;
 		return this;
@@ -152,9 +160,18 @@ export class UiNodeBuilder<T extends UiNode> {
 		return this;
 	}
 
-	public location(value:PaneLocation):UiNodeBuilder<T> {
+	public location(value:UiLocation):UiNodeBuilder<T> {
 		if (this._node instanceof UiPane) {
 			(this._node as UiPane).location = value;
+		} else if (this._node instanceof UiMenu) {
+			(this._node as UiMenu).location = value;
+		}
+		return this;
+	}
+
+	public extentionSizes(value:string[]):UiNodeBuilder<T> {
+		if (this._node instanceof UiMenu) {
+			(this._node as UiMenu).extentionSizes = value;
 		}
 		return this;
 	}

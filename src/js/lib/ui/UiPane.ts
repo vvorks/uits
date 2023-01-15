@@ -4,13 +4,11 @@ import
 import { CssLength } from "~/lib/ui/CssLength";
 import { Inset } from "~/lib/ui/Inset";
 import { UiApplication } from "~/lib/ui/UiApplication";
-import { UiNode, UiResult } from "~/lib/ui/UiNode";
-
-export type PaneLocation = "top"|"left"|"right"|"bottom"|"center";
+import { UiLocation, UiNode, UiResult } from "~/lib/ui/UiNode";
 
 export class UiPane extends UiNode {
 
-	private _location: PaneLocation;
+	private _location: UiLocation;
 
 	private _shrinkedSize:CssLength;
 
@@ -37,11 +35,11 @@ export class UiPane extends UiNode {
 		}
 	}
 
-	public get location():PaneLocation {
+	public get location():UiLocation {
 		return this._location;
 	}
 
-	public set location(loc:PaneLocation) {
+	public set location(loc:UiLocation) {
 		this._location = loc;
 	}
 
@@ -138,7 +136,7 @@ export class UiDock extends UiNode {
 		this.fireActionEvent("relocatePane");
 	}
 
-	public onFocus(target: UiNode|null, gained: boolean, other:UiNode|null):UiResult {
+	public onFocus(target: UiNode, gained: boolean, other:UiNode|null):UiResult {
 		if (gained) {
 			this.relocatePane();
 		}

@@ -62,7 +62,7 @@ export class UiRadio extends UiImageNode {
 		return this._value == this._specValue;
 	}
 
-	public onKeyDown(target: UiNode | null, key: number, ch: number, mod: number, at: number): UiResult {
+	public onKeyDown(target: UiNode, key: number, ch: number, mod: number, at: number): UiResult {
 		let result = UiResult.IGNORED;
 		switch (key|(mod & KeyCodes.MOD_ACS)) {
 		case KeyCodes.ENTER:

@@ -1,5 +1,5 @@
 import
-	{ Dates, Formatter, Logs, Value }
+	{ Dates, Formatter, Logs, Properties, Value }
 	from "~/lib/lang";
 import
 	{ UiApplication, UiNode, UiResult, UiStyle, UiStyleBuilder, DataSource, Colors, KeyCodes, DataRecord, COMPONENT_THUMB }
@@ -9,6 +9,9 @@ import { HorizontalListPage } from "~/app/HorizontalListPage";
 import { SlidePage } from "~/app/SlidePage";
 import { TestDataSource } from "~/app/TestDataSource";
 import { VerticalListPage } from "~/app/VerticalListPage";
+import { PaneTestPage } from "~/app/PaneTestPage";
+import { MenuTestPage } from "~/app/MenuTestPage";
+import { MenuDataSource } from "~/app/MenuDataSource";
 import { VolumeToast } from "~/app/VolumeToast";
 import hokusai1 from "@images/hokusai1.jpg";
 import hokusai2 from "@images/hokusai2.jpg";
@@ -16,7 +19,6 @@ import hokusai3 from "@images/hokusai3.jpg";
 import hokusai4 from "@images/hokusai4.jpg";
 import hokusai5 from "@images/hokusai5.jpg";
 import resource from "@texts/resource.json";
-import { PaneTestPage } from "~/app/PaneTestPage";
 
 export const DEFAULT_STYLE:UiStyle = new UiStyleBuilder()
 	.textColor(Colors.BLACK)
@@ -127,9 +129,10 @@ export class TestApplication extends UiApplication {
 		this.addPageFactory("#grid", (args) => new GridPage(this, args));
 		this.addPageFactory("#slide", (args) => new SlidePage(this, args));
 		this.addPageFactory("#pane", (args) => new PaneTestPage(this, args));
+		this.addPageFactory("#menu", (args) => new MenuTestPage(this, args));
 		this.addPageFactory("#volume", (args) => new VolumeToast(this, args));
 
-		this.addDataSource("sample", new TestDataSource(() => {
+		this.addDataSource("sample", new TestDataSource((criteria:Properties<Value>) => {
 			let theData: DataRecord[] = [];
 			let date = new Date();
 			for (let i = 0; i < this._datas[this._pos]; i++) {
@@ -150,7 +153,7 @@ export class TestApplication extends UiApplication {
 			return theData;
 		}));
 
-		this.addDataSource("sample2", new TestDataSource(() => {
+		this.addDataSource("sample2", new TestDataSource((criteria:Properties<Value>) => {
 			let theData: DataRecord[] = [];
 			theData.push({"key": "1", "title": "時政"});
 			theData.push({"key": "2", "title": "義時"});
@@ -163,7 +166,7 @@ export class TestApplication extends UiApplication {
 			return theData;
 		}));
 
-		this.addDataSource("hokusai", new TestDataSource(() => {
+		this.addDataSource("hokusai", new TestDataSource((criteria:Properties<Value>) => {
 			let jpegs = [hokusai1, hokusai2, hokusai3, hokusai4, hokusai5];
 			let theData: DataRecord[] = [];
 			for (let i = 0; i < 5; i++) {
@@ -182,13 +185,15 @@ export class TestApplication extends UiApplication {
 			return theData;
 		}));
 
-		this.addDataSource("hiroshige", new TestDataSource(() => {
+		this.addDataSource("hiroshige", new TestDataSource((criteria:Properties<Value>) => {
 			let theData: DataRecord[] = [];
 			for (let s of CITIES) {
 				theData.push({"title": s});
 			}
 			return theData;
 		}));
+
+		this.addDataSource("menu", new MenuDataSource());
 
 		this.setTextResource(resource);
 
