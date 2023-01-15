@@ -1,7 +1,12 @@
-import { Properties } from "../lib/lang";
-import { DataSource, UiImageField, UiListNode, UiNode, UiNodeBuilder, UiPageNode, UiPane, UiDock, UiResult, UiTextField, UiTextButton, UiTextNode } from "../lib/ui";
-import { UiAxis } from "../lib/ui/UiApplication";
-import { DEFAULT_STYLE, GROUP_STYLE, IMAGE_STYLE, LIST_STYLE } from "./TestApplication";
+import
+	{ Properties }
+	from "~/lib/lang";
+import
+	{ UiAxis, DataSource, UiImageField, UiListNode, UiNode, UiNodeBuilder, UiPageNode, UiPane, UiDock, UiResult, UiTextField, UiTextButton, UiTextNode }
+	from "~/lib/ui";
+import
+	{ DEFAULT_STYLE, GROUP_STYLE, IMAGE_STYLE, LIST_STYLE }
+	from "~/app/TestApplication";
 
 export class PaneTestPage extends UiPageNode {
 

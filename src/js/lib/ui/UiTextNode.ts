@@ -1,6 +1,8 @@
-import { Types, Value } from "../lang";
-import { Color, Colors } from "./Colors";
-import { UiNode } from "./UiNode";
+import
+	{ Types, Value }
+	from "~/lib/lang";
+import { Color, Colors } from "~/lib/ui/Colors";
+import { UiNode } from "~/lib/ui/UiNode";
 
 const RESOURCE_HEAD_MARKER = "{{";
 const RESOURCE_TAIL_MARKER = "}}";

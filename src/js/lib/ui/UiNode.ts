@@ -1,14 +1,16 @@
-import {Rect} from "./Rect";
-import {CssLength} from "./CssLength"
-import { UiStyle } from "./UiStyle"
-import { Asserts, Clonable, ParamError, Predicate, Properties, UnsupportedError, Value } from "../lang";
-import type { UiApplication } from "./UiApplication";
-import { DataRecord, DataSource } from "./DataSource";
-import { DataHolder } from "./DataHolder";
-import { Scrollable } from "./Scrollable";
-import { UiPageNode } from "./UiPageNode";
-import { KeyCodes } from "./KeyCodes";
-import { Inset } from "./Inset";
+import
+	{ Asserts, Clonable, ParamError, Predicate, Properties, UnsupportedError, Value }
+	from "~/lib/lang";
+import {Rect} from "~/lib/ui/Rect";
+import {CssLength} from "~/lib/ui/CssLength"
+import { UiStyle } from "~/lib/ui/UiStyle"
+import type { UiApplication } from "~/lib/ui/UiApplication";
+import { DataRecord, DataSource } from "~/lib/ui/DataSource";
+import { DataHolder } from "~/lib/ui/DataHolder";
+import { Scrollable } from "~/lib/ui/Scrollable";
+import { UiPageNode } from "~/lib/ui/UiPageNode";
+import { KeyCodes } from "~/lib/ui/KeyCodes";
+import { Inset } from "~/lib/ui/Inset";
 
  /**
  * UiNodeフラグ定義

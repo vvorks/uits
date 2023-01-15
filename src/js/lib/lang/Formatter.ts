@@ -1,4 +1,9 @@
-import { Arrays, Logs, ParamError, Properties, Strings, Types, Value } from "../lang";
+import { ParamError } from "~/lib/lang/Error"
+import { Strings } from "~/lib/lang/Strings"
+import { Types } from "~/lib/lang/Types"
+import
+	{ Properties, Value }
+	from "~/lib/lang";
 
 type PatternType = "b"|"o"|"d"|"x"|"X"|"c"|"s"|"G"|"Y"|"m"|"D"|"A"|"P"|"H"|"M"|"S"|"L"|"Z"|"F"|"T"|"%"|"n";
 const PATTERNS = /[bodxXcsGYmDAPHMSLZFT%n]/

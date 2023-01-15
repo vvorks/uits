@@ -1,7 +1,6 @@
-import { Logs } from "../lang";
-import { CssLength } from "./CssLength";
-import { UiNode } from "./UiNode";
-import { TextAlign, VerticalAlign } from "./UiStyle";
+import { CssLength } from "~/lib/ui/CssLength";
+import { UiNode } from "~/lib/ui/UiNode";
+import { TextAlign, VerticalAlign } from "~/lib/ui/UiStyle";
 
 export class UiImageNode extends UiNode {
 

@@ -1,6 +1,8 @@
-import { Logs, Properties } from "../lang";
-import { UiApplication, UiAxis } from "./UiApplication";
-import { UiNode, UiResult } from "./UiNode";
+import
+	{ Properties }
+	from "~/lib/lang";
+import { UiApplication, UiAxis } from "~/lib/ui/UiApplication";
+import { UiNode } from "~/lib/ui/UiNode";
 
 export class UiDeckNode extends UiNode {
 

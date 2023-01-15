@@ -1,9 +1,11 @@
-import { Properties, Types, Value } from "../lang";
-import { DataHolder } from "./DataHolder";
-import { KeyCodes } from "./KeyCodes";
-import { UiKeyboard } from "./UiKeyboard";
-import { UiNode, UiResult } from "./UiNode";
-import { UiTextNode } from "./UiTextNode";
+import
+	{ Properties, Types, Value }
+	from "~/lib/lang";
+import { DataHolder } from "~/lib/ui/DataHolder";
+import { KeyCodes } from "~/lib/ui/KeyCodes";
+import { UiKeyboard } from "~/lib/ui/UiKeyboard";
+import { UiNode, UiResult } from "~/lib/ui/UiNode";
+import { UiTextNode } from "~/lib/ui/UiTextNode";
 
 /**
  * テキスト入出力フィールド

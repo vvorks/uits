@@ -1,22 +1,24 @@
-import * as err from "./Error";
+import
+	{ParamError, StateError, LogicalError}
+	from "~/lib/lang/Error";
 
 export class Asserts {
 
 	public static require(cond:boolean, message?:string):void {
 		if (!cond) {
-			throw new err.ParamError(message);
+			throw new ParamError(message);
 		}
 	}
 
 	public static assume(cond:boolean, message?:string):void {
 		if (!cond) {
-			throw new err.StateError(message);
+			throw new StateError(message);
 		}
 	}
 
 	public static ensure(cond:boolean, message?:string):void {
 		if (!cond) {
-			throw new err.LogicalError(message);
+			throw new LogicalError(message);
 		}
 	}
 

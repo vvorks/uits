@@ -1,11 +1,13 @@
-import { Asserts, Properties, Logs, StateError, ParamError, Arrays, Value, Types } from "../lang";
-import { Metrics } from "./Metrics";
-import { UiNode, UiResult } from "./UiNode";
-import { UiRootNode } from "./UiRootNode";
-import { UiPageNode } from './UiPageNode';
-import { KeyCodes } from './KeyCodes';
-import { Rect } from "./Rect";
-import { DataSource } from "./DataSource";
+import
+	{ Asserts, Properties, Logs, StateError, ParamError, Arrays, Value, Types }
+	from "~/lib/lang";
+import { Metrics } from "~/lib/ui/Metrics";
+import { UiNode, UiResult } from "~/lib/ui/UiNode";
+import { UiRootNode } from "~/lib/ui/UiRootNode";
+import { UiPageNode } from '~/lib/ui/UiPageNode';
+import { KeyCodes } from '~/lib/ui/KeyCodes';
+import { Rect } from "~/lib/ui/Rect";
+import { DataSource } from "~/lib/ui/DataSource";
 
 /** システムWheel調整比の既定値  */
 const DEFAULT_WHEEL_SCALE = 0.5;

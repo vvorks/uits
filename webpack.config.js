@@ -32,6 +32,7 @@ module.exports = {
 		alias: {
 			"@images": __dirname + "/src/assets/images",
 			"@texts": __dirname + "/src/assets/texts",
+			"~": __dirname + "/src/js",
 		},
 		fallback: {
 			path: require.resolve("path-browserify"),

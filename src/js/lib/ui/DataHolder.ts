@@ -1,5 +1,9 @@
-import { Value } from "../lang";
-import { DataRecord } from "./DataSource";
+import
+	{ Value }
+	from "~/lib/lang";
+import
+	{ DataRecord }
+	from "~/lib/ui/DataSource";
 
 export interface DataHolder {
 

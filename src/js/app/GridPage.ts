@@ -1,6 +1,9 @@
-import { Properties } from "../lib/lang";
-import { UiNode, UiNodeBuilder, UiPageNode, UiScrollbar, UiTextNode } from "../lib/ui";
-import { DEFAULT_STYLE, GROUP_STYLE, SB_STYLE } from "./TestApplication";
+import
+	{ UiNode, UiNodeBuilder, UiPageNode, UiScrollbar, UiTextNode }
+	from "~/lib/ui";
+import
+	{ DEFAULT_STYLE, GROUP_STYLE, SB_STYLE }
+	from "~/app/TestApplication";
 
 export class GridPage extends UiPageNode {
 

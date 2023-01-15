@@ -1,5 +1,9 @@
-import { Logs, ParamError, Properties, Value } from "../lib/lang";
-import { DataRecord, DataSource } from "../lib/ui";
+import
+	{ ParamError, Properties, Value }
+	from "~/lib/lang";
+import
+	{ DataRecord, DataSource }
+	from "~/lib/ui";
 
 export class TestDataSource extends DataSource {
 

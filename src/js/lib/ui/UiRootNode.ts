@@ -1,5 +1,5 @@
-import { Rect } from "./Rect";
-import { Changed, UiNode } from "./UiNode";
+import { Rect } from "~/lib/ui/Rect";
+import { Changed, UiNode } from "~/lib/ui/UiNode";
 
 export class UiRootNode extends UiNode {
 

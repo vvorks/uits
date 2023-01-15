@@ -1,5 +1,7 @@
-import { Logs, Properties, Value } from "../lang";
-import { UiApplication } from "./UiApplication";
+import
+	{ Properties, Value }
+	from "~/lib/lang";
+import { UiApplication } from "~/lib/ui/UiApplication";
 
 export type DataRecord = Properties<Value|DataRecord>;
 

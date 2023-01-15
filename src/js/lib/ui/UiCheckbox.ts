@@ -1,9 +1,9 @@
-import { Changed, UiNode, UiResult } from "./UiNode";
+import { UiNode, UiResult } from "~/lib/ui/UiNode";
+import { DataHolder } from "~/lib/ui/DataHolder";
+import { KeyCodes } from "~/lib/ui/KeyCodes";
+import { UiImageNode } from "~/lib/ui/UiImageNode";
 import offImage from "@images/checkbox-off.png";
 import onImage  from "@images/checkbox-on.png";
-import { DataHolder } from "./DataHolder";
-import { KeyCodes } from "./KeyCodes";
-import { UiImageNode } from "./UiImageNode";
 
 export class UiCheckbox extends UiImageNode {
 

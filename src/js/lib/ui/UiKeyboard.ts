@@ -1,16 +1,16 @@
-import { DEFAULT_STYLE, GROUP_STYLE } from "../../app/TestApplication";
-import { Logs, Properties } from "../lang";
-import { Colors } from "./Colors";
-import { KeyCodes } from "./KeyCodes";
-import { Rect } from "./Rect";
-import { UiApplication } from "./UiApplication";
-import { UiDeckNode } from "./UiDeckNode";
-import { UiNode, UiResult } from "./UiNode";
-import { UiNodeBuilder } from "./UiNodeBuilder";
-import { UiPageNode } from "./UiPageNode";
-import { UiStyle, UiStyleBuilder } from "./UiStyle";
-import { UiTextField } from "./UiTextField";
-import { UiTextNode } from "./UiTextNode";
+import { DEFAULT_STYLE, GROUP_STYLE } from "~/app/TestApplication"; //TODO おきて破り！要修正
+import { Logs, Properties } from "~/lib/lang";
+import { Colors } from "~/lib/ui/Colors";
+import { KeyCodes } from "~/lib/ui/KeyCodes";
+import { Rect } from "~/lib/ui/Rect";
+import { UiApplication } from "~/lib/ui/UiApplication";
+import { UiDeckNode } from "~/lib/ui/UiDeckNode";
+import { UiNode, UiResult } from "~/lib/ui/UiNode";
+import { UiNodeBuilder } from "~/lib/ui/UiNodeBuilder";
+import { UiPageNode } from "~/lib/ui/UiPageNode";
+import { UiStyle, UiStyleBuilder } from "~/lib/ui/UiStyle";
+import { UiTextField } from "~/lib/ui/UiTextField";
+import { UiTextNode } from "~/lib/ui/UiTextNode";
 
 const KEYTOP_SIZE = 24;
 const KEYTOP_SPACING = 4;

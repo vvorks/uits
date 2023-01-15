@@ -1,6 +1,6 @@
-import {CssLength} from "./CssLength"
-import {Color, Colors} from "./Colors"
-import {UiNode} from "./UiNode"
+import {CssLength} from "~/lib/ui/CssLength"
+import {Color, Colors} from "~/lib/ui/Colors"
+import {UiNode} from "~/lib/ui/UiNode"
 
 export type UiStyleCondition = "NAMED"|"CLICKING"|"FOCUS"|"ENABLE"|"DISABLE"|"OTHERWISE";
 export type TextAlign = "left"|"right"|"center"|"justify";

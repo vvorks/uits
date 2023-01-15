@@ -1,14 +1,16 @@
-import { Properties } from "../lang";
-import { DataHolder } from "./DataHolder";
-import { DataRecord, DataSource } from "./DataSource";
-import { KeyCodes } from "./KeyCodes";
-import { Rect } from "./Rect";
-import { UiApplication } from "./UiApplication";
-import { UiListNode } from "./UiListNode";
-import { UiNode, UiResult } from "./UiNode";
-import { UiNodeBuilder } from "./UiNodeBuilder";
-import { UiPageNode } from "./UiPageNode";
-import { UiTextNode } from "./UiTextNode";
+import
+	{ Properties }
+	from "~/lib/lang";
+import { DataHolder } from "~/lib/ui/DataHolder";
+import { DataRecord, DataSource } from "~/lib/ui/DataSource";
+import { KeyCodes } from "~/lib/ui/KeyCodes";
+import { Rect } from "~/lib/ui/Rect";
+import { UiApplication } from "~/lib/ui/UiApplication";
+import { UiListNode } from "~/lib/ui/UiListNode";
+import { UiNode, UiResult } from "~/lib/ui/UiNode";
+import { UiNodeBuilder } from "~/lib/ui/UiNodeBuilder";
+import { UiPageNode } from "~/lib/ui/UiPageNode";
+import { UiTextNode } from "~/lib/ui/UiTextNode";
 
 const SUBNAME_TITLE = "title";
 

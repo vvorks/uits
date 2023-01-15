@@ -1,7 +1,9 @@
-import { Types } from "../lang";
-import { DataHolder } from "./DataHolder";
-import { UiImageNode } from "./UiImageNode";
-import { UiNode, UiResult } from "./UiNode";
+import
+	{ Types }
+	from "~/lib/lang";
+import { DataHolder } from "~/lib/ui/DataHolder";
+import { UiImageNode } from "~/lib/ui/UiImageNode";
+import { UiNode, UiResult } from "~/lib/ui/UiNode";
 
 export class UiImageField extends UiImageNode {
 

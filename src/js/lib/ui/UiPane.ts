@@ -1,8 +1,10 @@
-import { ParamError } from "../lang";
-import { CssLength } from "./CssLength";
-import { Inset } from "./Inset";
-import { UiApplication } from "./UiApplication";
-import { UiNode, UiResult } from "./UiNode";
+import
+	{ ParamError }
+	from "~/lib/lang";
+import { CssLength } from "~/lib/ui/CssLength";
+import { Inset } from "~/lib/ui/Inset";
+import { UiApplication } from "~/lib/ui/UiApplication";
+import { UiNode, UiResult } from "~/lib/ui/UiNode";
 
 export type PaneLocation = "top"|"left"|"right"|"bottom"|"center";
 

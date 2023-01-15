@@ -1,6 +1,7 @@
-import { Asserts, Logs, Types } from "../lang";
-import { Metrics } from "./Metrics";
-import { UiApplication } from "./UiApplication";
+import
+	{ Asserts, Types }
+	from "~/lib/lang";
+import { Metrics } from "~/lib/ui/Metrics";
 
 export class CssLength {
 

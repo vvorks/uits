@@ -1,6 +1,6 @@
-import { Scrollable } from "./Scrollable";
-import { UiApplication } from "./UiApplication";
-import { UiNode } from "./UiNode";
+import { Scrollable } from "~/lib/ui/Scrollable";
+import { UiApplication } from "~/lib/ui/UiApplication";
+import { UiNode } from "~/lib/ui/UiNode";
 
 export const COMPONENT_THUMB = "thumb";
 

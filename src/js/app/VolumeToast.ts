@@ -1,6 +1,9 @@
-import { Logs, Properties } from "../lib/lang";
-import { KeyCodes, UiNode, UiNodeBuilder, UiPageNode, UiResult, UiTextNode } from "../lib/ui";
-import { DEFAULT_STYLE, TOAST_STYLE } from "./TestApplication";
+import
+	{ KeyCodes, UiNode, UiNodeBuilder, UiPageNode, UiResult, UiTextNode }
+	from "~/lib/ui";
+import
+	{ DEFAULT_STYLE, TOAST_STYLE }
+	from "~/app/TestApplication";
 
 const VOLUME_TIMEOUT_ID = 1;
 const VOLUME_TIMEOUT_MSEC = 5000;

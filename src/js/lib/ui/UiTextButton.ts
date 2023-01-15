@@ -1,6 +1,6 @@
-import { KeyCodes } from "./KeyCodes";
-import { UiNode, UiResult } from "./UiNode";
-import { UiTextNode } from "./UiTextNode";
+import { KeyCodes } from "~/lib/ui/KeyCodes";
+import { UiNode, UiResult } from "~/lib/ui/UiNode";
+import { UiTextNode } from "~/lib/ui/UiTextNode";
 
 /**
  * テキストボタン

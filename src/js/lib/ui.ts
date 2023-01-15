@@ -19,6 +19,9 @@ export { UiTextNode };
 import { UiTextField } from "./ui/UiTextField"
 export { UiTextField };
 
+import { UiDateField } from "./ui/UiDateField"
+export { UiDateField };
+
 import { UiTextButton } from "./ui/UiTextButton"
 export { UiTextButton };
 
@@ -43,8 +46,8 @@ export const COMPONENT_THUMB = RAW_COMPONNT_THUMB;
 import { UiPane, UiDock } from "./ui/UiPane"
 export { UiPane, UiDock };
 
-import { UiApplication } from "./ui/UiApplication";
-export { UiApplication };
+import { UiApplication, UiAxis } from "./ui/UiApplication";
+export { UiApplication, UiAxis };
 
 import { Metrics } from "./ui/Metrics";
 export { Metrics };

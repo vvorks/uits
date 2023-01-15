@@ -1,5 +1,3 @@
-import { Logs } from "../lang";
-
 export class Metrics {
 
 	public static _instance:Metrics = new Metrics();
@@ -39,7 +37,7 @@ export class Metrics {
 		owner.removeChild(div);
 		return result;
 	}
-	
+
 	public get emSize():number {
 		return this._emSize;
 	}

@@ -1,6 +1,9 @@
-import { Properties } from "../lib/lang";
-import { DataSource, KeyCodes, UiCheckbox, UiListNode, UiNode, UiNodeBuilder, UiPageNode, UiResult, UiScrollbar, UiTextField } from "../lib/ui";
-import { GROUP_STYLE, DEFAULT_STYLE, LIST_STYLE, SB_STYLE } from "./TestApplication";
+import
+	{ DataSource, UiCheckbox, UiListNode, UiNode, UiNodeBuilder, UiPageNode, UiScrollbar, UiTextField }
+	from "~/lib/ui";
+import
+	{ GROUP_STYLE, DEFAULT_STYLE, LIST_STYLE, SB_STYLE }
+	from "~/app/TestApplication";
 
 export class HorizontalListPage extends UiPageNode {
 

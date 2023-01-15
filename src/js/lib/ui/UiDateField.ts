@@ -1,15 +1,15 @@
-import { DEFAULT_STYLE, GROUP_STYLE, SMALL_STYLE } from "../../app/TestApplication";
-import { Dates, Logs, Properties, Types, Value } from "../lang";
-import { Colors } from "./Colors";
-import { DataHolder } from "./DataHolder";
-import { KeyCodes } from "./KeyCodes";
-import { Rect } from "./Rect";
-import { UiApplication, UiAxis } from "./UiApplication";
-import { UiNode, UiResult } from "./UiNode";
-import { UiNodeBuilder } from "./UiNodeBuilder";
-import { UiPageNode } from "./UiPageNode";
-import { UiTextButton } from "./UiTextButton";
-import { UiTextNode } from "./UiTextNode";
+import { Dates, Properties, Types, Value } from "~/lib/lang";
+import { DEFAULT_STYLE, GROUP_STYLE, SMALL_STYLE } from "~/app/TestApplication"; //TODO おきて破り！要修正
+import { Colors } from "~/lib/ui/Colors";
+import { DataHolder } from "~/lib/ui/DataHolder";
+import { KeyCodes } from "~/lib/ui/KeyCodes";
+import { Rect } from "~/lib/ui/Rect";
+import { UiApplication, UiAxis } from "~/lib/ui/UiApplication";
+import { UiNode, UiResult } from "~/lib/ui/UiNode";
+import { UiNodeBuilder } from "~/lib/ui/UiNodeBuilder";
+import { UiPageNode } from "~/lib/ui/UiPageNode";
+import { UiTextButton } from "~/lib/ui/UiTextButton";
+import { UiTextNode } from "~/lib/ui/UiTextNode";
 
 /* 曜日データ（暫定：本当はI18nライブラリから取らないと・・・） */
 const WEEKS = ["日", "月", "火", "水", "木", "金", "土"];

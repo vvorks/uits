@@ -1,24 +1,22 @@
-import {
-	UiApplication,
-	UiNode, UiResult,
-	UiStyle, UiStyleBuilder,
-	DataSource,
-	Colors, KeyCodes, DataRecord, COMPONENT_THUMB
-} from "../lib/ui";
-import { GridPage } from "./GridPage";
-import { HorizontalListPage } from "./HorizontalListPage";
-import { SlidePage } from "./SlidePage";
-import { TestDataSource } from "./TestDataSource";
-import { VerticalListPage } from "./VerticalListPage";
-import { VolumeToast } from "./VolumeToast";
+import
+	{ Dates, Formatter, Logs, Value }
+	from "~/lib/lang";
+import
+	{ UiApplication, UiNode, UiResult, UiStyle, UiStyleBuilder, DataSource, Colors, KeyCodes, DataRecord, COMPONENT_THUMB }
+	from "~/lib/ui";
+import { GridPage } from "~/app/GridPage";
+import { HorizontalListPage } from "~/app/HorizontalListPage";
+import { SlidePage } from "~/app/SlidePage";
+import { TestDataSource } from "~/app/TestDataSource";
+import { VerticalListPage } from "~/app/VerticalListPage";
+import { VolumeToast } from "~/app/VolumeToast";
 import hokusai1 from "@images/hokusai1.jpg";
 import hokusai2 from "@images/hokusai2.jpg";
 import hokusai3 from "@images/hokusai3.jpg";
 import hokusai4 from "@images/hokusai4.jpg";
 import hokusai5 from "@images/hokusai5.jpg";
 import resource from "@texts/resource.json";
-import { Dates, Formatter, Logs, Value } from "../lib/lang";
-import { PaneTestPage } from "./PaneTestPage";
+import { PaneTestPage } from "~/app/PaneTestPage";
 
 export const DEFAULT_STYLE:UiStyle = new UiStyleBuilder()
 	.textColor(Colors.BLACK)

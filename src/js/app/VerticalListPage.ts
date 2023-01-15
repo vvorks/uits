@@ -1,7 +1,9 @@
-import { Properties } from "../lib/lang";
-import { DataSource, UiCheckbox, UiListNode, UiLookupField, UiNode, UiNodeBuilder, UiPageNode, UiRadio, UiScrollbar, UiTextField } from "../lib/ui";
-import { UiDateField } from "../lib/ui/UiDateField";
-import { GROUP_STYLE, DEFAULT_STYLE, LIST_STYLE, SB_STYLE } from "./TestApplication";
+import
+	{ DataSource, UiCheckbox, UiListNode, UiLookupField, UiNode, UiNodeBuilder, UiPageNode, UiRadio, UiScrollbar, UiTextField, UiDateField }
+	from "~/lib/ui";
+import
+	{ GROUP_STYLE, DEFAULT_STYLE, LIST_STYLE, SB_STYLE }
+	from "~/app/TestApplication";
 
 export class VerticalListPage extends UiPageNode {
 

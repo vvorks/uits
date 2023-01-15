@@ -1,8 +1,10 @@
-import { Logs, Properties } from "../lang";
-import { Scrollable } from "./Scrollable";
-import { UiApplication } from "./UiApplication";
-import { Changed, UiNode } from "./UiNode";
-import { UiStyle } from "./UiStyle";
+import
+	{ Properties }
+	from "~/lib/lang";
+import { Scrollable } from "~/lib/ui/Scrollable";
+import { UiApplication } from "~/lib/ui/UiApplication";
+import { Changed, UiNode } from "~/lib/ui/UiNode";
+import { UiStyle } from "~/lib/ui/UiStyle";
 
 export class UiPageNode extends UiNode {
 

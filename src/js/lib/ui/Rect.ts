@@ -1,9 +1,4 @@
-/**
- * Rect
- *
- * TODO Immutableにすべき？
- */
- export class Rect {
+export class Rect {
 
 	private _x:number;
 

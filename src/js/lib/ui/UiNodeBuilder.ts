@@ -1,10 +1,12 @@
-import { Predicate, Types, Value } from "../lang";
-import { PaneLocation, UiPane } from "../ui";
-import { CssLength } from "./CssLength";
-import { UiListNode } from "./UiListNode";
-import { ActionListener, UiNode } from "./UiNode";
-import { UiStyle } from "./UiStyle";
-import { UiTextNode } from "./UiTextNode";
+import
+	{ Predicate, Types, Value }
+	from "~/lib/lang";
+import { PaneLocation, UiPane } from "~/lib/ui/UiPane";
+import { CssLength } from "~/lib/ui/CssLength";
+import { UiListNode } from "~/lib/ui/UiListNode";
+import { ActionListener, UiNode } from "~/lib/ui/UiNode";
+import { UiStyle } from "~/lib/ui/UiStyle";
+import { UiTextNode } from "~/lib/ui/UiTextNode";
 
 type Size = string|number;
 

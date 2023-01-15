@@ -1,14 +1,16 @@
-import { Asserts, Logs, StateError, Value } from "../lang";
-import { Colors } from "./Colors";
-import { DataHolder } from "./DataHolder";
-import { DataRecord, DataSource } from "./DataSource";
-import { KeyCodes } from "./KeyCodes";
-import { Rect } from "./Rect";
-import { Scrollable } from "./Scrollable";
-import { UiApplication, UiAxis } from "./UiApplication";
-import { Flags, UiNode, UiResult } from "./UiNode";
-import { UiPageNode } from "./UiPageNode";
-import { UiStyle, UiStyleBuilder } from "./UiStyle";
+import
+	{ Asserts, StateError, Value }
+	from "~/lib/lang";
+import { Colors } from "~/lib/ui/Colors";
+import { DataHolder } from "~/lib/ui/DataHolder";
+import { DataRecord, DataSource } from "~/lib/ui/DataSource";
+import { KeyCodes } from "~/lib/ui/KeyCodes";
+import { Rect } from "~/lib/ui/Rect";
+import { Scrollable } from "~/lib/ui/Scrollable";
+import { UiApplication, UiAxis } from "~/lib/ui/UiApplication";
+import { Flags, UiNode, UiResult } from "~/lib/ui/UiNode";
+import { UiPageNode } from "~/lib/ui/UiPageNode";
+import { UiStyle, UiStyleBuilder } from "~/lib/ui/UiStyle";
 
 /**
  * レコードノード用スタイル

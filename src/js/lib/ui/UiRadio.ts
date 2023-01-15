@@ -1,11 +1,13 @@
-import { UiImageNode } from "./UiImageNode";
+import
+	{ Value }
+	from "~/lib/lang";
+import { UiImageNode } from "~/lib/ui/UiImageNode";
+import { DataHolder } from "~/lib/ui/DataHolder";
+import { KeyCodes } from "~/lib/ui/KeyCodes";
+import { UiNode, UiResult } from "~/lib/ui/UiNode";
+import { UiApplication } from "~/lib/ui/UiApplication";
 import offImage from "@images/radio-off.png";
 import onImage  from "@images/radio-on.png";
-import { DataHolder } from "./DataHolder";
-import { KeyCodes } from "./KeyCodes";
-import { UiNode, UiResult } from "./UiNode";
-import { UiApplication } from "./UiApplication";
-import { Logs, Value } from "../lang";
 
 export class UiRadio extends UiImageNode {
 

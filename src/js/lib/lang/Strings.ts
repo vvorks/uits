@@ -1,5 +1,9 @@
-import {vsprintf as jvsprintf} from "sprintf-js";
-import { Properties } from "../lang";
+import
+	{vsprintf as jvsprintf}
+	from "sprintf-js";
+import
+	{ Properties }
+	from "~/lib/lang";
 
 const ESCAPE_PATTERN = /[&<>"'\/]/g;
 
@@ -27,6 +31,10 @@ export class Strings {
 	}
 
 	public static sprintf(format:string, ...args: any[]):string {
+		return jvsprintf(format, args);
+	}
+
+	public static vsprintf(format:string, args:any[]):string {
 		return jvsprintf(format, args);
 	}
 
