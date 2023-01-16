@@ -7,6 +7,8 @@ import { UiNode } from "~/lib/ui/UiNode";
 const RESOURCE_HEAD_MARKER = "{{";
 const RESOURCE_TAIL_MARKER = "}}";
 
+const VALIGN_TRANSFORM = false;
+
 export class UiTextNode extends UiNode {
 
 	private _textContent: Value = null;
@@ -42,38 +44,73 @@ export class UiTextNode extends UiNode {
 	protected createDomElement(target:UiNode, tag:string):HTMLElement {
 		let border = this.getBorderSize();
 		let dom = super.createDomElement(target, tag);
-		let div = document.createElement("div");
-		let style = div.style;
-		style.position = "absolute";
-		style.left = `${border.left}px`;
-		style.right = `${border.right}px`;
-		dom.appendChild(div);
+		if (VALIGN_TRANSFORM) {
+			let div = document.createElement("div");
+			let style = div.style;
+			style.position = "absolute";
+			style.left = `${border.left}px`;
+			style.right = `${border.right}px`;
+			dom.appendChild(div);
+		} else {
+			let tb = document.createElement("div");
+			let style = tb.style;
+			style.display = "table";
+			style.width = "100%";
+			style.height = "100%";
+			let td = document.createElement("div");
+			let tdStyle = td.style;
+			tdStyle.display = "table-cell";
+			tdStyle.width = "100%";
+			tdStyle.height = "100%";
+			tb.appendChild(td);
+			dom.appendChild(tb);
+		}
 		return dom;
 	}
 
 	protected renderContent():void {
 		let border = this.getBorderSize();
 		let dom = this.domElement as HTMLElement;
-		let div = dom.firstChild as HTMLDivElement;
-		let cssStyle = div.style;
 		let uiStyle = this.style.getEffectiveStyle(this);
 		let align = uiStyle.textAlign;
 		let valign = uiStyle.verticalAlign;
-		cssStyle.textAlign = align;
-		if (valign == "top") {
-			cssStyle.top = `${border.top}px`;
-		} else if (valign == "bottom") {
-			cssStyle.bottom = `${border.bottom}px`;
+		if (VALIGN_TRANSFORM) {
+			let div = dom.firstChild as HTMLDivElement;
+			let divStyle = div.style;
+			divStyle.textAlign = align;
+			if (valign == "top") {
+				divStyle.top = `${border.top}px`;
+			} else if (valign == "bottom") {
+				divStyle.bottom = `${border.bottom}px`;
+			} else {
+				divStyle.top = "50%";
+				divStyle.transform = "translate(0,-50%)";
+			}
+			if (this._textColor != null) {
+				divStyle.color = Colors.toCssColor(this._textColor);
+			} else {
+				divStyle.removeProperty("color");
+			}
+			div.innerText = this.asString(this.textContent);
 		} else {
-			cssStyle.top = "50%";
-			cssStyle.transform = "translate(0,-50%)";
+			let tb = dom.firstChild as HTMLTableElement;
+			let td = tb.firstChild as HTMLTableCellElement;
+			let tdStyle = td.style;			
+			tdStyle.textAlign = align;
+			if (valign == "top") {
+				tdStyle.verticalAlign = "top";
+			} else if (valign == "bottom") {
+				tdStyle.verticalAlign = "bottom";
+			} else {
+				tdStyle.verticalAlign = "middle";
+			}
+			if (this._textColor != null) {
+				tdStyle.color = Colors.toCssColor(this._textColor);
+			} else {
+				tdStyle.removeProperty("color");
+			}
+			td.innerText = this.asString(this.textContent);
 		}
-		if (this._textColor != null) {
-			cssStyle.color = Colors.toCssColor(this._textColor);
-		} else {
-			cssStyle.removeProperty("color");
-		}
-		div.innerText = this.asString(this.textContent);
 	}
 
 	protected asString(value:Value):string {

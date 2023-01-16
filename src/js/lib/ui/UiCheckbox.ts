@@ -2,8 +2,6 @@ import { UiNode, UiResult } from "~/lib/ui/UiNode";
 import { DataHolder } from "~/lib/ui/DataHolder";
 import { KeyCodes } from "~/lib/ui/KeyCodes";
 import { UiImageNode } from "~/lib/ui/UiImageNode";
-import offImage from "@images/checkbox-off.png";
-import onImage  from "@images/checkbox-on.png";
 
 export class UiCheckbox extends UiImageNode {
 
@@ -27,7 +25,7 @@ export class UiCheckbox extends UiImageNode {
 
 	public set value(on:boolean) {
 		this._value = on;
-		this.imageContent = (on ? onImage : offImage);
+		this.imageContent = (on ? "/images/checkbox-on.png" : "/images/checkbox-off.png");
 		this.imageSize = "1rem";
 		this._dataHolder.setValue(this.name, this._value);
 		this.onContentChanged();

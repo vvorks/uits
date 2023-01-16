@@ -52,6 +52,9 @@ export { UiMenu, UiMenuItem };
 import { UiApplication, UiAxis } from "~/lib/ui/UiApplication";
 export { UiApplication, UiAxis };
 
+import { UiLaunchPage } from "~/lib/ui/UiLaunchPage";
+export { UiLaunchPage };
+
 import { Metrics } from "~/lib/ui/Metrics";
 export { Metrics };
 
@@ -64,8 +67,11 @@ export type Color = RawColor;
 import { UiStyle, UiStyleBuilder } from "~/lib/ui/UiStyle"
 export { UiStyle, UiStyleBuilder }
 
-import { DataSource, DataRecord } from "~/lib/ui/DataSource"
-export { DataSource, DataRecord }
+import { DataSource } from "~/lib/ui/DataSource"
+export { DataSource }
+
+import { DataRecord } from "~/lib/ui/DataSource"
+export type { DataRecord }
 
 import { UiStyleCondition as RawUiStyleCondition } from "~/lib/ui/UiStyle";
 export type UiStyleCondition = RawUiStyleCondition;

@@ -405,6 +405,7 @@ export class UiApplication {
 	private _textResource: Resource;
 
 	public constructor(selector:string) {
+		Logs.info("UiApplication start");
 		this._selector = selector;
 		this._rootElement = null;
 		this._rootNode = null;
@@ -425,7 +426,13 @@ export class UiApplication {
 		this._animationTasks = [];
 		this._textResourceUrl = null;
 		this._textResource = {}
-		window.onload = (evt:Event) => {this.onLoad(evt)};
+		if (document !== undefined && document.querySelector(this._selector) != null) {
+			Logs.info("onLoad now");
+			this.onLoad();
+		} else {
+			Logs.info("onLoad later");
+			window.onload = (evt:Event) => {this.onLoad()};
+		}
 	}
 
 	public get rootNode():UiRootNode {
@@ -474,8 +481,9 @@ export class UiApplication {
 		this._scrollAnimationTime = time;
 	}
 
-	public async onLoad(evt:Event):Promise<void> {
+	public async onLoad():Promise<void> {
 		//root準備
+		let now = this.newTimestamp();
 		this._rootNode = new UiRootNode(this, "root");
 		this._rootNode.inset = "0px";
 		this._rootElement = document.querySelector(this._selector);
@@ -492,6 +500,7 @@ export class UiApplication {
 		root.addEventListener("keydown", (evt) => {this.processKeyDown(evt)});
 		root.addEventListener("keypress", (evt) => {this.processKeyPress(evt)});
 		root.addEventListener("keyup", (evt) => {this.processKeyUp(evt)});
+		root.focus();
 		root.addEventListener("mousemove", (evt) => {this.processMouseMove(evt)})
 		root.addEventListener("mousedown", (evt) => {this.processMouseDown(evt)})
 		root.addEventListener("mouseup", (evt) => {this.processMouseUp(evt)})
@@ -501,13 +510,22 @@ export class UiApplication {
 		window.addEventListener("resize", (evt) => {this.processResize(evt)});
 		window.addEventListener('hashchange', (evt) => {this.processHashChanged()});
 		window.setTimeout(()=>{this.processIntervalTasks()}, this.getNextInterval());
-		const aniFunc = (at:number) => {
-			this.processAnimationFrame(at);
+		if (!!window.requestAnimationFrame) {
+			const aniFunc = (at:number) => {
+				this.processAnimationFrame(at);
+				window.requestAnimationFrame(aniFunc);
+			}
 			window.requestAnimationFrame(aniFunc);
+		} else {
+			const aniFunc = () => {
+				let at = this.newTimestamp();
+				this.processAnimationFrame(at);
+				window.setTimeout(aniFunc, 16);
+			}
+			window.setTimeout(aniFunc, 16);
 		}
-		window.requestAnimationFrame(aniFunc);
 		//派生クラス初期化
-		this.initialize(evt.timeStamp);
+		this.initialize(now);
 		//リソース読み込み
 		if (this._textResourceUrl != null) {
 			this._textResource = await this.loadTextResource(this._textResourceUrl);
@@ -614,9 +632,14 @@ export class UiApplication {
 		return result as Value;
 	}
 
+	public getPageFactries():Properties<PageFactory> {
+		return this._pageFactories;
+	}
+
 	public transit(tag:string, args:Properties<string>):UiResult {
 		let factory:PageFactory|undefined = this._pageFactories[tag];
 		if (factory == null) {
+			Logs.error("page '%s' not found", tag);
 			return UiResult.IGNORED;
 		} else {
 			this.unmountNormalPages();

@@ -6,8 +6,6 @@ import { DataHolder } from "~/lib/ui/DataHolder";
 import { KeyCodes } from "~/lib/ui/KeyCodes";
 import { UiNode, UiResult } from "~/lib/ui/UiNode";
 import { UiApplication } from "~/lib/ui/UiApplication";
-import offImage from "@images/radio-off.png";
-import onImage  from "@images/radio-on.png";
 
 export class UiRadio extends UiImageNode {
 
@@ -51,7 +49,7 @@ export class UiRadio extends UiImageNode {
 	public set value(v:Value) {
 		if (this._value != v) {
 			this._value = v;
-			this.imageContent = this.matched ? onImage : offImage;
+			this.imageContent = (this.matched ? "/images/radio-on.png" : "/images/radio-off.png");
 			this.imageSize = "1rem";
 			this._dataHolder.setValue(this.name, this._value);
 			this.onContentChanged();
