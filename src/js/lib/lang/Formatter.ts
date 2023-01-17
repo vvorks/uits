@@ -322,7 +322,7 @@ class RadixFragment extends PatternFragment {
 
 class DefaultOptions {
 
-	public static INSTANCE = new DefaultOptions();
+	private static _instance:DefaultOptions|null = null;
 
 	private _dateTimeOptions: Intl.ResolvedDateTimeFormatOptions;
 
@@ -331,6 +331,15 @@ class DefaultOptions {
 	private _groupSymbol:string;
 
 	private _decimalSymbol:string;
+
+	public static getInstance() {
+		if (DefaultOptions._instance == null) {
+			if (!!Intl && !!Intl.NumberFormat && !!Intl.DateTimeFormat) {
+				DefaultOptions._instance = new DefaultOptions();
+			}
+		}
+		return DefaultOptions._instance;
+	}
 
 	private constructor() {
 		this._dateTimeOptions = new Intl.DateTimeFormat().resolvedOptions();
@@ -384,7 +393,7 @@ class NumberFragment extends PatternFragment {
 	public constructor(p:Pattern) {
 		super(p);
 		//処理準備
-		this._defaultOptions = DefaultOptions.INSTANCE;
+		this._defaultOptions = DefaultOptions.getInstance() as DefaultOptions;
 		let locale = this._defaultOptions.locale;
 		let options:Intl.NumberFormatOptions = {};
 		//通貨記号
@@ -574,7 +583,7 @@ class DateTimeFragment extends Fragment {
 		super();
 		//処理準備
 		this._patterns = patterns;
-		this._defaultOptions = DefaultOptions.INSTANCE;
+		this._defaultOptions = DefaultOptions.getInstance() as DefaultOptions;
 		let locale = this._defaultOptions.locale;
 		let options:Intl.DateTimeFormatOptions = {};
 		for (let p of patterns) {
@@ -891,6 +900,163 @@ class DateTimeFragment extends Fragment {
 
 }
 
+class AltDateTimeFragment extends Fragment {
+
+	private static readonly WEEK2 = [
+		"Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"
+	];
+
+	private static readonly WEEK3 = [
+		"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"
+	];
+
+	private _patterns:Pattern[];
+
+	public constructor(patterns:Pattern[]) {
+		super();
+		this._patterns = patterns;
+	}
+
+	public format(value:Value|Date):string {
+		let date = this.asDate(value);
+		let hasDayPeriod = this._patterns.some((e)=>e.type == "P");
+		let b = "";
+		for (let p of this._patterns) {
+			let p4 = new Pattern(p.type, p.order, [0, 1, 0, ...p.flags.slice(3)], 4, p.precision, p.text);
+			let p2 = new Pattern(p.type, p.order, [0, 1, 0, ...p.flags.slice(3)], 2, p.precision, p.text);
+			switch (p.type) {
+			case "F":
+				b += this.formatYear(date, p4);
+				b += "-";
+				b += this.formatMonth(date, p2);
+				b += "-";
+				b += this.formatDay(date, p2);
+				break;
+			case "G":
+				break;
+			case "Y":
+				b += this.formatYear(date, p);
+				break;
+			case "m":
+				b += this.formatMonth(date, p);
+				break;
+			case "D":
+				b += this.formatDay(date, p);
+				break;
+			case "A":
+				b += this.formatWeek(date, p);
+				break;
+			case "T":
+				b += this.formatHour24(date, p2);
+				b += ":";
+				b += this.formatMinute(date, p2);
+				b += ":";
+				b += this.formatSecond(date, p2);
+				break;
+			case "P":
+				b += this.formatAMPM(date, p);
+				break;
+			case "H":
+				if (hasDayPeriod) {
+					b += this.formatHour12(date, p);
+				} else {
+					b += this.formatHour24(date, p);
+				}
+				break;
+			case "M":
+				b += this.formatMinute(date, p);
+				break;
+			case "S":
+				b += this.formatSecond(date, p);
+				break;
+			case "L":
+				b += this.formatMillis(date, p);
+				break;
+			case "Z":
+				b += this.formatTimezone(date, p);
+				break;
+			case "%":
+				b += p.text;
+				break;
+			}
+		}
+		return b;
+	}
+
+	private formatYear(date: Date, p: Pattern) {
+		let year = date.getFullYear();
+		let str = "" + year;
+		return this.fill(str, p, true);
+	}
+
+	private formatMonth(date: Date, p: Pattern) {
+		let month = date.getMonth() + 1;
+		let str = "" + month;
+		return this.fill(str, p, true);
+	}
+
+	private formatDay(date: Date, p: Pattern) {
+		let day = date.getDate();
+		let str = "" + day;
+		return this.fill(str, p, true);
+	}
+
+	private formatWeek(date: Date, p: Pattern) {
+		let week = date.getDay();
+		let array = p.preferrdWidth < 3 ? AltDateTimeFragment.WEEK2 : AltDateTimeFragment.WEEK3;
+		let str = array[week];
+		return this.fill(str, p, true);
+	}
+
+	private formatAMPM(date: Date, p: Pattern) {
+		let hour24 = date.getHours();
+		let str = (hour24 < 12) ? "AM" : "PM";
+		return this.fill(str, p, false);
+	}
+
+	private formatHour24(date: Date, p: Pattern) {
+		let hour24 = date.getHours();
+		let str = "" + hour24;
+		return this.fill(str, p, true);
+	}
+
+	private formatHour12(date: Date, p: Pattern) {
+		let hour = date.getHours() % 12;
+		let hour12 = (hour == 0) ? 12 : hour;
+		let str = "" + hour12;
+		return this.fill(str, p, true);
+	}
+
+	private formatMinute(date: Date, p: Pattern) {
+		let minute = date.getMinutes();
+		let str = "" + minute;
+		return this.fill(str, p, true);
+	}
+
+	private formatSecond(date: Date, p: Pattern) {
+		let sec = date.getSeconds();
+		let str = "" + sec;
+		return this.fill(str, p, true);
+	}
+
+	private formatMillis(date: Date, p: Pattern) {
+		let millis = date.getTime() % 1000;
+		let str = "" + millis;
+		return this.fill(str, p, true);
+	}
+
+	private formatTimezone(date: Date, p: Pattern) {
+		let tz = date.getTimezoneOffset();
+		let s = tz < 0 ? "+" : "-";
+		let a = Math.abs(tz);
+		let h = ("00" + (a / 60)).slice(-2);
+		let m = ("00" + (a % 60)).slice(-2);
+		let str = s + h + ":" + m;
+		return this.fill(str, p, false);
+	}
+
+}
+
 export class Formatter {
 
 	private _fragments: Fragment[];
@@ -1013,7 +1179,7 @@ export class Formatter {
 					fragments.push(new TextFragment(bundlePatterns));
 				} else {
 					for (let q of bundlePatterns) {
-						fragments.push(this.createFragment(q));
+						fragments.push(this.newFragment(q));
 					}
 				}
 			} else if (p.isDateTimeStyle()) {
@@ -1026,7 +1192,7 @@ export class Formatter {
 					bundlePatterns.push(p);
 					p = pos < patterns.length ? patterns[pos++] : null;
 				}
-				fragments.push(new DateTimeFragment(bundlePatterns));
+				fragments.push(this.newDateTimeFragment(bundlePatterns));
 			} else if (p.isDateTime()) {
 				let bundlePatterns:Pattern[] = [];
 				bundlePatterns.push(p);
@@ -1037,9 +1203,9 @@ export class Formatter {
 					bundlePatterns.push(p);
 					p = pos < patterns.length ? patterns[pos++] : null;
 				}
-				fragments.push(new DateTimeFragment(bundlePatterns));
+				fragments.push(this.newDateTimeFragment(bundlePatterns));
 			} else {
-				fragments.push(this.createFragment(p));
+				fragments.push(this.newFragment(p));
 				p = pos < patterns.length ? patterns[pos++] : null;
 			}
 		}
@@ -1053,7 +1219,7 @@ export class Formatter {
 				prev + 1 == curr  ;
 	}
 
-	private createFragment(pattern:Pattern):Fragment {
+	private newFragment(pattern:Pattern):Fragment {
 		switch (pattern.type) {
 		case "b":
 			return new RadixFragment(pattern,  2);
@@ -1064,7 +1230,7 @@ export class Formatter {
 		case "X":
 			return new RadixFragment(pattern, 16, true);
 		case "d":
-			return new NumberFragment(pattern);
+			return this.newNumberFragment(pattern);
 		case "c":
 			return new CharFragment(pattern);
 		case "s":
@@ -1075,6 +1241,22 @@ export class Formatter {
 			return new LiteralFragment("\n");
 		default:
 			return new LiteralFragment("");
+		}
+	}
+
+	private newNumberFragment(pattern:Pattern):Fragment {
+		if (DefaultOptions.getInstance() != null) {
+			return new NumberFragment(pattern);
+		} else {
+			return new RadixFragment(pattern, 10);
+		}
+}
+
+	private newDateTimeFragment(patterns:Pattern[]):Fragment {
+		if (DefaultOptions.getInstance() != null) {
+			return new DateTimeFragment(patterns);
+		} else {
+			return new AltDateTimeFragment(patterns);
 		}
 	}
 
