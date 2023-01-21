@@ -1,5 +1,6 @@
 import { Rect } from "~/lib/ui/Rect";
 import { Changed, UiNode } from "~/lib/ui/UiNode";
+import { UiPageNode } from "~/lib/ui/UiPageNode";
 
 export class UiRootNode extends UiNode {
 
@@ -7,7 +8,7 @@ export class UiRootNode extends UiNode {
 		return new UiRootNode(this);
 	}
 
-	public getPageNode():UiNode|null {
+	public getPageNode():UiPageNode|null {
 		return null;
 	}
 

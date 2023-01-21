@@ -118,14 +118,14 @@ export class TestApplication extends UiApplication {
 
 	protected initialize(at:number):void {
 
-		this.addPageFactory("", (args) => new UiLaunchPage(this, args));
-		this.addPageFactory("#vlist", (args) => new VerticalListPage(this, args));
-		this.addPageFactory("#hlist", (args) => new HorizontalListPage(this, args));
-		this.addPageFactory("#grid", (args) => new GridPage(this, args));
-		this.addPageFactory("#slide", (args) => new SlidePage(this, args));
-		this.addPageFactory("#pane", (args) => new PaneTestPage(this, args));
-		this.addPageFactory("#menu", (args) => new MenuTestPage(this, args));
-		this.addPageFactory("#volume", (args) => new VolumeToast(this, args));
+		this.addPageFactory("", (tag) => new UiLaunchPage(this, tag));
+		this.addPageFactory("vlist", (tag) => new VerticalListPage(this, tag));
+		this.addPageFactory("hlist", (tag) => new HorizontalListPage(this, tag));
+		this.addPageFactory("grid", (tag) => new GridPage(this, tag));
+		this.addPageFactory("slide", (tag) => new SlidePage(this, tag));
+		this.addPageFactory("pane", (tag) => new PaneTestPage(this, tag));
+		this.addPageFactory("menu", (tag) => new MenuTestPage(this, tag));
+		this.addPageFactory("volume", (tag) => new VolumeToast(this, tag));
 
 		this.addDataSource("sample", new TestDataSource((criteria:Properties<Value>) => {
 			let theData: DataRecord[] = [];
@@ -196,7 +196,7 @@ export class TestApplication extends UiApplication {
 
 		this.addDataSource("menu", new MenuDataSource());
 
-		this.testFormatter();
+		//this.testFormatter();
 	}
 
 	protected onKeyDown(target:UiNode, key:number, ch:number, mod:number, at:number):UiResult {
@@ -207,7 +207,8 @@ export class TestApplication extends UiApplication {
 			break;
 		case KeyCodes.PAGEUP:
 		case KeyCodes.PAGEDOWN:
-			result = this.toast("#volume", {}); //kari
+			//TODO 仮
+			result = (this.toast("#volume", {}) != null ? UiResult.EATEN : UiResult.IGNORED);
 			break;
 		default:
 			result = super.onKeyDown(target, key, ch, mod, at);

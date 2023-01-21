@@ -8,21 +8,24 @@ export class UiDeckNode extends UiNode {
 
 	private _selected: string|null;
 
-	private _savedFocusNodes:Properties<UiNode> = {};
+	private _savedFocusNodes:Properties<UiNode>;
 
 	public clone():UiDeckNode {
 		return new UiDeckNode(this);
 	}
 
-	constructor(app:UiApplication, name?:string);
+	constructor(app:UiApplication, name:string);
 	constructor(src:UiDeckNode);
 	public constructor(param:any, name?:string) {
-		super(param, name);
 		if (param instanceof UiDeckNode) {
+			super(param as UiDeckNode);
 			let src = param as UiDeckNode;
 			this._selected = src._selected;
+			this._savedFocusNodes = {}
 		} else {
+			super(param as UiApplication, name as string);
 			this._selected = null;
+			this._savedFocusNodes = {}
 		}
 	}
 
@@ -63,7 +66,7 @@ export class UiDeckNode extends UiNode {
 			if (focusLost) {
 				let saved = this._savedFocusNodes[name];
 				if (saved !== undefined) {
-					app.setFocus(saved, UiAxis.XY);
+					app.setFocus(saved);
 				}
 			}
 			this._selected = name;

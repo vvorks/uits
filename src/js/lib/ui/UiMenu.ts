@@ -8,9 +8,9 @@ import { DataRecord, DataSource } from "~/lib/ui/DataSource";
 import { CssLength } from "~/lib/ui/CssLength";
 import { UiNodeBuilder } from "~/lib/ui/UiNodeBuilder";
 import { DEFAULT_STYLE } from "~/app/TestApplication"; //TODO おきて破り！要再定義
-import { KeyCodes } from "./KeyCodes";
-import { DataHolder } from "./DataHolder";
-import { UiTextNode } from "./UiTextNode";
+import { KeyCodes } from "~/lib/ui/KeyCodes";
+import { DataHolder } from "~/lib/ui/DataHolder";
+import { UiTextNode } from "~/lib/ui/UiTextNode";
 
 /** テンプレート名を保持するフィールドの名前 */
 const FIELD_TEMPLATE = "template";
@@ -31,7 +31,7 @@ export class UiMenuItem extends UiNode implements DataHolder {
 		return new UiMenuItem(this);
 	}
 
-	public constructor(app:UiApplication, name?:string);
+	public constructor(app:UiApplication, name:string);
 	public constructor(src:UiMenuItem);
 	public constructor(param:any, name?:string) {
 		if (param instanceof UiMenuItem) {
@@ -39,7 +39,7 @@ export class UiMenuItem extends UiNode implements DataHolder {
 			let src = param as UiMenuItem;
 			this._record = src._record;
 		} else {
-			super(param as UiApplication, name);
+			super(param as UiApplication, name as string);
 			this._record = null;
 		}
 	}
@@ -153,7 +153,7 @@ export class UiMenu extends UiNode {
 			this._lastLevel = src._lastLevel;
 			this._focusItems = src._focusItems.slice(0, src._focusItems.length);
 		} else {
-			super(param, name);
+			super(param as UiApplication, name as string);
 			this._location = "left";
 			this._template = null;
 			this._contentNodePath = null;
@@ -224,7 +224,7 @@ export class UiMenu extends UiNode {
 	}
 
 	private makeTemplate():UiNode {
-		let template = new UiNode(this.application);
+		let template = new UiNode(this.application, "template");
 		let buffer:UiNode[] = [];
 		for (let c of this._children) {
 			if (c instanceof UiMenuItem) {
@@ -425,7 +425,7 @@ export class UiMenu extends UiNode {
 		let app = this.application;
 		let focusItem = this._focusItems[level - 1];
 		if (focusItem instanceof UiMenuItem) {
-			app.setFocus(focusItem, UiAxis.XY);
+			app.setFocus(focusItem);
 		}
 	}
 
@@ -442,7 +442,7 @@ export class UiMenu extends UiNode {
 		for (let i = 0; i < ds.count(); i++) {
 			let rec = ds.getRecord(i) as DataRecord;
 			let template = rec[FIELD_TEMPLATE] as string;
-			let node = (this._template as UiNode).findChildByName(template);
+			let node = (this._template as UiNode).getChildByName(template);
 			if (node != null) {
 				let item = node.clone() as UiMenuItem;
 				item.focusable = true;
@@ -469,7 +469,7 @@ export class UiMenu extends UiNode {
 				this._currentLevel = level;
 				this.relocateBlocks(level);
 				if (firstChild != null) {
-					app.setFocus(firstChild, UiAxis.XY);
+					app.setFocus(firstChild);
 				}
 			}
 		}
@@ -499,7 +499,7 @@ export class UiMenu extends UiNode {
 				//kari
 				Logs.debug("changeContent 3");
 				(contentNode as UiTextNode).textContent = content;
-				this.application.setFocus(contentNode, UiAxis.XY);
+				this.application.setFocus(contentNode);
 				result = UiResult.EATEN;
 			}
 		}

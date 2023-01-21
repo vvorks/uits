@@ -49,7 +49,7 @@ class UiRecord extends UiNode implements DataHolder {
 		return new UiRecord(this);
 	}
 
-	public constructor(app:UiApplication, name?:string);
+	public constructor(app:UiApplication, name:string);
 	public constructor(src:UiRecord);
 	public constructor(param:any, name?:string) {
 		if (param instanceof UiRecord) {
@@ -59,7 +59,7 @@ class UiRecord extends UiNode implements DataHolder {
 			this._record = src._record;
 			this._sharedNames = src._sharedNames;
 		} else {
-			super(param as UiApplication, name);
+			super(param as UiApplication, name as string);
 			this._index = 0;
 			this._record = null;
 			this._sharedNames = new Set<string>();
@@ -135,6 +135,15 @@ class UiRecord extends UiNode implements DataHolder {
 		return this.parent as UiListNode;
 	}
 
+
+	public getPathSegment(): string {
+		return "" + this.getRelativeIndex();
+	}
+
+	private getRelativeIndex():number {
+		return this.owner.getIndexOfChild(this);
+	}
+
 }
 
 /**
@@ -177,11 +186,11 @@ export class UiListNode extends UiNode {
 		return new UiListNode(this);
 	}
 
-	constructor(app:UiApplication, name?:string);
+	constructor(app:UiApplication, name:string);
 	constructor(src:UiListNode);
 	public constructor(param:any, name?:string) {
-		super(param, name);
 		if (param instanceof UiListNode) {
+			super(param as UiListNode);
 			let src = param as UiListNode;
 			this._listFlags = src._listFlags;
 			this._template = src._template;
@@ -194,6 +203,7 @@ export class UiListNode extends UiNode {
 			this._pageTopIndex = src._pageTopIndex;
 			this._dataSource = src._dataSource;
 		} else {
+			super(param as UiApplication, name as string);
 			this._listFlags = ListFlags.INITIAL;
 			this._template = null;
 			this._templateRect = null;
@@ -328,6 +338,7 @@ export class UiListNode extends UiNode {
 			if (oldFocusable && !newFocusable && this.application.getFocusOf(this) == this) {
 				this.application.resetFocus(this);
 			}
+			(this.getPageNode() as UiPageNode).setHistoryStateAgain();
 		} else {
 			//２回目以降の通知
 			let info = this.saveFocus();
@@ -399,7 +410,7 @@ export class UiListNode extends UiNode {
 			}
 		}
 		this._templateRect = rTemplate;
-		let template = new UiRecord(this.application);
+		let template = new UiRecord(this.application, "template");
 		if (this.vertical) {
 			this._templateBottom = (rTemplate.bottom == maxBottom ? this.innerHeight - maxBottom: null);
 			template.left = "0px";

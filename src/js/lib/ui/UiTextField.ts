@@ -44,16 +44,22 @@ export class UiTextField extends UiTextNode {
 	}
 
 	public showPopup():UiResult {
-		let args:Properties<string> = {};
-		let value = this._dataHolder.getValue(this.name);
-		if (value != null && Types.isValueType(value)) {
-			args["value"] = this.asString(value as Value);
-		}
-		this.application.call(new UiKeyboard(this.application, args, this));
+		this.application.call(new UiKeyboard(this.application, "", this));
 		return UiResult.AFFECTED;
 	}
 
-	public updateValue(value:string):void {
+	public getValue():string {
+		let result:string;
+		let value = this._dataHolder.getValue(this.name);
+		if (value != null && Types.isValueType(value)) {
+			result = this.asString(value as Value);
+		} else {
+			result = "";
+		}
+		return result;
+	}
+
+	public setValue(value:string):void {
 		this._dataHolder.setValue(this.name, value);
 	}
 

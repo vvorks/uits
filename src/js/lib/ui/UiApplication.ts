@@ -8,6 +8,7 @@ import { UiPageNode } from '~/lib/ui/UiPageNode';
 import { KeyCodes } from '~/lib/ui/KeyCodes';
 import { Rect } from "~/lib/ui/Rect";
 import { DataSource } from "~/lib/ui/DataSource";
+import { HistoryManager, HistoryState } from "~/lib/ui/HistoryManager";
 
 /** システムWheel調整比の既定値  */
 const DEFAULT_WHEEL_SCALE = 0.5;
@@ -91,7 +92,7 @@ class LivePage {
 		return this._type == PageType.NORMAL && this._focusNode != null ? this._focusNode : this._pageNode;
 	}
 
-	public focus(newNode: UiNode, axis:UiAxis):UiResult {
+	public focus(newNode: UiNode, axis:UiAxis = UiAxis.XY):UiResult {
 		let oldNode:UiNode|null = this._focusNode;
 		if (oldNode == newNode) {
 			return UiResult.IGNORED;
@@ -338,7 +339,7 @@ class RunAnimationEntry extends RunEntry<AnimationTask> {
 
 }
 
-type PageFactory = (args:Properties<string>) => UiPageNode;
+type PageFactory = (tag:string) => UiPageNode;
 
 export type Resource = Properties<Value|Resource>;
 
@@ -404,6 +405,9 @@ export class UiApplication {
 	/** テキストリソース */
 	private _textResource: Resource;
 
+	/** ページ履歴 */
+	private _history:HistoryManager;
+
 	public constructor(selector:string) {
 		Logs.info("UiApplication start");
 		this._selector = selector;
@@ -426,6 +430,7 @@ export class UiApplication {
 		this._animationTasks = [];
 		this._textResourceUrl = null;
 		this._textResource = {}
+		this._history = new HistoryManager();
 		if (document !== undefined && document.querySelector(this._selector) != null) {
 			Logs.info("onLoad now");
 			this.onLoad();
@@ -501,13 +506,14 @@ export class UiApplication {
 		root.addEventListener("keypress", (evt) => {this.processKeyPress(evt)});
 		root.addEventListener("keyup", (evt) => {this.processKeyUp(evt)});
 		root.focus();
-		root.addEventListener("mousemove", (evt) => {this.processMouseMove(evt)})
-		root.addEventListener("mousedown", (evt) => {this.processMouseDown(evt)})
-		root.addEventListener("mouseup", (evt) => {this.processMouseUp(evt)})
-		root.addEventListener("click", (evt) => {this.processMouseClick(evt)})
-		root.addEventListener("dblclick", (evt) => {this.processMouseDoubleClick(evt)})
-		root.addEventListener("wheel", (evt) => {this.processMouseWheel(evt)})
+		root.addEventListener("mousemove", (evt) => {this.processMouseMove(evt)});
+		root.addEventListener("mousedown", (evt) => {this.processMouseDown(evt)});
+		root.addEventListener("mouseup", (evt) => {this.processMouseUp(evt)});
+		root.addEventListener("click", (evt) => {this.processMouseClick(evt)});
+		root.addEventListener("dblclick", (evt) => {this.processMouseDoubleClick(evt)});
+		root.addEventListener("wheel", (evt) => {this.processMouseWheel(evt)});
 		window.addEventListener("resize", (evt) => {this.processResize(evt)});
+		window.addEventListener("popstate", (evt) => {this._history.popstate(evt.state)});
 		window.addEventListener('hashchange', (evt) => {this.processHashChanged()});
 		window.setTimeout(()=>{this.processIntervalTasks()}, this.getNextInterval());
 		if (!!window.requestAnimationFrame) {
@@ -636,26 +642,43 @@ export class UiApplication {
 		return this._pageFactories;
 	}
 
-	public transit(tag:string, args:Properties<string>):UiResult {
-		let factory:PageFactory|undefined = this._pageFactories[tag];
+	public transit(state: HistoryState):UiPageNode|null {
+		let factory:PageFactory|undefined = this._pageFactories[state.tag];
 		if (factory == null) {
-			Logs.error("page '%s' not found", tag);
-			return UiResult.IGNORED;
+			Logs.error("page '%s' not found", state.tag);
+			return null;
 		} else {
 			this.unmountNormalPages();
-			this.call(factory(args));
-			return UiResult.EATEN;
+			let newPage = factory(state.tag);
+			this.call0(newPage, state);
+			return newPage;
 		}
 	}
 
-	public toast(tag:string, args:Properties<string>):UiResult {
+	public toast(tag:string, args:Properties<string>):UiPageNode|null {
 		let factory:PageFactory|undefined = this._pageFactories[tag];
 		if (factory == null) {
-			return UiResult.IGNORED;
+			return null;
 		} else {
-			this.call(factory(args), PageType.TOAST);
-			return UiResult.EATEN;
+			let newPage = factory(tag);
+			newPage.setHistoryState(new HistoryState(tag, args));
+			this.call(newPage, PageType.TOAST);
+			return newPage;
 		}
+	}
+
+	private getHistoryStates():HistoryState[]|null {
+		let pageTail = this.getPageTail();
+		if (pageTail == 0) {
+			return null;
+		}
+		let result:HistoryState[] = [];
+		for (let i = pageTail - 1; i >= 0; i--) {
+			let page = this._pageStack[i];
+			let pageNode = page.pageNode;
+			result.unshift(pageNode.getHistoryState());
+		}
+		return result;
 	}
 
 	private unmountNormalPages():void {
@@ -678,6 +701,31 @@ export class UiApplication {
 			pageTail--;
 		}
 		return pageTail;
+	}
+
+	private call0(pageNode:UiPageNode, state:HistoryState, type:PageType = PageType.NORMAL):void {
+		let page = new LivePage(pageNode, type);
+		if (type == PageType.NORMAL) {
+			let pageTail = this.getPageTail();
+			if (pageTail < this._pageStack.length) {
+				let afterNode = this._pageStack[pageTail].pageNode;
+				this._pageStack.splice(pageTail, 0, page);
+				this.rootNode.insertChild(pageNode, afterNode);
+			} else {
+				this._pageStack.push(page);
+				this.rootNode.appendChild(pageNode);
+			}
+		} else {
+			this._pageStack.push(page);
+			this.rootNode.appendChild(pageNode);
+		}
+		pageNode.onMount();
+		pageNode.setHistoryState(state);
+		if (!page.isToast() && (page.focusNode == null || !this.isAppearedFocusable(page.focusNode))) {
+			if (!this.resetFocus(pageNode)) {
+				Logs.error("LOST FOCUS!");
+			}
+		}
 	}
 
 	public call(pageNode:UiPageNode, type:PageType = PageType.NORMAL):void {
@@ -747,12 +795,12 @@ export class UiApplication {
 		let list = node.getVisibleDescendantsIf((e)=>this.isAppearedFocusable(e), 1);
 		let found = (list.length > 0);
 		if (found) {
-			page.focus(list[0], UiAxis.XY);
+			page.focus(list[0]);
 		}
 		return found;
 	}
 
-	public setFocus(node:UiNode, axis:UiAxis):UiResult {
+	public setFocus(node:UiNode, axis:UiAxis = UiAxis.XY):UiResult {
 		let page = this.getLivePageOf(node);
 		let result = UiResult.IGNORED;
 		if (page != null) {
@@ -1353,42 +1401,33 @@ export class UiApplication {
 
 	private processHashChanged():void {
 		try {
-			let hash = decodeURIComponent(window.location.hash);
-			let index = hash.indexOf(':');
-			let tag;
-			let args:Properties<string>;
-			if (hash == "") {
-				tag = "";
-				args = {};
-			} else if (index == -1) {
-				tag = hash;
-				args = {};
-			} else {
-				tag = hash.substring(0, index);
-				args = this.decodeArguments(hash.substring(index + 1));
+			let hash = window.location.hash;
+			Logs.info("processHashChanged hash %s", hash);
+			let oldStates = this.getHistoryStates();
+			if (oldStates != null) {
+				this._history.saveHistoryStates(oldStates);
 			}
-			let result = this.transit(tag, args);
+			let newStates = this._history.loadHistoryStates(hash);
+			Logs.info("newStates %s", JSON.stringify(newStates));
+			this.transit(newStates[0]); //仮
 			//後処理
-			this.postProcessEvent(null, result);
+			this.postProcessEvent(null, UiResult.AFFECTED);
 		} finally {
 			this.flushFinally();
 		}
 	}
 
-	private decodeArguments(str:string):Properties<string> {
-		let result: Properties<string> = {};
-		for (let param of str.split("&")) {
-			let pair = param.split('=');
-			if (pair.length == 1) {
-				let key = param;
-				result[key] = "";
-			} else {
-				let key = pair[0];
-				let value = pair[1];
-				result[key] = value;
-			}
-		}
-		return result;
+	public back():void {
+		this._history.back();
+	}
+
+	public forward():void {
+		this._history.forward();
+	}
+
+	public go(newTag:string, args:Properties<string>, caller:UiPageNode|null = null):UiResult {
+		this._history.go(newTag, args);
+		return UiResult.EATEN;
 	}
 
 	public processDataSourceChanged(ds:DataSource):void {
@@ -1578,7 +1617,7 @@ export class UiApplication {
 	protected onMouseClick(target:UiNode, x:number, y:number, mod:number, at:number):UiResult {
 		let result = UiResult.IGNORED;
 		if (this.isFocusable(target)) {
-			this.setFocus(target, UiAxis.XY);
+			this.setFocus(target);
 			result |= UiResult.AFFECTED;
 		}
 		return result;

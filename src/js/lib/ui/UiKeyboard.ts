@@ -196,7 +196,7 @@ class UiEditArea extends UiNode {
 		return new UiEditArea(this);
 	}
 
-	constructor(app:UiApplication, name?:string);
+	constructor(app:UiApplication, name:string);
 	constructor(src:UiEditArea);
 	public constructor(param:any, name?:string) {
 		if (param instanceof UiEditArea) {
@@ -208,7 +208,7 @@ class UiEditArea extends UiNode {
 			this._cursorPos = src._cursorPos;
 			this._divLeft = src._divLeft;
 		} else {
-			super(param as UiApplication, name);
+			super(param as UiApplication, name as string);
 			this._textContent = "";
 			this._editStart = 0;
 			this._editEnd = 0;
@@ -554,16 +554,16 @@ export class UiKeyboard extends UiPageNode {
 
 	private _shift:boolean;
 
-	constructor(app:UiApplication, args:Properties<string>, owner:UiTextField);
+	constructor(app:UiApplication, name:string, owner:UiTextField);
 	constructor(src:UiKeyboard);
-	public constructor(param:any, args?:Properties<string>, owner?:UiTextField) {
+	public constructor(param:any, name?:string, owner?:UiTextField) {
 		if (param instanceof UiKeyboard) {
 			super(param as UiKeyboard);
 			let src = param as UiKeyboard;
 			this._owner = src._owner;
 			this._shift = src._shift;
 		} else {
-			super(param as UiApplication, args as Properties<string>);
+			super(param as UiApplication, name as string);
 			this._owner = owner as UiTextField;
 			this._shift = false;
 		}
@@ -621,14 +621,13 @@ export class UiKeyboard extends UiPageNode {
 		this.height = `${maxHeight}px`;
 	}
 
-	protected start(args:Properties<string>):void {
+
+	protected start():void {
 		//初期データ設定
-		let value = args["value"];
-		if (value !== undefined) {
-			Logs.debug("initial value is %s", value);
-			let editArea = this.findNodeByPath("edit") as UiEditArea;
-			editArea.reset(this.escapeString(value));
-		}
+		let value = this._owner.getValue();
+		Logs.debug("initial value is %s", value);
+		let editArea = this.findNodeByPath("edit") as UiEditArea;
+		editArea.reset(this.escapeString(value));
 	}
 
 	private escapeString(s:string):string {
@@ -669,7 +668,7 @@ export class UiKeyboard extends UiPageNode {
 		let result = editArea.confirm();
 		if (result == UiResult.IGNORED) {
 			let value = editArea.textContent;
-			this._owner.updateValue(this.unescapeString(value));
+			this._owner.setValue(this.unescapeString(value));
 			this.application.dispose(this);
 		}
 	}

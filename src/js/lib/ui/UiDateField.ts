@@ -118,15 +118,15 @@ class UiDatePopup extends UiPageNode {
 
 	private _owner: UiDateField;
 
-	constructor(app:UiApplication, args:Properties<string>, owner:UiDateField);
+	constructor(app:UiApplication, name:string, owner:UiDateField);
 	constructor(src:UiDatePopup);
-	public constructor(param:any, args?:Properties<string>, owner?:UiDateField) {
+	public constructor(param:any, name?:string, owner?:UiDateField) {
 		if (param instanceof UiDatePopup) {
 			super(param as UiDatePopup);
 			let src = param as UiDatePopup;
 			this._owner = src._owner;
 		} else {
-			super(param as UiApplication, args as Properties<string>);
+			super(param as UiApplication, name as string);
 			this._owner = owner as UiDateField;
 		}
 	}
@@ -151,7 +151,7 @@ class UiDatePopup extends UiPageNode {
 			.leave();
 		//曜日行
 		for (let c = 0; c < WEEKS.length; c++) {
-			b.enter(new UiTextNode(app))
+			b.enter(new UiTextNode(app, "week"))
 				.style(DEFAULT_STYLE)
 				.th(1*UNIT,1*UNIT).lw(c*UNIT,1*UNIT)
 				.textContent(WEEKS[c])
@@ -161,7 +161,7 @@ class UiDatePopup extends UiPageNode {
 		b.enter(new UiNode(app, "days")).style(GROUP_STYLE).th(2*UNIT,6*UNIT).lw(0,WEEKS.length*UNIT);
 		for (let i = 0; i < WEEKS.length * 6; i++) {
 			const day = Dates.addDay(top, i);
-			b.enter(new UiDateNode(app))
+			b.enter(new UiDateNode(app, "day"))
 				.style(SMALL_STYLE)
 				.th(Math.floor(i/7)*UNIT,1*UNIT).lw(Math.floor(i%7)*UNIT,1*UNIT)
 				.focusable(true)
@@ -195,8 +195,8 @@ class UiDatePopup extends UiPageNode {
 		}
 	}
 
-	protected start(args:Properties<string>):void {
-		let value = new Date(Number.parseInt(args["value"] as string));
+	protected start():void {
+		let value = new Date(this._owner.getValue() as number);
 		this.reload(value, true);
 	}
 
@@ -213,7 +213,7 @@ class UiDatePopup extends UiPageNode {
 			let e = days.getChildAt(i) as UiDateNode;
 			e.setDate(bom, day, i);
 			if (doFocus && Dates.isSameDay(date, day)) {
-				app.setFocus(e, UiAxis.XY);
+				app.setFocus(e);
 			}
 		}
 	}
@@ -229,7 +229,7 @@ class UiDatePopup extends UiPageNode {
 		if (act == "changeTo") {
 			this.reload(arg as Date, true);
 		} else if (act == "select") {
-			this._owner.updateValue((arg as Date).getTime());
+			this._owner.setValue((arg as Date).getTime());
 			this.application.dispose(this);
 		}
 		return UiResult.EATEN;
@@ -298,16 +298,22 @@ export class UiDateField extends UiTextNode {
 	}
 
 	public showPopup():UiResult {
-		let args:Properties<string> = {};
-		let value = this._dataHolder.getValue(this.name);
-		if (value != null && Types.isValueType(value)) {
-			args["value"] = this.asString(value as Value);
-		}
-		this.application.call(new UiDatePopup(this.application, args, this));
+		this.application.call(new UiDatePopup(this.application, "", this));
 		return UiResult.AFFECTED;
 	}
 
-	public updateValue(value:Value):void {
+	public getValue():Value {
+		let result:Value;
+		let value = this._dataHolder.getValue(this.name);
+		if (value != null && Types.isValueType(value)) {
+			result = value as Value;
+		} else {
+			result = null;
+		}
+		return result;
+	}
+
+	public setValue(value:Value):void {
 		this._dataHolder.setValue(this.name, value);
 	}
 

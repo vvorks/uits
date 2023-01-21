@@ -12,10 +12,10 @@ export class VerticalListPage extends UiPageNode {
 		let b = new UiNodeBuilder(this, "1rem");
 		b.inset(1).style(GROUP_STYLE);
 		{
-			b.enter(new UiNode(app, "北")).th(1,2).lr(1,1).style(DEFAULT_STYLE).focusable(true).leave();
-			b.enter(new UiNode(app, "西")).tb(4,4).lw(1,2).style(DEFAULT_STYLE).focusable(true).leave();
+			b.enter(new UiNode(app, "north")).th(1,2).lr(1,1).style(DEFAULT_STYLE).focusable(true).leave();
+			b.enter(new UiNode(app, "west")).tb(4,4).lw(1,2).style(DEFAULT_STYLE).focusable(true).leave();
 			{
-				b.enter(new UiListNode(app)).tb(4,4).lr(4,5).style(LIST_STYLE)
+				b.enter(new UiListNode(app, "list")).tb(4,4).lr(4,5).style(LIST_STYLE)
 				.dataSource("sample").vscroll("v").loop(true);
 				b.enter(new UiTextField(app, "a")).th(1, 4).lw( 1, 10)
 						.style(DEFAULT_STYLE).focusable(true).leave();
@@ -38,9 +38,9 @@ export class VerticalListPage extends UiPageNode {
 					.style(DEFAULT_STYLE).focusable(true).leave();
 				b.leave();
 			}
-			b.enter(new UiScrollbar(app)).tb(4, 4).rw(4, 1).style(SB_STYLE).vscroll("v").leave();
-			b.enter(new UiNode(app, "東")).tb(4,4).rw(1,2).style(DEFAULT_STYLE).focusable(true).leave();
-			b.enter(new UiNode(app, "南")).bh(1,2).lr(1,1).style(DEFAULT_STYLE).focusable(true).leave();
+			b.enter(new UiScrollbar(app, "sb")).tb(4, 4).rw(4, 1).style(SB_STYLE).vscroll("v").leave();
+			b.enter(new UiNode(app, "east")).tb(4,4).rw(1,2).style(DEFAULT_STYLE).focusable(true).leave();
+			b.enter(new UiNode(app, "south")).bh(1,2).lr(1,1).style(DEFAULT_STYLE).focusable(true).leave();
 		}
 		(app.getDataSource("sample") as DataSource).select({});
 	}

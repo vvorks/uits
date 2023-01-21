@@ -29,7 +29,7 @@ export class UiRadio extends UiImageNode {
 			this._value = src._value;
 			this._specValue = src._specValue;
 		} else {
-			super(param as UiApplication, name);
+			super(param as UiApplication, name as string);
 			this._dataHolder = UiNode.VOID_DATA_HOLDER;
 			this._value = null;
 			this._specValue = spec as Value;

@@ -7,7 +7,7 @@ import { UiListNode } from "~/lib/ui/UiListNode";
 import { ActionListener, UiLocation, UiNode } from "~/lib/ui/UiNode";
 import { UiStyle } from "~/lib/ui/UiStyle";
 import { UiTextNode } from "~/lib/ui/UiTextNode";
-import { UiMenu } from "./UiMenu";
+import { UiMenu } from "~/lib/ui/UiMenu";
 
 type Size = string|number;
 

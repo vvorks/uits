@@ -22,16 +22,16 @@ class UiLookupItem extends UiTextNode {
 
 	private _dataHolder: DataHolder;
 
-	constructor(app:UiApplication, owner:UiLookupField);
+	constructor(app:UiApplication, name:string, owner:UiLookupField);
 	constructor(src:UiLookupItem);
-	public constructor(param:any, owner?:UiLookupField) {
+	public constructor(param:any, name?:string, owner?:UiLookupField) {
 		if (param instanceof UiLookupItem) {
 			super(param as UiLookupItem);
 			let src = param as UiLookupItem;
 			this._owner = src._owner;
 			this._dataHolder = src._dataHolder;
 		} else {
-			super(param as UiApplication);
+			super(param as UiApplication, name as string);
 			this._owner = owner as UiLookupField;
 			this._dataHolder = UiNode.VOID_DATA_HOLDER;
 			this.focusable = true;
@@ -86,15 +86,15 @@ export class UiLookupPopup extends UiPageNode {
 
 	private _owner: UiLookupField;
 
-	constructor(app:UiApplication, args:Properties<string>, owner:UiLookupField);
+	constructor(app:UiApplication, name:string, owner:UiLookupField);
 	constructor(src:UiLookupPopup);
-	public constructor(param:any, args?:Properties<string>, owner?:UiLookupField) {
+	public constructor(param:any, name?:string, owner?:UiLookupField) {
 		if (param instanceof UiLookupPopup) {
 			super(param as UiLookupPopup);
 			let src = param as UiLookupPopup;
 			this._owner = src._owner;
 		} else {
-			super(param as UiApplication, args as Properties<string>);
+			super(param as UiApplication, name as string);
 			this._owner = owner as UiLookupField;
 		}
 	}
@@ -136,15 +136,15 @@ export class UiLookupPopup extends UiPageNode {
 		//Popup画面構築
 		let dsName = this._owner.dataSourceName as string;
 		let b = new UiNodeBuilder(this, "1px");
-		b.enter(new UiListNode(app)).inset(0).dataSource(dsName);
+		b.enter(new UiListNode(app, "list")).inset(0).dataSource(dsName);
 		{
-			b.enter(new UiLookupItem(app, this._owner)).lw(0, rOwner.width).th(0, rOwner.height)
+			b.enter(new UiLookupItem(app, "rec", this._owner)).lw(0, rOwner.width).th(0, rOwner.height)
 				.style(this._owner.style).leave();
 		}
 		b.leave();
 	}
 
-	protected start(args:Properties<string>):void {
+	protected start():void {
 		let app = this.application;
 		let dsName = this._owner.dataSourceName as string;
 		(app.getDataSource(dsName) as DataSource).select({});
@@ -187,7 +187,7 @@ export class UiLookupField extends UiTextNode {
 	}
 
 	public showPopup(args:Properties<string>):UiResult {
-		this.application.call(new UiLookupPopup(this.application, args, this));
+		this.application.call(new UiLookupPopup(this.application, "", this));
 		return UiResult.AFFECTED;
 	}
 

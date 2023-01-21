@@ -76,9 +76,6 @@ export class PaneTestPage extends UiPageNode {
 		}
 	}
 
-	protected start(args:Properties<string>):void {
-	}
-
 	public watchTextButton(src: UiNode, act:string): UiResult {
 		let result = UiResult.IGNORED;
 		if (act == "click") {
@@ -98,7 +95,7 @@ export class PaneTestPage extends UiPageNode {
 			}
 			//先頭にフォーカスをあてる
 			let first = this.findNodeByPath("dock/left2/subtext0") as UiTextNode;
-			app.setFocus(first, UiAxis.XY);
+			app.setFocus(first);
 			result = UiResult.EATEN;
 		}
 		return result;
@@ -120,7 +117,7 @@ export class PaneTestPage extends UiPageNode {
 	protected resetFocus():void {
 		let app = this.application;
 		let node = this.findNodeByPath("dock/center/list") as UiNode;
-		app.setFocus(node, UiAxis.XY);
+		app.setFocus(node);
 	}
 
 }

@@ -5,6 +5,9 @@ import { Scrollable } from "~/lib/ui/Scrollable";
 import { UiApplication } from "~/lib/ui/UiApplication";
 import { Changed, UiNode } from "~/lib/ui/UiNode";
 import { UiStyle } from "~/lib/ui/UiStyle";
+import { HistoryState } from "~/lib/ui/HistoryManager";
+
+const PARAM_SAVED_FOCUS = "__SAVED_FOCUS__";
 
 export class UiPageNode extends UiNode {
 
@@ -12,33 +15,58 @@ export class UiPageNode extends UiNode {
 
 	private _vScrollables: Properties<Scrollable[]>;
 
-	private _arguments: Properties<string>;
+	private _lastHistoryState: HistoryState|null;
 
 	public clone():UiPageNode {
 		return new UiPageNode(this);
 	}
 
-	constructor(app:UiApplication, args?:Properties<string>);
+	constructor(app:UiApplication, name:string);
 	constructor(src:UiPageNode);
-	public constructor(param:any, args?:Properties<string>) {
+	public constructor(param:any, name?:string) {
 		if (param instanceof UiPageNode) {
 			super(param as UiPageNode);
 			let src = param as UiPageNode;
-			this._arguments = src._arguments;
+			this._lastHistoryState = src._lastHistoryState;
 		} else {
-			super(param as UiApplication);
-			this._arguments = (args === undefined) ? {} : args;
+			super(param as UiApplication, name as string);
+			this._lastHistoryState = null;
 		}
 		this._hScrollables = {};
 		this._vScrollables = {};
 	}
 
-	public getPageNode():UiPageNode|null {
-		return this;
+	public getHistoryState():HistoryState {
+		let state:HistoryState = new HistoryState(this.name, {});
+		let app = this.application;
+		let focus = app.getFocusOf(this);
+		if (focus != null) {
+			let nodePath = focus.getNodePath();
+			state.arguments[PARAM_SAVED_FOCUS] = nodePath;
+		}
+		return state;
 	}
 
-	protected arguments(): Properties<string> {
-		return this._arguments;
+	public setHistoryState(state:HistoryState):void {
+		let app = this.application;
+		let nodePath = state.arguments[PARAM_SAVED_FOCUS]
+		if (nodePath !== undefined) {
+			let focus = this.findNodeByPath(nodePath);
+			if (focus != null) {
+				app.setFocus(focus);
+			}
+		}
+		this._lastHistoryState = state;
+	}
+
+	public setHistoryStateAgain():void {
+		if (this._lastHistoryState != null) {
+			this.setHistoryState(this._lastHistoryState);
+		}
+	}
+
+	public getPageNode():UiPageNode|null {
+		return this;
 	}
 
 	public onMount():void {

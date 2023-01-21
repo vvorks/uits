@@ -22,7 +22,7 @@ export class UiScrollbar extends UiNode {
 		return new UiScrollbar(this);
 	}
 
-	constructor(app:UiApplication, name?:string);
+	constructor(app:UiApplication, name:string);
 	constructor(src:UiScrollbar);
 	public constructor(param:any, name?:string) {
 		if (param instanceof UiScrollbar) {
@@ -35,7 +35,7 @@ export class UiScrollbar extends UiNode {
 			this._lastCount = src._lastCount;
 			this._lastRatio = src._lastRatio;
 		} else {
-			super(param as UiApplication, name);
+			super(param as UiApplication, name as string);
 			let app = param as UiApplication;
 			this._mainThumb = new UiNode(app, COMPONENT_THUMB);
 			this._subThumb = new UiNode(app, COMPONENT_THUMB);

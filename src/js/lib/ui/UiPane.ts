@@ -18,7 +18,7 @@ export class UiPane extends UiNode {
 		return new UiPane(this);
 	}
 
-	constructor(app:UiApplication, name?:string);
+	constructor(app:UiApplication, name:string);
 	constructor(src:UiPane);
 	public constructor(param:any, name?:string) {
 		if (param instanceof UiPane) {
@@ -28,7 +28,7 @@ export class UiPane extends UiNode {
 			this._shrinkedSize = src._shrinkedSize;
 			this._expandedSize = src._expandedSize;
 		} else {
-			super(param, name);
+			super(param as UiApplication, name as string);
 			this._location = "center";
 			this._shrinkedSize = new CssLength("0px");
 			this._expandedSize = new CssLength("0px");
