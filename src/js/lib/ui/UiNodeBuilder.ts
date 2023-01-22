@@ -160,6 +160,13 @@ export class UiNodeBuilder<T extends UiNode> {
 		return this;
 	}
 
+	public outerMargin(value:boolean):UiNodeBuilder<T> {
+		if (this._node instanceof UiListNode) {
+			(this._node as UiListNode).outerMargin = value;
+		}
+		return this;
+	}
+
 	public location(value:UiLocation):UiNodeBuilder<T> {
 		if (this._node instanceof UiPane) {
 			(this._node as UiPane).location = value;

@@ -144,6 +144,13 @@ class UiRecord extends UiNode implements DataHolder {
 		return this.owner.getIndexOfChild(this);
 	}
 
+	protected getWrappedRect(): Rect {
+		if (this.owner.outerMargin) {
+			return super.getWrappedRect();
+		}
+		return new Rect(this.getRect());
+	}
+
 }
 
 /**
@@ -154,7 +161,8 @@ enum ListFlags {
 	LOOP			= 0x00000002,
 	ITEM_FOCUSABLE	= 0x00000004,
 	SCROLL_LOCK		= 0x00000008,
-	INITIAL			= VERTICAL|LOOP
+	OUTER_MARGIN	= 0x00000010,
+	INITIAL			= VERTICAL|LOOP|OUTER_MARGIN
 }
 
 /**
@@ -255,6 +263,14 @@ export class UiListNode extends UiNode {
 	public set scrollLock(on:boolean) {
 		Asserts.assume(this._template == null);
 		this.setListFlag(ListFlags.SCROLL_LOCK, on);
+	}
+
+	public get outerMargin():boolean {
+		return this.getListFlag(ListFlags.OUTER_MARGIN);
+	}
+
+	public set outerMargin(on:boolean) {
+		this.setListFlag(ListFlags.OUTER_MARGIN, on);
 	}
 
 	protected getListFlag(bit:ListFlags):boolean {
@@ -466,12 +482,14 @@ export class UiListNode extends UiNode {
 		let rTemplate = this.getTemplateRect();
 		let n = this._recsPerPage + MARGIN * 2;
 		if (this.vertical) {
+			let extraMargin = (!this.outerMargin) ? rTemplate.top : 0;
 			this.scrollLeft = "0px";
-			this.scrollTop = `${this._recSize * MARGIN}px`;
+			this.scrollTop = `${this._recSize * MARGIN + extraMargin}px`;
 			this.scrollWidth = "0px";
 			this.scrollHeight = `${this._recSize * n + rTemplate.top}px`;
 		} else {
-			this.scrollLeft = `${this._recSize * MARGIN}px`;
+			let extraMargin = (!this.outerMargin) ? rTemplate.left : 0;
+			this.scrollLeft = `${this._recSize * MARGIN + extraMargin}px`;
 			this.scrollTop = "0px";
 			this.scrollWidth = `${this._recSize * n + rTemplate.left}px`;
 			this.scrollHeight = "0px";
@@ -531,13 +549,18 @@ export class UiListNode extends UiNode {
 	}
 
 	protected adjustScroll() {
+		if (this._templateRect == null) {
+			throw new StateError();
+		}
 		let count = this.count();
 		if (count < this._recsPerPage) {
 			let margin = this._recSize * MARGIN;
 			if (this.vertical) {
-				this.scrollTop = `${margin}px`;
+				let extraMargin = (!this.outerMargin) ? this._templateRect.top : 0;
+				this.scrollTop = `${margin + extraMargin}px`;
 			} else {
-				this.scrollLeft = `${margin}px`;
+				let extraMargin = (!this.outerMargin) ? this._templateRect.left : 0;
+				this.scrollLeft = `${margin + extraMargin}px`;
 			}
 		}
 	}
@@ -716,10 +739,11 @@ export class UiListNode extends UiNode {
 			let scroll = this.getScrollRect();
 			let rTemplate = this.getTemplateRect();
 			let margin = this._recSize * MARGIN;
+			let extraMargin = (!this.outerMargin) ? rTemplate.top : 0;
 			let index = this._pageTopIndex;
-			let offset = index * this._recSize + (scroll.y - margin);
+			let offset = index * this._recSize + (scroll.y - margin - extraMargin);
 			let limit = this._pageSize;
-			let totalSize = count * this._recSize + rTemplate.top;
+			let totalSize = count * this._recSize + rTemplate.top - extraMargin * 2;
 			page.dispatchVScroll(this.vScrollName, this, offset, limit, totalSize);
 		} else {
 			page.dispatchVScroll(this.vScrollName, this, 0, this._pageSize, this._pageSize);
@@ -737,10 +761,11 @@ export class UiListNode extends UiNode {
 			let scroll = this.getScrollRect();
 			let rTemplate = this.getTemplateRect();
 			let margin = this._recSize * MARGIN;
+			let extraMargin = (!this.outerMargin) ? rTemplate.top : 0;
 			let index = this._pageTopIndex;
-			let offset = index * this._recSize + (scroll.x - margin);
+			let offset = index * this._recSize + (scroll.x - margin - extraMargin);
 			let limit = this._pageSize;
-			let totalSize = count * this._recSize + rTemplate.left;
+			let totalSize = count * this._recSize + rTemplate.left - extraMargin * 2;
 			page.dispatchHScroll(this.hScrollName, this, offset, limit, totalSize);
 		} else {
 			page.dispatchHScroll(this.hScrollName, this, 0, this._pageSize, this._pageSize);
