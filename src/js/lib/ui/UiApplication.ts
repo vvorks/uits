@@ -513,7 +513,7 @@ export class UiApplication {
 		root.addEventListener("dblclick", (evt) => {this.processMouseDoubleClick(evt)});
 		root.addEventListener("wheel", (evt) => {this.processMouseWheel(evt)});
 		window.addEventListener("resize", (evt) => {this.processResize(evt)});
-		window.addEventListener("popstate", (evt) => {this._history.popstate(evt.state)});
+		window.addEventListener("popstate", (evt) => {this._history.popState(evt.state)});
 		window.addEventListener('hashchange', (evt) => {this.processHashChanged()});
 		window.setTimeout(()=>{this.processIntervalTasks()}, this.getNextInterval());
 		if (!!window.requestAnimationFrame) {
@@ -1408,7 +1408,6 @@ export class UiApplication {
 				this._history.saveHistoryStates(oldStates);
 			}
 			let newStates = this._history.loadHistoryStates(hash);
-			Logs.info("newStates %s", JSON.stringify(newStates));
 			this.transit(newStates[0]); //仮
 			//後処理
 			this.postProcessEvent(null, UiResult.AFFECTED);
@@ -1425,9 +1424,14 @@ export class UiApplication {
 		this._history.forward();
 	}
 
-	public go(newTag:string, args:Properties<string>, caller:UiPageNode|null = null):UiResult {
-		this._history.go(newTag, args);
-		return UiResult.EATEN;
+	public forwardTo(newTag:string, args:Properties<string>):UiResult {
+		this._history.forwardTo(newTag, args);
+		return UiResult.AFFECTED;
+	}
+
+	public restartTo(newTag:string, args:Properties<string>):UiResult {
+		this._history.restartTo(newTag, args);
+		return UiResult.AFFECTED;
 	}
 
 	public processDataSourceChanged(ds:DataSource):void {
@@ -1524,12 +1528,12 @@ export class UiApplication {
 		return result;
 	}
 
-	public scrollFor(curr:UiNode, next:UiNode):UiResult {
+	public scrollFor(curr:UiNode|null, next:UiNode, animationTime?: number):UiResult {
 		let result = UiResult.IGNORED;
 		let target = next;
 		let parent = next.parent;
 		while (parent != null) {
-			result |= parent.scrollFor(curr, target);
+			result |= parent.scrollFor(curr, target, animationTime);
 			target = parent;
 			parent = target.parent;
 		}

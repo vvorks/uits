@@ -53,6 +53,7 @@ export class UiPageNode extends UiNode {
 		if (nodePath !== undefined) {
 			let focus = this.findNodeByPath(nodePath);
 			if (focus != null) {
+				app.scrollFor(null, focus, 0);
 				app.setFocus(focus);
 			}
 		}

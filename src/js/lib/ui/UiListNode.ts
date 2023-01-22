@@ -602,9 +602,9 @@ export class UiListNode extends UiNode {
 		}
 	}
 
-	public scrollFor(curr:UiNode, next:UiNode):UiResult {
+	public scrollFor(curr:UiNode|null, next:UiNode, animationTime?:number):UiResult {
 		if (this.scrollLock) {
-			let currRec = this.getRecordOf(curr);
+			let currRec = curr != null ? this.getRecordOf(curr) : null;
 			let nextRec = this.getRecordOf(next);
 			if (currRec != null && nextRec != null) {
 				if (this._pageTopIndex < this.count() - this._recsPerPage) {
@@ -623,7 +623,7 @@ export class UiListNode extends UiNode {
 				}
 			}
 		}
-		return super.scrollFor(curr, next);
+		return super.scrollFor(curr, next, animationTime);
 	}
 
 	protected getRecordOf(node:UiNode):UiRecord|null {

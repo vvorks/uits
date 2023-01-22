@@ -2,7 +2,7 @@ import { Strings } from "~/lib/lang/Strings";
 
 export class Logs {
 
-	private static readonly NAME = "Function.getCaller";
+	private static readonly NAME = "Function.Logs.getCaller";
 
 	private static readonly DEPTH = 2; //message, error|info|warn|debug|verbose
 
@@ -32,7 +32,7 @@ export class Logs {
 
 	public static message(type:string, format:string, args:any[]):string {
 		let now = new Date();
-		let message = Strings.sprintf("%02d/%02d %02d:%02d:%02d.%03d %s %s",
+		let message = Strings.sprintf("%02d/%02d %02d:%02d:%02d.%03d %s %s at %s",
 			//now.getFullYear(),
 			now.getMonth() + 1,
 			now.getDate(),
@@ -42,7 +42,7 @@ export class Logs {
 			now.getMilliseconds(),
 			type,
 			Strings.vsprintf(format, args),
-			//Logs.getCaller()
+			Logs.getCaller()
 		);
 		return message;
 	}

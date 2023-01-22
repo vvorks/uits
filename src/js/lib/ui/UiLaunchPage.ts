@@ -19,7 +19,7 @@ export class UiLaunchPage extends UiPageNode {
 				.style(DEFAULT_STYLE).th(i*3,3).lw(0,10)
 				.focusable(true)
 				.textContent(key)
-				.listen((src, act)=>this.application.go(key, {}, this))
+				.listen((src, act)=>this.application.forwardTo(key, {}))
 				.leave();
 		}
 	}

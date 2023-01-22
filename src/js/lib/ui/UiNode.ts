@@ -1011,7 +1011,7 @@ export class UiNode implements Clonable<UiNode>, Scrollable {
 		return this.translateOn(result, ans);
 	}
 
-	public scrollFor(prev:UiNode, target:UiNode):UiResult {
+	public scrollFor(prev:UiNode|null, target:UiNode, animationTime?:number):UiResult {
 		if (!this.isAncestorOf(target)) {
 			return UiResult.IGNORED;
 		}
@@ -1035,14 +1035,14 @@ export class UiNode implements Clonable<UiNode>, Scrollable {
 			dy = 0;
 		}
 		if (dx != 0 || dy != 0) {
-			result |= this.scrollInside(dx, dy);
+			result |= this.scrollInside(dx, dy, animationTime);
 		}
 		return result;
 	}
 
-	public scrollInside(dx:number, dy:number):UiResult {
+	public scrollInside(dx:number, dy:number, animationTime?:number):UiResult {
 		let app = this.application;
-		let time = app.scrollAnimationTime;
+		let time = animationTime !== undefined ? animationTime : app.scrollAnimationTime;
 		let s = this.getViewRect();
 		let result;
 		if (time == 0) {

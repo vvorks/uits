@@ -1,4 +1,4 @@
-import { Logs, Properties, StateError } from "~/lib/lang";
+import { Logs, Properties } from "~/lib/lang";
 
 export class HistoryState {
 
@@ -83,8 +83,8 @@ class PageHistory {
 
 	private _states: HistoryState[];
 
-	public constructor(hash:string) {
-		this._states = [new HistoryState(hash)];
+	public constructor(initialState:HistoryState[]) {
+		this._states = initialState;
 	}
 
 	public getPageStates(): HistoryState[] {
@@ -101,6 +101,8 @@ type HistoryElement = {
 	index: number
 };
 
+type PostProc = () => void;
+
 export class HistoryManager {
 
 	private _index: number = 0;
@@ -109,27 +111,73 @@ export class HistoryManager {
 
 	private _hisotries: PageHistory[] = [];
 
+	private _postProcs: PostProc[] = [];
+
+	public constructor() {
+		//起動ページの履歴状態更新
+		window.history.replaceState({index: 0}, "");
+	}
+
 	public forward() {
+		Logs.info("forward");
 		window.history.forward();
 	}
 
 	public back() {
+		Logs.info("back");
 		window.history.back();
 	}
 
-	public go(tag: string, args: Properties<string>) {
-		let hash = new HistoryState(tag, args).hash;
-		window.history.pushState({index: this._index}, "");
-		window.location.hash = hash;
+	public restartTo(tag: string, args: Properties<string>) {
+		Logs.info("restartTo %s %s", tag, JSON.stringify(args));
+		let newState = new HistoryState(tag, args);
+		if (0 < this._hisotries.length) {
+			this._hisotries[0].setPageStates([newState]);
+		} else {
+			this._hisotries.push(new PageHistory([newState]));
+		}
+		let hash = newState.hash;
+		if (this._index > 0) {
+			//ブラウザの履歴機能で先頭ページに戻す
+			window.history.go(-this._index);
+			//go()は非同期なのでpopState()で後処理実行
+			this._postProcs.push(()=>{
+				//URL書き換え
+				window.location.replace(hash);
+			});
+		} else {
+			//URL書き換え
+			window.location.replace(hash);
+		}
 	}
 
-	public popstate(state:any):void {
-		Logs.info("popstate %s index %d length %d", JSON.stringify(state), this._index, this._hisotries.length);
+	public forwardTo(tag: string, args: Properties<string>) {
+		Logs.info("forwardTo %s %s", tag, JSON.stringify(args));
+		//新ページ情報を（事前に）記録
+		let newIndex = this._index + 1;
+		let newState = new HistoryState(tag, args);
+		this._hisotries[newIndex] = new PageHistory([newState]);
+		//（疑似）ページ遷移
+		let hash = newState.hash;
+		//hash書き換え（副作用として履歴が追加される）
+		window.location.hash = hash;
+		//（副作用で）追加された履歴のデータを更新
+		window.history.replaceState({index: newIndex} as HistoryElement, "", hash);
+	}
+
+	public popState(state:any):void {
 		if (state === undefined || state === null) {
 			this._nextIndex = this._index + 1;
 		} else {
 			let newState = (state as HistoryElement);
 			this._nextIndex = newState.index;
+		}
+		//go()後の後処理
+		if (this._postProcs.length > 0) {
+			for (let func of this._postProcs) {
+				func();
+			}
+			this._postProcs.splice(0);
 		}
 	}
 
@@ -141,17 +189,13 @@ export class HistoryManager {
 
 	public loadHistoryStates(hash: string):HistoryState[] {
 		let result:HistoryState[];
-		Logs.debug("restoreHistoryStates index %d length %d", this._index, this._hisotries.length);
 		this._index = this._nextIndex;
 		if (this._index < this._hisotries.length) {
 			result = this._hisotries[this._index].getPageStates();
 		} else {
-			this._hisotries.push(new PageHistory(hash));
+			this._hisotries.push(new PageHistory([new HistoryState(hash)]));
 			this._index = this._hisotries.length - 1;
 			result = this._hisotries[this._index].getPageStates();
-		}
-		for (let e of result) {
-			Logs.info("GOTO [%s] %s", e.tag, JSON.stringify(e.arguments));
 		}
 		return result;
 	}

@@ -1,5 +1,5 @@
 import
-	{ DataSource, UiCheckbox, UiListNode, UiNode, UiNodeBuilder, UiPageNode, UiScrollbar, UiTextField }
+	{ DataSource, UiCheckbox, UiListNode, UiNode, UiNodeBuilder, UiPageNode, UiScrollbar, UiTextButton, UiTextField }
 	from "~/lib/ui";
 import
 	{ GROUP_STYLE, DEFAULT_STYLE, LIST_STYLE, SB_STYLE }
@@ -12,7 +12,11 @@ export class HorizontalListPage extends UiPageNode {
 		let b = new UiNodeBuilder(this, "1rem");
 		b.inset(1).style(GROUP_STYLE);
 		{
-			b.enter(new UiNode(app, "north")).th(1,2).lr(1,1).style(DEFAULT_STYLE).focusable(true).leave();
+			b.enter(new UiTextButton(app, "north")).th(1,2).lr(1,1).style(DEFAULT_STYLE)
+				.focusable(true)
+				.textContent("go vlist")
+				.listen((src, act)=>this.application.forwardTo("vlist", {}))
+				.leave();
 			b.enter(new UiNode(app, "west")).tb(4,4).lw(1,2).style(DEFAULT_STYLE).focusable(true).leave();
 			{
 				b.enter(new UiListNode(app, "list")).tb(4,5).lr(4,4).style(LIST_STYLE)
