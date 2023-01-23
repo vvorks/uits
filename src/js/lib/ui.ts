@@ -16,6 +16,9 @@ export { UiListNode }
 import { UiTextNode } from "~/lib/ui/UiTextNode"
 export { UiTextNode };
 
+import { UiImageNode } from "~/lib/ui/UiImageNode"
+export { UiImageNode };
+
 import { UiTextField } from "~/lib/ui/UiTextField"
 export { UiTextField };
 

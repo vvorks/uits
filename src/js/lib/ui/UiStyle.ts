@@ -540,18 +540,30 @@ export class UiStyleBuilder {
 		return this;
 	}
 
-	public textColor(value:Color|null):UiStyleBuilder {
-		this._textColor = value;
+	public textColor(value:string|Color|null):UiStyleBuilder {
+		if (typeof value === "string") {
+			this._textColor = Colors.parse(value as string);
+		} else {
+			this._textColor = value;
+		}
 		return this;
 	}
 
-	public backgroundColor(value:Color|null):UiStyleBuilder {
-		this._backgroundColor = value;
+	public backgroundColor(value:string|Color|null):UiStyleBuilder {
+		if (typeof value === "string") {
+			this._backgroundColor = Colors.parse(value);
+		} else {
+			this._backgroundColor = value;
+		}
 		return this;
 	}
 
 	public backgroundImage(value:string|null):UiStyleBuilder {
-		this._backgroundImage = value;
+		if (value == null || value == "none") {
+			this._backgroundImage = null;
+		} else {
+			this._backgroundImage = value;
+		}
 		return this;
 	}
 
@@ -564,27 +576,42 @@ export class UiStyleBuilder {
 		return this;
 	}
 
+	private getOnlyBorderWidth(borderStyle:string): CssLength|null {
+		for (let e of borderStyle.split(" ")) {
+			if ("0123456789".indexOf(e.charAt(0)) >= 0) {
+				return new CssLength(e);
+			}
+		}
+		return null;
+	}
+
+	private getBorder(str:string|null): CssLength|null {
+		if (str == null) {
+			return null;
+		} else if (str.indexOf(" ") >= 0) {
+			return this.getOnlyBorderWidth(str);
+		} else {
+			return new CssLength(str);
+		}
+	}
+
 	public borderLeft(str:string|null):UiStyleBuilder {
-		let value:CssLength|null = (str == null ? null : new CssLength(str));
-		this._borderLeft = value;
+		this._borderLeft = this.getBorder(str);
 		return this;
 	}
 
 	public borderTop(str:string|null):UiStyleBuilder {
-		let value:CssLength|null = (str == null ? null : new CssLength(str));
-		this._borderTop = value;
+		this._borderTop = this.getBorder(str);
 		return this;
 	}
 
 	public borderRight(str:string|null):UiStyleBuilder {
-		let value:CssLength|null = (str == null ? null : new CssLength(str));
-		this._borderRight = value;
+		this._borderRight = this.getBorder(str);
 		return this;
 	}
 
 	public borderBottom(str:string|null):UiStyleBuilder {
-		let value:CssLength|null = (str == null ? null : new CssLength(str));
-		this._borderBottom = value;
+		this._borderBottom = this.getBorder(str);
 		return this;
 	}
 
@@ -626,26 +653,22 @@ export class UiStyleBuilder {
 	}
 
 	public borderRadiusTopLeft(str:string|null):UiStyleBuilder {
-		let value:CssLength|null = (str == null ? null : new CssLength(str));
-		this._borderRadiusTopLeft = value;
+		this._borderRadiusTopLeft = (str == null ? null : new CssLength(str));
 		return this;
 	}
 
 	public borderRadiusTopRight(str:string|null):UiStyleBuilder {
-		let value:CssLength|null = (str == null ? null : new CssLength(str));
-		this._borderRadiusTopRight = value;
+		this._borderRadiusTopRight = (str == null ? null : new CssLength(str));
 		return this;
 	}
 
 	public borderRadiusBottomLeft(str:string|null):UiStyleBuilder {
-		let value:CssLength|null = (str == null ? null : new CssLength(str));
-		this._borderRadiusBottomLeft = value;
+		this._borderRadiusBottomLeft = (str == null ? null : new CssLength(str));
 		return this;
 	}
 
 	public borderRadiusBottomRight(str:string|null):UiStyleBuilder {
-		let value:CssLength|null = (str == null ? null : new CssLength(str));
-		this._borderRadiusBottomRight = value;
+		this._borderRadiusBottomRight = (str == null ? null : new CssLength(str));
 		return this;
 	}
 
@@ -660,8 +683,7 @@ export class UiStyleBuilder {
 	}
 
 	public fontSize(str:string|null):UiStyleBuilder {
-		let value:CssLength|null = (str == null ? null : new CssLength(str));
-		this._fontSize = value;
+		this._fontSize = (str == null ? null : new CssLength(str));
 		return this;
 	}
 
@@ -671,8 +693,10 @@ export class UiStyleBuilder {
 	}
 
 	public lineHeight(str:string|null):UiStyleBuilder {
-		let value:CssLength|null = (str == null ? null : new CssLength(str, ""));
-		this._lineHeight = value;
+		if (str == "normal") {
+			str = "1.2";
+		}
+		this._lineHeight = (str == null ? null : new CssLength(str, ""));
 		return this;
 	}
 

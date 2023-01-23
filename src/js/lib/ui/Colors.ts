@@ -1,3 +1,5 @@
+import { ParamError, Strings } from "../lang";
+
 export type Color = number;
 
 export class Colors {
@@ -167,5 +169,39 @@ export class Colors {
 			//transparent color
 			return "rgba(0,0,0,0)";
 		}
+	}
+
+	public static parse(str:string):Color {
+		let color:Color;
+		str = str.trim();
+		if (str.startsWith("#") && str.length == 4) {
+			//#RGB format
+			let r = parseInt(Strings.repeat(str.substring(1, 2), 2), 16);
+			let g = parseInt(Strings.repeat(str.substring(2, 3), 2), 16);
+			let b = parseInt(Strings.repeat(str.substring(3, 4), 2), 16);
+			color = (r << 16) | (g << 8) | (b << 0);
+		} else if (str.startsWith("#") && str.length == 7) {
+			//#RRGGBB format
+			let r = parseInt(Strings.repeat(str.substring(1, 3), 2), 16);
+			let g = parseInt(Strings.repeat(str.substring(3, 5), 2), 16);
+			let b = parseInt(Strings.repeat(str.substring(5, 7), 2), 16);
+			color = 0xFF000000 | (r << 16) | (g << 8) | (b << 0);
+		} else if (str.startsWith("rgba(")) {
+			let values = str.substring(5, str.length - 1).split(",");
+			let r = parseInt(values[0], 10);
+			let g = parseInt(values[1], 10);
+			let b = parseInt(values[2], 10);
+			let a = parseInt(values[3], 10);
+			color = ((a * 0xFF) << 24) | (r << 16) | (g << 8) | (b << 0);
+		} else if (str.startsWith("rgb(")) {
+			let values = str.substring(5, str.length - 1).split(",");
+			let r = parseInt(values[0], 10);
+			let g = parseInt(values[1], 10);
+			let b = parseInt(values[2], 10);
+			color = 0xFF000000 | (r << 16) | (g << 8) | (b << 0);
+		} else {
+			throw new ParamError();
+		}
+		return color;
 	}
 }

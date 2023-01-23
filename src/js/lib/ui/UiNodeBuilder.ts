@@ -8,6 +8,7 @@ import { ActionListener, UiLocation, UiNode } from "~/lib/ui/UiNode";
 import { UiStyle } from "~/lib/ui/UiStyle";
 import { UiTextNode } from "~/lib/ui/UiTextNode";
 import { UiMenu } from "~/lib/ui/UiMenu";
+import { UiImageNode } from "./UiImageNode";
 
 type Size = string|number;
 
@@ -73,6 +74,19 @@ export class UiNodeBuilder<T extends UiNode> {
 		return this;
 	}
 
+	public bounds(
+		left:Size, top:Size,
+		width:Size, height:Size
+	) {
+		this._node.left = this.toValue(left);
+		this._node.top = this.toValue(top);
+		this._node.right = null;
+		this._node.bottom = null;
+		this._node.width = this.toValue(width);
+		this._node.height = this.toValue(height);
+		return this;
+	}
+
 	public locate(
 		left:Size, top:Size,
 		right:Size, bottom: Size,
@@ -120,6 +134,13 @@ export class UiNodeBuilder<T extends UiNode> {
 	public textContent(value:Value):UiNodeBuilder<T> {
 		if (this._node instanceof UiTextNode) {
 			(this._node as UiTextNode).textContent = value;
+		}
+		return this;
+	}
+
+	public imageContent(value:Value):UiNodeBuilder<T> {
+		if (this._node instanceof UiImageNode) {
+			(this._node as UiImageNode).imageContent = value;
 		}
 		return this;
 	}
