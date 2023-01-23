@@ -11,6 +11,7 @@ import { UiApplication, UiAxis } from "~/lib/ui/UiApplication";
 import { Flags, UiNode, UiResult } from "~/lib/ui/UiNode";
 import { UiPageNode } from "~/lib/ui/UiPageNode";
 import { UiStyle, UiStyleBuilder } from "~/lib/ui/UiStyle";
+import { UiScrollable } from "./UiScrollable";
 
 /**
  * レコードノード用スタイル
@@ -168,7 +169,7 @@ enum ListFlags {
 /**
  * 垂直及び水平の仮想データリストノード
  */
-export class UiListNode extends UiNode {
+export class UiListNode extends UiScrollable {
 
 	private _listFlags:number;
 

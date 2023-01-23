@@ -672,8 +672,12 @@ export class UiStyleBuilder {
 		return this;
 	}
 
-	public borderColor(value:Color|null):UiStyleBuilder {
-		this._borderColor = value;
+	public borderColor(value:string|Color|null):UiStyleBuilder {
+		if (typeof value === "string") {
+			this._borderColor = Colors.parse(value as string);
+		} else {
+			this._borderColor = value;
+		}
 		return this;
 	}
 

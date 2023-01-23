@@ -1006,66 +1006,13 @@ export class UiNode implements Clonable<UiNode>, Scrollable {
 		return rMe.inflate(dLeft, dTop, dRight, dBottom);
 	}
 
-	protected getWrappedRectOn(ans:UiNode):Rect {
+    public scrollFor(prev:UiNode|null, target:UiNode, animationTime?:number):UiResult {
+		return UiResult.IGNORED;
+	}
+
+	public getWrappedRectOn(ans:UiNode):Rect {
 		let result = this.getWrappedRect();
 		return this.translateOn(result, ans);
-	}
-
-	public scrollFor(prev:UiNode|null, target:UiNode, animationTime?:number):UiResult {
-		if (!this.isAncestorOf(target)) {
-			return UiResult.IGNORED;
-		}
-		let result:UiResult = UiResult.IGNORED;
-		let r = target.getWrappedRectOn(this);
-		let s = this.getViewRect();
-		let dx:number;
-		let dy:number;
-		if (r.left < s.left) {
-			dx = -(s.left - r.left + 0);
-		} else if (r.right > s.right) {
-			dx = +(r.right - s.right + 0);
-		} else {
-			dx = 0;
-		}
-		if (r.top < s.top) {
-			dy = -(s.top - r.top + 0);
-		} else if (r.bottom > s.bottom) {
-			dy = +(r.bottom - s.bottom + 0);
-		} else {
-			dy = 0;
-		}
-		if (dx != 0 || dy != 0) {
-			result |= this.scrollInside(dx, dy, animationTime);
-		}
-		return result;
-	}
-
-	public scrollInside(dx:number, dy:number, animationTime?:number):UiResult {
-		let app = this.application;
-		let time = animationTime !== undefined ? animationTime : app.scrollAnimationTime;
-		let s = this.getViewRect();
-		let result;
-		if (time == 0) {
-			this.setScroll(s.left + dx, s.top + dy, 1.0);
-			result = UiResult.AFFECTED;
-		} else {
-			app.runAnimation(this, 1, time, false, (step:number) => {
-				let sx = s.left + (dx * Math.min(step, 1.0));
-				let sy = s.top  + (dy * Math.min(step, 1.0));
-				this.setScroll(sx, sy, step);
-				return step >= 1.0 ? UiResult.EXIT : UiResult.EATEN;
-			});
-			result = UiResult.IGNORED;
-		}
-		return result;
-	}
-
-	protected setScroll(x:number, y:number, step:number):void {
-		this.scrollLeft = `${x}px`;
-		this.scrollTop = `${y}px`;
-		if (step >= 1.0) {
-			this.application.updateAxis(this);
-		}
 	}
 
 	public get mounted():boolean {
@@ -1471,7 +1418,7 @@ export class UiNode implements Clonable<UiNode>, Scrollable {
 	protected ensureDomElement():HTMLElement|null {
 		if (!this.binded) {
 			this._domElement = this.createDomElement(this, "div");
-			this._domElement.id = "" + this._id;
+			this._domElement.id = "" + this._id + ":" + this.name;
 			this.binded = true;
 		}
 		return this._domElement;

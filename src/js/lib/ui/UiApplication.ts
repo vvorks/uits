@@ -124,7 +124,7 @@ class LivePage {
 		if (axis & UiAxis.Y) {
 			this.yAxis = rect.top;
 		}
-		Logs.info("focus %s axis %d,%d", this._focusNode.name, this.xAxis, this.yAxis);
+		Logs.info("focus %s axis %d,%d", this._focusNode.getNodePath(), this.xAxis, this.yAxis);
 		return result;
 	}
 

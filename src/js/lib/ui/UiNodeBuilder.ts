@@ -25,8 +25,10 @@ export class UiNodeBuilder<T extends UiNode> {
 		this._defaultLength = new CssLength(len);
 	}
 
-	private toValue(s:Size):string {
-		if (typeof s == "string") {
+	private toValue(s:Size|null):string|null {
+		if (s == null) {
+			return null;
+		} else if (typeof s == "string") {
 			return s as string;
 		} else if (typeof s == "number") {
 			let v = (s as number) * this._defaultLength.value;
@@ -88,9 +90,9 @@ export class UiNodeBuilder<T extends UiNode> {
 	}
 
 	public locate(
-		left:Size, top:Size,
-		right:Size, bottom: Size,
-		width:Size, height:Size
+		left:Size|null, top:Size|null,
+		right:Size|null, bottom: Size|null,
+		width:Size|null, height:Size|null
 	):UiNodeBuilder<T> {
 		this._node.left = this.toValue(left);
 		this._node.top = this.toValue(top);
@@ -102,7 +104,7 @@ export class UiNodeBuilder<T extends UiNode> {
 	}
 
 	public inset(v:Size):UiNodeBuilder<T> {
-		this._node.inset = this.toValue(v);
+		this._node.inset = this.toValue(v) as string;
 		return this;
 	}
 
@@ -207,8 +209,8 @@ export class UiNodeBuilder<T extends UiNode> {
 	public flexSize(size1:Size, size2:Size):UiNodeBuilder<T> {
 		if (this._node instanceof UiPane) {
 			(this._node as UiPane).setFlexSize(
-				this.toValue(size1),
-				this.toValue(size2));
+				this.toValue(size1) as string,
+				this.toValue(size2) as string);
 		}
 		return this;
 	}
