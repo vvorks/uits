@@ -90,7 +90,7 @@ class UiKeytop extends UiTextNode {
 			let src = param as UiKeytop;
 			this._info = src._info;
 		} else {
-			let app = param as UiApplication;
+			super(param as UiApplication, (info as KeyInfo).text);
 			this._info = info as KeyInfo;
 		}
 		this.textContent = this._info.text;

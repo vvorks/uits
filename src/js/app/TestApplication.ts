@@ -140,7 +140,8 @@ export class TestApplication extends UiApplication {
 					},
 					"d": (i % 2) == 0 ? LONG_NAME_JA : LONG_NAME_ES,
 					"e": false,
-					"f": (i % 3) + 1
+					"f": (i % 3) + 1,
+					"g": "abc".charAt(i % 3) ,
 				});
 				date = Dates.getNextMonth(date);
 			}

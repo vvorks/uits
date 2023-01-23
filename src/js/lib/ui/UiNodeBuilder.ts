@@ -1,5 +1,5 @@
 import
-	{ Predicate, Types, Value }
+	{ Predicate, Properties, Types, Value }
 	from "~/lib/lang";
 import { UiPane } from "~/lib/ui/UiPane";
 import { CssLength } from "~/lib/ui/CssLength";
@@ -9,6 +9,7 @@ import { UiStyle } from "~/lib/ui/UiStyle";
 import { UiTextNode } from "~/lib/ui/UiTextNode";
 import { UiMenu } from "~/lib/ui/UiMenu";
 import { UiImageNode } from "./UiImageNode";
+import { UiImageLookupField } from "./UiImageLookupField";
 
 type Size = string|number;
 
@@ -143,6 +144,13 @@ export class UiNodeBuilder<T extends UiNode> {
 	public imageContent(value:Value):UiNodeBuilder<T> {
 		if (this._node instanceof UiImageNode) {
 			(this._node as UiImageNode).imageContent = value;
+		}
+		return this;
+	}
+
+	public lookupTable(table: Properties<any>):UiNodeBuilder<T> {
+		if (this._node instanceof UiImageLookupField) {
+			(this._node as UiImageLookupField).lookupTable = table;
 		}
 		return this;
 	}

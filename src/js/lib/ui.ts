@@ -34,6 +34,9 @@ export { UiTextButton };
 import { UiImageField } from "~/lib/ui/UiImageField"
 export { UiImageField };
 
+import { UiImageLookupField } from "~/lib/ui/UiImageLookupField"
+export { UiImageLookupField };
+
 import { UiCheckbox } from "~/lib/ui/UiCheckbox"
 export { UiCheckbox };
 

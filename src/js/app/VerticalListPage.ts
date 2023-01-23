@@ -1,5 +1,5 @@
 import
-	{ DataSource, UiCheckbox, UiListNode, UiLookupField, UiNode, UiNodeBuilder, UiPageNode, UiRadio, UiScrollbar, UiTextField, UiDateField, UiTextButton }
+	{ DataSource, UiCheckbox, UiListNode, UiLookupField, UiNode, UiNodeBuilder, UiPageNode, UiRadio, UiScrollbar, UiTextField, UiDateField, UiTextButton, UiImageLookupField }
 	from "~/lib/ui";
 import
 	{ GROUP_STYLE, DEFAULT_STYLE, LIST_STYLE, SB_STYLE }
@@ -29,7 +29,14 @@ export class VerticalListPage extends UiPageNode {
 					b.enter(new UiLookupField(app, "c")).th(3, 2).lw(11, 10)
 						.style(DEFAULT_STYLE).focusable(true).dataSource("sample2")
 						.leave();
-					b.enter(new UiTextField(app, "d")).th(1, 4).lr(21,  5)
+					b.enter(new UiImageLookupField(app, "g")).th(1, 4).lw(21,  5)
+						.style(DEFAULT_STYLE).focusable(false)
+						.lookupTable({
+							"a": "hokusai1.jpg",
+							"b": "hokusai2.jpg",
+							"c": "hokusai3.jpg",
+						}).leave();
+					b.enter(new UiTextField(app, "d")).th(1, 4).lr(26,  5)
 							.style(DEFAULT_STYLE).focusable(true).leave();
 					b.enter(new UiCheckbox(app, "e")).th(1, 1).rw( 1,  4)
 							.style(DEFAULT_STYLE).focusable(true).leave();
