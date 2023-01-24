@@ -14,8 +14,16 @@ export class VolumeToast extends UiPageNode {
 
 	protected initialize():void {
 		let app = this.application;
-		let b = new UiNodeBuilder(this, "1rem").style(TOAST_STYLE).bh(2, 5).rw(2,15);
-		b.enter(new UiTextNode(app, "test")).style(DEFAULT_STYLE).inset(1).leave();
+		let b = new UiNodeBuilder("1rem")
+		b.item(this)
+			.style(TOAST_STYLE)
+			.locate(null, null, 2, 2, 15, 5);
+		b.child(b=>{
+			b.item(new UiTextNode(app, "test"))
+				.style(DEFAULT_STYLE)
+				.inset(1)
+				;
+		});
 		(this.findNodeByPath("test") as UiTextNode).textContent = this._value;
 		this.application.runAfter(this, VOLUME_TIMEOUT_ID, VOLUME_TIMEOUT_MSEC, ()=>this.onTimeout());
 	}

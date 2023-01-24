@@ -142,33 +142,38 @@ class UiDatePopup extends UiPageNode {
 		let bom = Dates.getBeginningOfMonth(arg);
 		let lm  = Dates.getLastMonth(bom);
 		let top = Dates.addDay(lm, -lm.getDay());
-		let b = new UiNodeBuilder(this, "1px");
 		const UNIT = 24;
-		//レイアウト定義
-		b.enter(new UiNode(app, "frame")).inset(0);
-		b.enter(new UiMonthNode(app, "month")).style(DEFAULT_STYLE).th(0,1*UNIT).lr(0, 0).focusable(true)
-			.listen((src,act,arg)=>this.watchMonth(src,act,arg))
-			.leave();
-		//曜日行
-		for (let c = 0; c < WEEKS.length; c++) {
-			b.enter(new UiTextNode(app, "week"))
+		let b = new UiNodeBuilder("1px");
+		b.item(this).child(b=>{
+			//レイアウト定義
+			b.item(new UiNode(app, "frame")).inset(0);
+			b.item(new UiMonthNode(app, "month"))
 				.style(DEFAULT_STYLE)
-				.th(1*UNIT,1*UNIT).lw(c*UNIT,1*UNIT)
-				.textContent(WEEKS[c])
-				.leave();
-		}
-		//日付ブロック
-		b.enter(new UiNode(app, "days")).style(GROUP_STYLE).th(2*UNIT,6*UNIT).lw(0,WEEKS.length*UNIT);
-		for (let i = 0; i < WEEKS.length * 6; i++) {
-			const day = Dates.addDay(top, i);
-			b.enter(new UiDateNode(app, "day"))
-				.style(SMALL_STYLE)
-				.th(Math.floor(i/7)*UNIT,1*UNIT).lw(Math.floor(i%7)*UNIT,1*UNIT)
+				.locate(0, 0, 0, null, null, 1*UNIT)
 				.focusable(true)
-				.listen((src,act,arg)=>this.watchDate(src,act,arg))
-				.leave();
-		}
-		b.leave();
+				.listen((src,act,arg)=>this.watchMonth(src,act,arg));
+			//曜日行
+			for (let c = 0; c < WEEKS.length; c++) {
+				b.item(new UiTextNode(app, "week"))
+					.style(DEFAULT_STYLE)
+					.bounds(c*UNIT, 1*UNIT, 1*UNIT, 1*UNIT)
+					.textContent(WEEKS[c]);
+			}
+			//日付ブロック
+			b.item(new UiNode(app, "days"))
+				.style(GROUP_STYLE)
+				.locate(0, 2*UNIT, null, null, WEEKS.length*UNIT, 6*UNIT);
+			b.child(b=>{
+				for (let i = 0; i < WEEKS.length * 6; i++) {
+					const day = Dates.addDay(top, i);
+					b.item(new UiDateNode(app, "day"))
+						.style(SMALL_STYLE)
+						.bounds(Math.floor(i%7)*UNIT, Math.floor(i/7)*UNIT, 1*UNIT, 1*UNIT)
+						.focusable(true)
+						.listen((src,act,arg)=>this.watchDate(src,act,arg));
+				}
+			});
+		});
 		//位置設定
 		let rOwner = this._owner.getRectOnRoot();
 		let rPopup = new Rect().locate(0, 0, 7*UNIT, 8*UNIT);

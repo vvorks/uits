@@ -11,40 +11,67 @@ export class GridPage extends UiPageNode {
 		let app = this.application;
 		const ROW = 30;
 		const COL = 30;
-		let b = new UiNodeBuilder(this, "1rem").style(GROUP_STYLE).inset(1);
-		//行ヘッダ
-		b.enter(new UiScrollable(app, "rowHeader")).style(GROUP_STYLE).th(0, 3).lr(10, 1).hscroll("h");
-		for (let col = 0; col < COL; col++) {
-			b.enter(new UiTextNode(app, "rowHeaderColumn" + col)).style(DEFAULT_STYLE).tb(0, 0).lw(col*10, 10);
-			b.focusable(false);
-			b.textContent(`{{col.${col}}}`);
-			b.leave();
-		}
-		b.leave();
-		//列ヘッダ
-		b.enter(new UiScrollable(app, "colHeader")).style(GROUP_STYLE).tb(3, 1).lw(0, 10).vscroll("v");
-		for (let row = 0; row < ROW; row++) {
-			b.enter(new UiTextNode(app, "colHeaderRow" + row)).style(DEFAULT_STYLE).lr(0, 0).th(row*3, 3);
-			b.focusable(false);
-			b.textContent(`{{row.${row}}}`);
-			b.leave();
-		}
-		b.leave();
-		//グリッド
-		b.enter(new UiScrollable(app, "grid")).style(GROUP_STYLE).tb(3, 1).lr(10, 1).hscroll("h").vscroll("v");
-		for (let row = 0; row < ROW; row++) {
-			for (let col = 0; col < COL; col++) {
-				b.enter(new UiTextNode(app, "cell" + row + "_" + col)).style(DEFAULT_STYLE).th(row*3,3).lw(col*10,10);
-				b.focusable(true);
-				b.textContent(`ITEM[${row},${col}]`);
-				b.leave();
-			}
-		}
-		b.leave();
-		//垂直スクロールバー
-		b.enter(new UiScrollbar(app, "vscroll")).style(SB_STYLE).tb(3, 1).rw(0, 1).vscroll("v").leave();
-		//水平スクロールバー
-		b.enter(new UiScrollbar(app, "hscroll")).style(SB_STYLE).bh(0, 1).lr(10, 1).hscroll("h").leave();
+		let b = new UiNodeBuilder("1rem")
+		b.item(this)
+			.style(GROUP_STYLE)
+			.inset(1);
+		b.child(b=>{
+			//行ヘッダ
+			b.item(new UiScrollable(app, "rowHeader"))
+				.style(GROUP_STYLE)
+				.locate(10, 0, 1, null, null, 3)
+				.hscroll("h");
+			b.child(b=>{
+				for (let col = 0; col < COL; col++) {
+					b.item(new UiTextNode(app, "rowHeaderColumn" + col))
+						.style(DEFAULT_STYLE)
+						.locate(col*10, 0, null, 0, 10, null)
+						.focusable(false)
+						.textContent(`{{col.${col}}}`)
+				}
+			});
+			//列ヘッダ
+			b.item(new UiScrollable(app, "colHeader"))
+				.style(GROUP_STYLE)
+				.locate(0, 3, null, 1, 10, null)
+				.vscroll("v");
+			b.child(b=>{
+				for (let row = 0; row < ROW; row++) {
+					b.item(new UiTextNode(app, "colHeaderRow" + row))
+						.style(DEFAULT_STYLE)
+						.locate(0, row*3, 0, null, null, 3)
+						.focusable(false)
+						.textContent(`{{row.${row}}}`)
+				}
+			});
+			//グリッド
+			b.item(new UiScrollable(app, "grid"))
+				.style(GROUP_STYLE)
+				.locate(10, 3, 1, 1, null, null)
+				.hscroll("h")
+				.vscroll("v");
+			b.child(b=>{
+				for (let row = 0; row < ROW; row++) {
+					for (let col = 0; col < COL; col++) {
+						b.item(new UiTextNode(app, "cell" + row + "_" + col))
+							.style(DEFAULT_STYLE)
+							.bounds(col*10, row*3, 10, 3)
+							.focusable(true)
+							.textContent(`ITEM[${row},${col}]`);
+					}
+				}
+			});
+			//垂直スクロールバー
+			b.item(new UiScrollbar(app, "vscroll"))
+				.style(SB_STYLE)
+				.locate(null, 3, 0, 1, 1, null)
+				.vscroll("v");
+			//水平スクロールバー
+			b.item(new UiScrollbar(app, "hscroll"))
+				.style(SB_STYLE)
+				.locate(10, null, 1, 0, null, 1)
+				.hscroll("h");
+		});
 	}
 
 }

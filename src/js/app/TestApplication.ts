@@ -209,7 +209,7 @@ export class TestApplication extends UiApplication {
 		case KeyCodes.PAGEUP:
 		case KeyCodes.PAGEDOWN:
 			//TODO 仮
-			result = (this.toast("#volume", {}) != null ? UiResult.EATEN : UiResult.IGNORED);
+			result = (this.toast("volume", {}) != null ? UiResult.EATEN : UiResult.IGNORED);
 			break;
 		default:
 			result = super.onKeyDown(target, key, ch, mod, at);

@@ -156,6 +156,8 @@ export class UiNode implements Clonable<UiNode>, Scrollable {
 
 	private _dataSourceName: string|null;
 
+	private _dataFieldName: string|null;
+
 	private _hScrollName: string|null;
 
 	private _vScrollName: string|null;
@@ -227,6 +229,7 @@ export class UiNode implements Clonable<UiNode>, Scrollable {
 			this._id = UiNode.issue();
 			this._name = src._name;
 			this._dataSourceName = src._dataSourceName;
+			this._dataFieldName = src._dataFieldName;
 			this._hScrollName = src._hScrollName;
 			this._vScrollName = src._vScrollName;
 			this._left = src._left;
@@ -260,6 +263,7 @@ export class UiNode implements Clonable<UiNode>, Scrollable {
 			this._id = UiNode.issue();
 			this._name = name as string;
 			this._dataSourceName = null;
+			this._dataFieldName = null;
 			this._hScrollName = null;
 			this._vScrollName = null;
 			this._left = null;
@@ -326,6 +330,18 @@ export class UiNode implements Clonable<UiNode>, Scrollable {
 		} else {
 			this._dataSourceName = name;
 		}
+	}
+
+	public get dataFieldName():string|null {
+		if (this._dataFieldName == null) {
+			return this._name;
+		} else {
+			return this._dataFieldName;
+		}
+	}
+
+	public set dataFieldName(name:string|null) {
+		this._dataFieldName = name;
 	}
 
 	public get hScrollName():string|null {

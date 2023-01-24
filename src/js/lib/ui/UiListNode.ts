@@ -115,7 +115,7 @@ class UiRecord extends UiNode implements DataHolder {
 		if (this._record[name] != value) {
 			this._record[name] = value;
 			if (this._sharedNames.has(name)) {
-				for (let c of this.getDescendantsIf((e) => (e.name == name))) {
+				for (let c of this.getDescendantsIf((e) => (e.dataFieldName == name))) {
 					c.onDataHolderChanged(this);
 				}
 			}

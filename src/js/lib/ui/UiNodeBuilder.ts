@@ -1,5 +1,5 @@
 import
-	{ Predicate, Properties, Types, Value }
+	{ Predicate, Properties, StateError, Types, Value }
 	from "~/lib/lang";
 import { UiPane } from "~/lib/ui/UiPane";
 import { CssLength } from "~/lib/ui/CssLength";
@@ -13,16 +13,16 @@ import { UiImageLookupField } from "./UiImageLookupField";
 
 type Size = string|number;
 
-export class UiNodeBuilder<T extends UiNode> {
+export class UiNodeBuilder {
 
-	private _root: T;
-	private _node: UiNode;
+	private _parent: UiNode|null;
+	private _node: UiNode|null;
 
 	private _defaultLength:CssLength;
 
-	public constructor(node:T, len:string = "1px") {
-		this._root = node;
-		this._node = node;
+	public constructor(len:string = "1px") {
+		this._parent = null;
+		this._node   = null;
 		this._defaultLength = new CssLength(len);
 	}
 
@@ -39,48 +39,13 @@ export class UiNodeBuilder<T extends UiNode> {
 		}
 	}
 
-	public lw(left:Size, width:Size):UiNodeBuilder<T> {
-		this._node.left = this.toValue(left);
-		this._node.width = this.toValue(width);
-		return this;
-	}
-
-	public rw(right:Size, width:Size):UiNodeBuilder<T> {
-		this._node.right = this.toValue(right);
-		this._node.width = this.toValue(width);
-		return this;
-	}
-
-	public lr(left:Size, right:Size, width?:Size):UiNodeBuilder<T> {
-		this._node.left = this.toValue(left);
-		this._node.right = this.toValue(right);
-		this._node.width = Types.isUndefined(width) ? null : this.toValue(width as Size);
-		return this;
-	}
-
-	public th(top:Size, height:Size):UiNodeBuilder<T> {
-		this._node.top = this.toValue(top);
-		this._node.height = this.toValue(height);
-		return this;
-	}
-
-	public bh(bottom:Size, height:Size):UiNodeBuilder<T> {
-		this._node.bottom = this.toValue(bottom);
-		this._node.height = this.toValue(height);
-		return this;
-	}
-
-	public tb(top:Size, bottom:Size, height?:Size):UiNodeBuilder<T> {
-		this._node.top = this.toValue(top);
-		this._node.bottom = this.toValue(bottom);
-		this._node.height = Types.isUndefined(height) ? null : this.toValue(height as Size);
-		return this;
-	}
-
 	public bounds(
 		left:Size, top:Size,
 		width:Size, height:Size
 	) {
+		if (this._node == null) {
+			throw new StateError();
+		}
 		this._node.left = this.toValue(left);
 		this._node.top = this.toValue(top);
 		this._node.right = null;
@@ -94,7 +59,10 @@ export class UiNodeBuilder<T extends UiNode> {
 		left:Size|null, top:Size|null,
 		right:Size|null, bottom: Size|null,
 		width:Size|null, height:Size|null
-	):UiNodeBuilder<T> {
+	):UiNodeBuilder {
+		if (this._node == null) {
+			throw new StateError();
+		}
 		this._node.left = this.toValue(left);
 		this._node.top = this.toValue(top);
 		this._node.right = this.toValue(right);
@@ -104,101 +72,160 @@ export class UiNodeBuilder<T extends UiNode> {
 		return this;
 	}
 
-	public inset(v:Size):UiNodeBuilder<T> {
+	public inset(v:Size):UiNodeBuilder {
+		if (this._node == null) {
+			throw new StateError();
+		}
 		this._node.inset = this.toValue(v) as string;
 		return this;
 	}
 
-	public style(value:UiStyle):UiNodeBuilder<T> {
+	public style(value:UiStyle):UiNodeBuilder {
+		if (this._node == null) {
+			throw new StateError();
+		}
 		this._node.style = value;
 		return this;
 	}
 
-	public visible(value:boolean):UiNodeBuilder<T> {
+	public visible(value:boolean):UiNodeBuilder {
+		if (this._node == null) {
+			throw new StateError();
+		}
 		this._node.visible = value;
 		return this;
 	}
 
-	public enable(value:boolean):UiNodeBuilder<T> {
+	public enable(value:boolean):UiNodeBuilder {
+		if (this._node == null) {
+			throw new StateError();
+		}
 		this._node.enable = value;
 		return this;
 	}
 
-	public focusable(value:boolean):UiNodeBuilder<T> {
+	public focusable(value:boolean):UiNodeBuilder {
+		if (this._node == null) {
+			throw new StateError();
+		}
 		this._node.focusable = value;
 		return this;
 	}
 
-	public editable(value:boolean):UiNodeBuilder<T> {
+	public editable(value:boolean):UiNodeBuilder {
+		if (this._node == null) {
+			throw new StateError();
+		}
 		this._node.editable = value;
 		return this;
 	}
 
-	public textContent(value:Value):UiNodeBuilder<T> {
+	public textContent(value:Value):UiNodeBuilder {
+		if (this._node == null) {
+			throw new StateError();
+		}
 		if (this._node instanceof UiTextNode) {
 			(this._node as UiTextNode).textContent = value;
 		}
 		return this;
 	}
 
-	public imageContent(value:Value):UiNodeBuilder<T> {
+	public imageContent(value:Value):UiNodeBuilder {
+		if (this._node == null) {
+			throw new StateError();
+		}
 		if (this._node instanceof UiImageNode) {
 			(this._node as UiImageNode).imageContent = value;
 		}
 		return this;
 	}
 
-	public lookupTable(table: Properties<any>):UiNodeBuilder<T> {
+	public lookupTable(table: Properties<any>):UiNodeBuilder {
+		if (this._node == null) {
+			throw new StateError();
+		}
 		if (this._node instanceof UiImageLookupField) {
 			(this._node as UiImageLookupField).lookupTable = table;
 		}
 		return this;
 	}
 
-	public dataSource(name:string):UiNodeBuilder<T> {
+	public dataSource(name:string):UiNodeBuilder {
+		if (this._node == null) {
+			throw new StateError();
+		}
 		this._node.dataSourceName = name;
 		return this;
 	}
 
-	public contentNode(path:string):UiNodeBuilder<T> {
+	public dataField(name:string):UiNodeBuilder {
+		if (this._node == null) {
+			throw new StateError();
+		}
+		this._node.dataFieldName = name;
+		return this;
+	}
+
+	public contentNode(path:string):UiNodeBuilder {
+		if (this._node == null) {
+			throw new StateError();
+		}
 		if (this._node instanceof UiMenu) {
 			(this._node as UiMenu).contentNodePath = path;
 		}
 		return this;
 	}
 
-	public vscroll(name:string):UiNodeBuilder<T> {
+	public vscroll(name:string):UiNodeBuilder {
+		if (this._node == null) {
+			throw new StateError();
+		}
 		this._node.vScrollName = name;
 		return this;
 	}
 
-	public hscroll(name:string):UiNodeBuilder<T> {
+	public hscroll(name:string):UiNodeBuilder {
+		if (this._node == null) {
+			throw new StateError();
+		}
 		this._node.hScrollName = name;
 		return this;
 	}
 
-	public loop(value:boolean):UiNodeBuilder<T> {
+	public loop(value:boolean):UiNodeBuilder {
+		if (this._node == null) {
+			throw new StateError();
+		}
 		if (this._node instanceof UiListNode) {
 			(this._node as UiListNode).loop = value;
 		}
 		return this;
 	}
 
-	public vertical(value:boolean):UiNodeBuilder<T> {
+	public vertical(value:boolean):UiNodeBuilder {
+		if (this._node == null) {
+			throw new StateError();
+		}
 		if (this._node instanceof UiListNode) {
 			(this._node as UiListNode).vertical = value;
 		}
 		return this;
 	}
 
-	public outerMargin(value:boolean):UiNodeBuilder<T> {
+	public outerMargin(value:boolean):UiNodeBuilder {
+		if (this._node == null) {
+			throw new StateError();
+		}
 		if (this._node instanceof UiListNode) {
 			(this._node as UiListNode).outerMargin = value;
 		}
 		return this;
 	}
 
-	public location(value:UiLocation):UiNodeBuilder<T> {
+	public location(value:UiLocation):UiNodeBuilder {
+		if (this._node == null) {
+			throw new StateError();
+		}
 		if (this._node instanceof UiPane) {
 			(this._node as UiPane).location = value;
 		} else if (this._node instanceof UiMenu) {
@@ -207,14 +234,20 @@ export class UiNodeBuilder<T extends UiNode> {
 		return this;
 	}
 
-	public extentionSizes(value:string[]):UiNodeBuilder<T> {
+	public extentionSizes(value:string[]):UiNodeBuilder {
+		if (this._node == null) {
+			throw new StateError();
+		}
 		if (this._node instanceof UiMenu) {
 			(this._node as UiMenu).extentionSizes = value;
 		}
 		return this;
 	}
 
-	public flexSize(size1:Size, size2:Size):UiNodeBuilder<T> {
+	public flexSize(size1:Size, size2:Size):UiNodeBuilder {
+		if (this._node == null) {
+			throw new StateError();
+		}
 		if (this._node instanceof UiPane) {
 			(this._node as UiPane).setFlexSize(
 				this.toValue(size1) as string,
@@ -223,36 +256,49 @@ export class UiNodeBuilder<T extends UiNode> {
 		return this;
 	}
 
-	public nextFocusFilter(func:Predicate<UiNode>):UiNodeBuilder<T> {
+	public nextFocusFilter(func:Predicate<UiNode>):UiNodeBuilder {
+		if (this._node == null) {
+			throw new StateError();
+		}
 		this._node.nextFocusFilter = func;
 		return this;
 	}
 
-	public scrollLock(on:boolean):UiNodeBuilder<T> {
+	public scrollLock(on:boolean):UiNodeBuilder {
+		if (this._node == null) {
+			throw new StateError();
+		}
 		if (this._node instanceof UiListNode) {
 			(this._node as UiListNode).scrollLock = on;
 		}
 		return this;
 	}
 
-	public listen(listener:ActionListener):UiNodeBuilder<T> {
+	public listen(listener:ActionListener):UiNodeBuilder {
+		if (this._node == null) {
+			throw new StateError();
+		}
 		this._node.addActionListener(listener);
 		return this;
 	}
 
-	public enter(child:UiNode):UiNodeBuilder<T> {
-		this._node.appendChild(child);
-		this._node = child;
+	public item(item:UiNode):UiNodeBuilder {
+		if (this._parent != null) {
+			this._parent.appendChild(item);
+		}
+		this._node = item;
 		return this;
 	}
 
-	public leave():UiNodeBuilder<T> {
-		this._node = this._node.parent as UiNode;
-		return this;
-	}
-
-	public build():T {
-		return this._root;
+	public child(func:(b:UiNodeBuilder)=>void) {
+		if (this._node == null) {
+			throw new StateError();
+		}
+		this._parent = this._node;
+		this._node = null;
+		func(this);
+		this._node = this._parent;
+		this._parent = this._node.parent as UiNode;
 	}
 
 }

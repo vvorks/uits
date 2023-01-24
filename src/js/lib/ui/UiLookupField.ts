@@ -135,13 +135,17 @@ export class UiLookupPopup extends UiPageNode {
 		this.height = `${rPopup.height}px`;
 		//Popup画面構築
 		let dsName = this._owner.dataSourceName as string;
-		let b = new UiNodeBuilder(this, "1px");
-		b.enter(new UiListNode(app, "list")).inset(0).dataSource(dsName);
-		{
-			b.enter(new UiLookupItem(app, "rec", this._owner)).lw(0, rOwner.width).th(0, rOwner.height)
-				.style(this._owner.style).leave();
-		}
-		b.leave();
+		let b = new UiNodeBuilder("1px");
+		b.item(this);
+		b.child(b=>{
+			b.item(new UiListNode(app, "list"))
+				.inset(0).dataSource(dsName);
+			b.child(b=>{
+				b.item(new UiLookupItem(app, "rec", this._owner))
+					.bounds(0, 0, rOwner.width, rOwner.height)
+					.style(this._owner.style);
+			});
+		});
 	}
 
 	protected start():void {

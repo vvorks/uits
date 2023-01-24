@@ -273,33 +273,50 @@ export class UiMenu extends UiNode {
 	private prepareBlocks():void {
 		this.removeChildren();
 		let app = this.application;
-		let b = new UiNodeBuilder(this, "1px");
-		switch (this._location) {
-		case "left":
-			b.enter(new UiNode(app, "1")).tb(0, 0).lw(0, this._defaultWidth).style(DEFAULT_STYLE).leave();
-			for (let i = 2; i <= this.levels; i++) {
-				b.enter(new UiNode(app, `${i}`)).tb(0, 0).lw(this._defaultWidth, 0).style(DEFAULT_STYLE).leave();
+		let b = new UiNodeBuilder("1px");
+		b.item(this);
+		b.child(b=>{
+			switch (this._location) {
+			case "left":
+				b.item(new UiNode(app, "1"))
+					.locate(0, 0, null, 0, this._defaultWidth, null)
+					.style(DEFAULT_STYLE);
+				for (let i = 2; i <= this.levels; i++) {
+					b.item(new UiNode(app, `${i}`))
+						.locate(this._defaultWidth, 0, null, 0, 0, null).style(DEFAULT_STYLE);
+				}
+				break;
+			case "right":
+				b.item(new UiNode(app, "1"))
+					.locate(null, 0, 0, 0, this._defaultWidth, null)
+					.style(DEFAULT_STYLE);
+				for (let i = 2; i <= this.levels; i++) {
+					b.item(new UiNode(app, `${i}`))
+						.locate(null, 0, this._defaultWidth, 0, 0, null)
+						.style(DEFAULT_STYLE);
+				}
+				break;
+			case "top":
+				b.item(new UiNode(app, "1"))
+					.locate(0, 0, 0, null, null, this._defaultHeight)
+					.style(DEFAULT_STYLE);
+				for (let i = 2; i <= this.levels; i++) {
+					b.item(new UiNode(app, `${i}`))
+						.locate(0, this._defaultHeight, 0, null, null, 0)
+						.style(DEFAULT_STYLE);
+				}
+				break;
+			case "bottom":
+				b.item(new UiNode(app, "1"))
+					.locate(0, null, 0, 0, null, this._defaultHeight);
+				for (let i = 2; i <= this.levels; i++) {
+					b.item(new UiNode(app, `${i}`))
+						.locate(0, null, 0, this._defaultHeight, null, 0)
+						.style(DEFAULT_STYLE);
+				}
+				break;
 			}
-			break;
-		case "right":
-			b.enter(new UiNode(app, "1")).tb(0, 0).rw(0, this._defaultWidth).style(DEFAULT_STYLE).leave();
-			for (let i = 2; i <= this.levels; i++) {
-				b.enter(new UiNode(app, `${i}`)).tb(0, 0).rw(this._defaultWidth, 0).style(DEFAULT_STYLE).leave();
-			}
-			break;
-		case "top":
-			b.enter(new UiNode(app, "1")).lr(0, 0).th(0, this._defaultHeight).style(DEFAULT_STYLE).leave();
-			for (let i = 2; i <= this.levels; i++) {
-				b.enter(new UiNode(app, `${i}`)).lr(0, 0).th(this._defaultHeight, 0).style(DEFAULT_STYLE).leave();
-			}
-			break;
-		case "bottom":
-			b.enter(new UiNode(app, "1")).lr(0, 0).bh(0, this._defaultHeight).leave();
-			for (let i = 2; i <= this.levels; i++) {
-				b.enter(new UiNode(app, `${i}`)).lr(0, 0).bh(this._defaultHeight, 0).style(DEFAULT_STYLE).leave();
-			}
-			break;
-		}
+		});
 	}
 
 	private relocateBlocks(level:number):void {

@@ -9,27 +9,36 @@ export class SlidePage extends UiPageNode {
 
 	protected initialize(): void {
 		let app = this.application;
-		let b = new UiNodeBuilder(this, "1rem");
-		b.inset(0).style(GROUP_STYLE);
-		b.enter(new UiTextNode(app,"label"))
-			b.lr( 1, 1).th(1 , 2).style(DEFAULT_STYLE).focusable(true);
-			b.textContent("自動的にスライドします");
-		b.leave();
-		b.enter(new UiListNode(app, "list")).lr(1,1).tb(4, 1).style(LIST_STYLE).dataSource("hokusai").vertical(false).loop(true);
-			b.enter(new UiNode(app, "card")).inset(0);
-				b.enter(new UiTextField (app, "a")).lw( 1, 10).th(1 ,2).style(DEFAULT_STYLE).leave()
-				b.enter(new UiTextField (app, "b")).lr(12, 12).th(1 ,2).style(DEFAULT_STYLE).leave()
-				b.enter(new UiTextField (app, "c")).rw( 1, 10).th(1 ,2).style(DEFAULT_STYLE).leave()
-				b.enter(new UiTextField (app, "d")).lw( 1, 10).tb(4 ,4).style(DEFAULT_STYLE).leave()
-				b.enter(new UiImageField(app, "e")).lr(12, 12).tb(4 ,4).style(IMAGE_STYLE  ).leave()
-				b.enter(new UiTextField (app, "f")).rw( 1, 10).tb(4 ,4).style(DEFAULT_STYLE).leave()
-				b.enter(new UiTextField (app, "g")).lw( 1, 10).bh(1 ,2).style(DEFAULT_STYLE).leave()
-				b.enter(new UiTextField (app, "h")).lr(12, 12).bh(1 ,2).style(DEFAULT_STYLE).leave()
-				b.enter(new UiTextField (app, "i")).rw( 1, 10).bh(1 ,2).style(DEFAULT_STYLE).leave()
-			b.leave();
-		b.leave();
+		let b = new UiNodeBuilder("1rem");
+		b.item(this).inset(0).style(GROUP_STYLE);
+		b.child(b=>{
+			b.item(new UiTextNode(app,"label"))
+				.locate(1, 1, 1, null, null, 2)
+				.style(DEFAULT_STYLE)
+				.focusable(true)
+				.textContent("自動的にスライドします");
+			b.item(new UiListNode(app, "list"))
+				.locate(1, 4, 1, 1, null, null)
+				.style(LIST_STYLE)
+				.dataSource("hokusai")
+				.vertical(false)
+				.loop(true);
+			b.child(b=>{
+				b.item(new UiNode(app, "card")).inset(0);
+				b.child(b=>{
+					b.item(new UiTextField (app, "a")).locate(   1,    1, null, null,   10,    2).style(DEFAULT_STYLE);
+					b.item(new UiTextField (app, "b")).locate(  12,    1,   12, null, null,    2).style(DEFAULT_STYLE);
+					b.item(new UiTextField (app, "c")).locate(null,    1,    1, null,   10,    2).style(DEFAULT_STYLE);
+					b.item(new UiTextField (app, "d")).locate(   1,    4, null,    4,   10, null).style(DEFAULT_STYLE);
+					b.item(new UiImageField(app, "e")).locate(  12,    4,   12,    4, null, null).style(IMAGE_STYLE  );
+					b.item(new UiTextField (app, "f")).locate(null,    4,    1,    4,  10,  null).style(DEFAULT_STYLE);
+					b.item(new UiTextField (app, "g")).locate(   1, null, null,    1,  10,     2).style(DEFAULT_STYLE);
+					b.item(new UiTextField (app, "h")).locate(  12, null,   12,    1, null,    2).style(DEFAULT_STYLE);
+					b.item(new UiTextField (app, "i")).locate(null, null,    1,    1,   10,    2).style(DEFAULT_STYLE);
+				});
+			});
+		});
 		(app.getDataSource("hokusai") as DataSource).select({});
-
 		app.runInterval(this, 1, 3000, () => {
 			let node = this.findNodeByPath("list") as UiListNode;
 			let result = UiResult.CONSUMED;

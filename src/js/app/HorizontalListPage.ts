@@ -9,34 +9,62 @@ export class HorizontalListPage extends UiPageNode {
 
 	protected initialize(): void {
 		let app = this.application;
-		let b = new UiNodeBuilder(this, "1rem");
-		b.inset(1).style(GROUP_STYLE);
-		{
-			b.enter(new UiTextButton(app, "north")).th(1,2).lr(1,1).style(DEFAULT_STYLE)
+		let b = new UiNodeBuilder("1rem");
+		b.item(this)
+			.inset(1)
+			.style(GROUP_STYLE);
+		b.child(b=>{
+			b.item(new UiTextButton(app, "north"))
+				.locate(1, 1, 1, null, null, 2).style(DEFAULT_STYLE)
 				.focusable(true)
 				.textContent("go vlist")
-				.listen((src, act)=>this.application.forwardTo("vlist", {}))
-				.leave();
-			b.enter(new UiNode(app, "west")).tb(4,4).lw(1,2).style(DEFAULT_STYLE).focusable(true).leave();
-			{
-				b.enter(new UiListNode(app, "list")).tb(4,5).lr(4,4).style(LIST_STYLE)
-					.dataSource("sample").hscroll("h").loop(true).vertical(false);
-				b.enter(new UiTextField(app, "a")).th(0, 2).lw( 0, 10)
-						.style(DEFAULT_STYLE).focusable(true).leave();
-				b.enter(new UiTextField(app, "b")).th(2, 2).lw( 0, 10)
-						.style(DEFAULT_STYLE).focusable(true).leave();
-				b.enter(new UiTextField(app, "c")).th(4, 2).lw( 0, 10)
-						.style(DEFAULT_STYLE).focusable(true).leave();
-				b.enter(new UiTextField(app, "d")).tb(6, 4).lw( 0, 10)
-						.style(DEFAULT_STYLE).focusable(true).leave();
-				b.enter(new UiCheckbox(app, "e")).bh(2, 2).lw( 0, 10)
-						.style(DEFAULT_STYLE).focusable(true).leave();
-				b.leave();
-			}
-			b.enter(new UiScrollbar(app, "sb")).bh(4,1).lr(4,4).style(SB_STYLE).hscroll("h").leave();
-			b.enter(new UiNode(app, "east")).tb(4,4).rw(1,2).style(DEFAULT_STYLE).focusable(true).leave();
-			b.enter(new UiNode(app, "south")).bh(1,2).lr(1,1).style(DEFAULT_STYLE).focusable(true).leave();
-		}
+				.listen((src, act)=>this.application.forwardTo("vlist", {}));
+			b.item(new UiNode(app, "west"))
+				.locate(1, 4, null, 4, 2, null)
+				.style(DEFAULT_STYLE)
+				.focusable(true);
+			b.item(new UiListNode(app, "list"))
+				.locate(4, 4, 4, 5, null, null)
+				.style(LIST_STYLE)
+				.dataSource("sample")
+				.hscroll("h")
+				.loop(true)
+				.vertical(false);
+			b.child(b=>{
+				b.item(new UiTextField(app, "a"))
+					.bounds(0, 0, 10, 2)
+					.style(DEFAULT_STYLE)
+					.focusable(true);
+				b.item(new UiTextField(app, "b"))
+					.bounds(0, 2, 10, 2)
+					.style(DEFAULT_STYLE)
+					.focusable(true);
+				b.item(new UiTextField(app, "c"))
+					.bounds(0, 4, 10, 2)
+					.style(DEFAULT_STYLE)
+					.focusable(true);
+				b.item(new UiTextField(app, "d"))
+					.locate(0, 5, null, 4, 10, null)
+					.style(DEFAULT_STYLE)
+					.focusable(true);
+				b.item(new UiCheckbox(app, "e"))
+					.locate(0, null, null, 2, 10, 2)
+					.style(DEFAULT_STYLE)
+					.focusable(true);
+			});
+			b.item(new UiScrollbar(app, "sb"))
+				.locate(4, null, 4, 4, null, 1)
+				.style(SB_STYLE)
+				.hscroll("h");
+			b.item(new UiNode(app, "east"))
+				.locate(null, 4, 1, 4, 2, null)
+				.style(DEFAULT_STYLE)
+				.focusable(true);
+			b.item(new UiNode(app, "south"))
+				.locate(1, null, 1, 1, null, 2)
+				.style(DEFAULT_STYLE)
+				.focusable(true);
+		});
 		(app.getDataSource("sample") as DataSource).select({});
 	}
 
