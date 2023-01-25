@@ -27,24 +27,28 @@ export class MenuTestPage extends UiPageNode {
 			.location("left")
 			.extentionSizes(["256px", "0px", "0px", "256px"])
 			.dataSource("menu")
+			.spacing(10)
 			.contentNode("/content");
 			b.belongs(b=>{
 				b.element(new UiMenuItem(app, "node"))
 				.position(0, 0, 0, null, null, 30)
-				.style(DEFAULT_STYLE);
-				b.belongs(b=>{
+				.style(DEFAULT_STYLE)
+				.belongs(b=>{
 					b.element(new UiTextField(app, "title"))
 					.inset(0)
 					.style(DEFAULT_STYLE);
 				});
 				b.element(new UiMenuItem(app, "leaf"))
 				.position(0, 0, 0, null, null, 30)
-				.style(DEFAULT_STYLE);
-				b.belongs(b=>{
+				.style(DEFAULT_STYLE)
+				.belongs(b=>{
 					b.element(new UiTextField(app, "title"))
 					.inset(0)
 					.style(DEFAULT_STYLE);
 				})
+				b.element(new UiMenuItem(app, "void"))
+				.position(0, 0, 0, null, null, 60)
+				.style(GROUP_STYLE);
 			})
 		});
 		//set datasource

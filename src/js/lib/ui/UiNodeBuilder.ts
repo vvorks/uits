@@ -201,6 +201,16 @@ export class UiNodeBuilder {
 		return this;
 	}
 
+	public spacing(value:Size|null):UiNodeBuilder {
+		if (this._node == null) {
+			throw new StateError();
+		}
+		if (this._node instanceof UiMenu) {
+			(this._node as UiMenu).spacing = value;
+		}
+		return this;
+	}
+
 	public vscroll(name:string):UiNodeBuilder {
 		if (this._node == null) {
 			throw new StateError();

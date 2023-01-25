@@ -7,17 +7,18 @@ import
 
 const MENU_DATA:Properties<DataRecord[]> = {
 	"/": [
-		{template:"leaf", content:"#search",	title:"検索"},
-		{template:"node", submenu:"/category",	title:"カテゴリ"},
-		{template:"leaf", content:"#live",		title:"ライブ"},
-		{template:"leaf", content:"#settings",	title:"設定"},
+		{template:"leaf", type:"launch", content:"#search",	title:"検索"},
+		{template:"node", type:"branch", submenu:"/category",	title:"カテゴリ"},
+		{template:"void", type:"filler" },
+		{template:"leaf", type:"launch", content:"#live",		title:"ライブ"},
+		{template:"leaf", type:"launch", content:"#settings",	title:"設定"},
 	],
 	"/category": [
-		{template:"leaf", content:"#content:category=movie",		title:"映画"},
-		{template:"leaf", content:"#content:category=story",		title:"ドラマ"},
-		{template:"leaf", content:"#content:category=music",		title:"音楽"},
-		{template:"leaf", content:"#content:category=news",			title:"ニュース"},
-		{template:"leaf", content:"#content:category=documentary",	title:"ドキュメンタリー"},
+		{template:"leaf", type:"launch", content:"#content:category=movie",		title:"映画"},
+		{template:"leaf", type:"launch", content:"#content:category=story",		title:"ドラマ"},
+		{template:"leaf", type:"launch", content:"#content:category=music",		title:"音楽"},
+		{template:"leaf", type:"launch", content:"#content:category=news",			title:"ニュース"},
+		{template:"leaf", type:"launch", content:"#content:category=documentary",	title:"ドキュメンタリー"},
 	]
 };
 

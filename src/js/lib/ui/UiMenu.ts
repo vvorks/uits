@@ -2,7 +2,7 @@ import
 	{ Logs,
 ParamError, Types, UnsupportedError, Value }
 	from "~/lib/lang";
-import { Flags, UiLocation, UiNode, UiResult } from "~/lib/ui/UiNode";
+import { Flags, Size, UiLocation, UiNode, UiResult } from "~/lib/ui/UiNode";
 import { UiApplication, UiAxis } from "~/lib/ui/UiApplication";
 import { DataRecord, DataSource } from "~/lib/ui/DataSource";
 import { CssLength } from "~/lib/ui/CssLength";
@@ -15,6 +15,9 @@ import { UiTextNode } from "~/lib/ui/UiTextNode";
 /** テンプレート名を保持するフィールドの名前 */
 const FIELD_TEMPLATE = "template";
 
+/** メニュー項目タイプを示すフィールドの名前 */
+const FIELD_TYPE = "type";
+
 /** 切り替えコンテントを示すフィールドの名前 */
 const FIELD_CONTENT = "content";
 
@@ -22,6 +25,9 @@ const FIELD_CONTENT = "content";
 const FIELD_SUBMENU = "submenu";
 
 type CssSource = string|number;
+
+/** フィールドタイプ */
+type FieldType = "launch"|"branch"|"filler";
 
 export class UiMenuItem extends UiNode implements DataHolder {
 
@@ -77,10 +83,15 @@ export class UiMenuItem extends UiNode implements DataHolder {
 		let k = key|mod;
 		if (k == this.getTriggerKey() || k == KeyCodes.ENTER) {
 			if (this._record != null) {
-				if (this._record[FIELD_CONTENT] != null) {
-					result = this.owner.changeContent(this._record[FIELD_CONTENT] as string);
-				} else if (this._record[FIELD_SUBMENU] != null) {
-					result = this.owner.forwardSubmenu(this._record[FIELD_SUBMENU] as string);
+				let type:FieldType = this._record[FIELD_TYPE] as FieldType;
+				if (type == "launch") {
+					if (this._record[FIELD_CONTENT] != null) {
+						result = this.owner.changeContent(this._record[FIELD_CONTENT] as string);
+					}
+				} else if (type == "branch") {
+					if (this._record[FIELD_SUBMENU] != null) {
+						result = this.owner.forwardSubmenu(this._record[FIELD_SUBMENU] as string);
+					}
 				}
 			}
 		} else if (k == this.getBackKey()) {
@@ -122,15 +133,17 @@ export class UiMenu extends UiNode {
 
 	private _dataSource:DataSource|null;
 
-	private _defaultWidth: number;
+	private _shrinkWidth: number;
 
-	private _defaultHeight: number;
+	private _shrinkHeight: number;
 
 	private _currentLevel: number;
 
 	private _lastLevel: number;
 
 	private _focusItems:UiNode[];
+
+	private _spacing: CssLength|null;
 
 	public clone():UiMenu {
 		return new UiMenu(this);
@@ -147,11 +160,12 @@ export class UiMenu extends UiNode {
 			this._contentNodePath = src._contentNodePath;
 			this._dataSource = src._dataSource;
 			this._extensionSizes = src._extensionSizes;
-			this._defaultWidth = src._defaultWidth;
-			this._defaultHeight = src._defaultHeight;
+			this._shrinkWidth = src._shrinkWidth;
+			this._shrinkHeight = src._shrinkHeight;
 			this._currentLevel = src._currentLevel;
 			this._lastLevel = src._lastLevel;
 			this._focusItems = src._focusItems.slice(0, src._focusItems.length);
+			this._spacing = src._spacing;
 		} else {
 			super(param as UiApplication, name as string);
 			this._location = "left";
@@ -159,11 +173,12 @@ export class UiMenu extends UiNode {
 			this._contentNodePath = null;
 			this._dataSource = null;
 			this._extensionSizes = [new CssLength(0)];
-			this._defaultWidth = 0;
-			this._defaultHeight = 0;
+			this._shrinkWidth = 0;
+			this._shrinkHeight = 0;
 			this._currentLevel = 1;
 			this._lastLevel = 0;
 			this._focusItems = [this];
+			this._spacing = null;
 		}
 	}
 
@@ -212,12 +227,24 @@ export class UiMenu extends UiNode {
 		this._contentNodePath = path;
 	}
 
+	public get spacing():string|null {
+		return (this._spacing == null ? null : this._spacing.toString());
+	}
+
+	public set spacing(arg:Size|null) {
+		let value:CssLength|null = (arg == null ? null : new CssLength(arg));
+		if (!CssLength.equals(this._spacing, value)) {
+			this._spacing = value;
+			this.onContentChanged();
+		}
+	}
+
 	public onMount():void {
 		if (this._template == null) {
 			this._template = this.makeTemplate();
 		}
-		this._defaultWidth = this.innerWidth;
-		this._defaultHeight = this.innerHeight;
+		this._shrinkWidth = this.innerWidth;
+		this._shrinkHeight = this.innerHeight;
 		this.prepareBlocks();
 		this.relocateBlocks(0);
 		super.onMount();
@@ -279,39 +306,39 @@ export class UiMenu extends UiNode {
 			switch (this._location) {
 			case "left":
 				b.element(new UiNode(app, "1"))
-				.position(0, 0, null, 0, this._defaultWidth, null)
+				.position(0, 0, null, 0, this._shrinkWidth, null)
 				.style(DEFAULT_STYLE);
 				for (let i = 2; i <= this.levels; i++) {
 					b.element(new UiNode(app, `${i}`))
-					.position(this._defaultWidth, 0, null, 0, 0, null).style(DEFAULT_STYLE);
+					.position(this._shrinkWidth, 0, null, 0, 0, null).style(DEFAULT_STYLE);
 				}
 				break;
 			case "right":
 				b.element(new UiNode(app, "1"))
-				.position(null, 0, 0, 0, this._defaultWidth, null)
+				.position(null, 0, 0, 0, this._shrinkWidth, null)
 				.style(DEFAULT_STYLE);
 				for (let i = 2; i <= this.levels; i++) {
 					b.element(new UiNode(app, `${i}`))
-					.position(null, 0, this._defaultWidth, 0, 0, null)
+					.position(null, 0, this._shrinkWidth, 0, 0, null)
 					.style(DEFAULT_STYLE);
 				}
 				break;
 			case "top":
 				b.element(new UiNode(app, "1"))
-				.position(0, 0, 0, null, null, this._defaultHeight)
+				.position(0, 0, 0, null, null, this._shrinkHeight)
 				.style(DEFAULT_STYLE);
 				for (let i = 2; i <= this.levels; i++) {
 					b.element(new UiNode(app, `${i}`))
-					.position(0, this._defaultHeight, 0, null, null, 0)
+					.position(0, this._shrinkHeight, 0, null, null, 0)
 					.style(DEFAULT_STYLE);
 				}
 				break;
 			case "bottom":
 				b.element(new UiNode(app, "1"))
-				.position(0, null, 0, 0, null, this._defaultHeight);
+				.position(0, null, 0, 0, null, this._shrinkHeight);
 				for (let i = 2; i <= this.levels; i++) {
 					b.element(new UiNode(app, `${i}`))
-					.position(0, null, 0, this._defaultHeight, null, 0)
+					.position(0, null, 0, this._shrinkHeight, null, 0)
 					.style(DEFAULT_STYLE);
 				}
 				break;
@@ -337,51 +364,51 @@ export class UiMenu extends UiNode {
 		switch (this._location) {
 		case "left":
 			firstBlock = this.findNodeByPath("1") as UiNode;
-			firstBlock.width = this._defaultWidth;
+			firstBlock.width = this._shrinkWidth;
 			firstBlock.visible = true;
 			for (let i = 2; i <= this.levels; i++) {
 				let block = this.findNodeByPath(`${i}`) as UiNode;
-				block.left = this._defaultWidth;
+				block.left = this._shrinkWidth;
 				block.width = 0;
 				block.visible = false;
 			}
-			this.innerWidth = this._defaultWidth;
+			this.innerWidth = this._shrinkWidth;
 			break;
 		case "right":
 			firstBlock = this.findNodeByPath("1") as UiNode;
-			firstBlock.width = this._defaultWidth;
+			firstBlock.width = this._shrinkWidth;
 			firstBlock.visible = true;
 			for (let i = 2; i <= this.levels; i++) {
 				let block = this.findNodeByPath(`${i}`) as UiNode;
-				block.right = this._defaultWidth;
+				block.right = this._shrinkWidth;
 				block.width = 0;
 				block.visible = false;
 			}
-			this.innerWidth = this._defaultWidth;
+			this.innerWidth = this._shrinkWidth;
 			break;
 		case "top":
 			firstBlock = this.findNodeByPath("1") as UiNode;
-			firstBlock.height = this._defaultHeight;
+			firstBlock.height = this._shrinkHeight;
 			firstBlock.visible = true;
 			for (let i = 2; i <= this.levels; i++) {
 				let block = this.findNodeByPath(`${i}`) as UiNode;
-				block.top = this._defaultHeight;
+				block.top = this._shrinkHeight;
 				block.height = 0;
 				block.visible = false;
 			}
-			this.innerHeight = this._defaultHeight;
+			this.innerHeight = this._shrinkHeight;
 			break;
 		case "bottom":
 			firstBlock = this.findNodeByPath("1") as UiNode;
-			firstBlock.height = this._defaultHeight;
+			firstBlock.height = this._shrinkHeight;
 			firstBlock.visible = true;
 			for (let i = 2; i <= this.levels; i++) {
 				let block = this.findNodeByPath(`${i}`) as UiNode;
-				block.bottom = this._defaultHeight;
+				block.bottom = this._shrinkHeight;
 				block.height = 0;
 				block.visible = false;
 			}
-			this.innerHeight = this._defaultHeight;
+			this.innerHeight = this._shrinkHeight;
 			break;
 		}
 	}
@@ -394,7 +421,7 @@ export class UiMenu extends UiNode {
 			for (let i = 1; i <= this.levels; i++) {
 				let block = this.findNodeByPath(`${i}`) as UiNode;
 				let extSize = this._extensionSizes[index + i - 1];
-				let size = extSize.toPixel(()=>this._defaultWidth);
+				let size = extSize.toPixel(()=>this._shrinkWidth);
 				block.left = totalSize;
 				block.width = size;
 				block.visible = (size > 0 ? true : false);
@@ -406,7 +433,7 @@ export class UiMenu extends UiNode {
 			for (let i = 1; i <= this.levels; i++) {
 				let block = this.findNodeByPath(`${i}`) as UiNode;
 				let extSize = this._extensionSizes[index + i - 1];
-				let size = extSize.toPixel(()=>this._defaultWidth);
+				let size = extSize.toPixel(()=>this._shrinkWidth);
 				block.right = totalSize;
 				block.width = size;
 				block.visible = (size > 0 ? true : false);
@@ -418,7 +445,7 @@ export class UiMenu extends UiNode {
 			for (let i = 1; i <= this.levels; i++) {
 				let block = this.findNodeByPath(`${i}`) as UiNode;
 				let extSize = this._extensionSizes[index + i - 1];
-				let size = extSize.toPixel(()=>this._defaultHeight);
+				let size = extSize.toPixel(()=>this._shrinkHeight);
 				block.top = totalSize;
 				block.height = size;
 				block.visible = (size > 0 ? true : false);
@@ -430,7 +457,7 @@ export class UiMenu extends UiNode {
 			for (let i = 1; i <= this.levels; i++) {
 				let block = this.findNodeByPath(`${i}`) as UiNode;
 				let extSize = this._extensionSizes[index + i - 1];
-				let size = extSize.toPixel(()=>this._defaultHeight);
+				let size = extSize.toPixel(()=>this._shrinkHeight);
 				block.bottom = totalSize;
 				block.height = size;
 				block.visible = (size > 0 ? true : false);
@@ -454,6 +481,7 @@ export class UiMenu extends UiNode {
 		let level = path.length + 1;
 		let block = this.findNodeByPath(`${level}`) as UiNode;
 		block.removeChildren();
+		let spacing = this.getSpacing();
 		let pos = 0;
 		let firstChild:UiNode|null = null;
 		for (let i = 0; i < ds.count(); i++) {
@@ -462,7 +490,8 @@ export class UiMenu extends UiNode {
 			let node = (this._template as UiNode).getChildByName(template);
 			if (node != null) {
 				let item = node.clone() as UiMenuItem;
-				item.focusable = true;
+				let type = rec[FIELD_TYPE] as FieldType;
+				item.focusable = (type != "filler") ? true : false;
 				item.setReocord(rec);
 				block.appendChild(item);
 				if (firstChild == null) {
@@ -473,10 +502,12 @@ export class UiMenu extends UiNode {
 				case "left":	case "right":
 					item.top = pos;
 					pos += rect.height;
+					pos += spacing;
 					break;
 				case "top":		case "bottom":
 					item.left = pos;
 					pos += rect.width;
+					pos += spacing;
 					break;
 				}
 			}
@@ -491,6 +522,27 @@ export class UiMenu extends UiNode {
 			}
 		}
 		return UiResult.AFFECTED;
+	}
+
+	private getSpacing():number {
+		let spacing:number;
+		if (this._spacing == null) {
+			spacing = 0;
+		} else {
+			let ownerRect = this.getRect();
+			switch (this._location) {
+				case "left": case "right":
+					spacing = this._spacing.toPixel(() => ownerRect.height);
+					break;
+				case "top": case "bottom":
+					spacing = this._spacing.toPixel(() => ownerRect.width);
+					break;
+				default:
+					spacing = 0;
+					break;
+			}
+		}
+		return spacing;
 	}
 
 	private getPathAsArray(path:string):string[] {
