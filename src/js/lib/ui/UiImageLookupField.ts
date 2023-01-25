@@ -52,6 +52,8 @@ export class UiImageLookupField extends UiImageNode {
 				Logs.debug("%s image %s", value as string, image);
 				this.imageContent = image;
 				result |= UiResult.AFFECTED;
+			} else {
+				this.imageContent = null;
 			}
 		}
 		return result;

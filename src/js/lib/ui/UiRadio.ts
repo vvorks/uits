@@ -50,7 +50,7 @@ export class UiRadio extends UiImageNode {
 		if (this._value != v) {
 			this._value = v;
 			this.imageContent = (this.matched ? "/images/radio-on.png" : "/images/radio-off.png");
-			this.imageSize = "1rem";
+			this.imageWidth = "1rem";
 			this._dataHolder.setValue(this.name, this._value);
 			this.onContentChanged();
 		}

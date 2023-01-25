@@ -16,12 +16,27 @@ const WEEKS = ["日", "月", "火", "水", "木", "金", "土"];
 
 class UiMonthNode extends UiTextNode {
 
-	private _yearMode: boolean = false;
+	private _yearMode: boolean;
 
-	private _month: Date = new Date();
+	private _month: Date;
 
 	public clone():UiMonthNode {
 		return new UiMonthNode(this);
+	}
+
+	constructor(app:UiApplication, name:string);
+	constructor(src:UiMonthNode);
+	public constructor(param:any, name?:string) {
+		if (param instanceof UiMonthNode) {
+			super(param as UiMonthNode);
+			let src = param as UiMonthNode;
+			this._yearMode = src._yearMode;
+			this._month = new Date(src._month.getTime());
+		} else {
+			super(param as UiApplication, name as string);
+			this._yearMode = false;
+			this._month = new Date();
+		}
 	}
 
 	public setMonth(month:Date):void {

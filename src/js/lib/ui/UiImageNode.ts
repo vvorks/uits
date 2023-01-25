@@ -1,15 +1,37 @@
 import { CssLength } from "~/lib/ui/CssLength";
-import { UiNode } from "~/lib/ui/UiNode";
+import { Size, UiNode } from "~/lib/ui/UiNode";
 import { TextAlign, VerticalAlign } from "~/lib/ui/UiStyle";
+import { Value } from "../lang";
+import { UiApplication } from "./UiApplication";
 
 export class UiImageNode extends UiNode {
 
 	private _imageContent:any;
 
-	private _imageSize: CssLength = new CssLength("100%");
+	private _imageWidth: CssLength|null;
+
+	private _imageHeight: CssLength|null;
 
 	public clone():UiImageNode {
 		return new UiImageNode(this);
+	}
+
+	constructor(app:UiApplication, name:string);
+	constructor(src:UiImageNode);
+	public constructor(param:any, name?:string) {
+		if (param instanceof UiImageNode) {
+			super(param as UiImageNode);
+			let src = param as UiImageNode;
+			this._imageContent = src._imageContent;
+			this._imageWidth = src._imageWidth;
+			this._imageHeight = src._imageHeight;
+		} else {
+			super(param as UiApplication, name as string);
+			this._imageContent = null;
+			this._imageWidth = new CssLength("100%");
+			this._imageHeight = null;
+
+		}
 	}
 
 	public get imageContent():any {
@@ -23,12 +45,20 @@ export class UiImageNode extends UiNode {
 		}
 	}
 
-	public get imageSize():string {
-		return this._imageSize.toString();
+	public get imageWidth():Size|null {
+		return this._imageWidth == null ? null : this._imageWidth.toString();
 	}
 
-	public set imageSize(size:string) {
-		this._imageSize = new CssLength(size);
+	public set imageWidth(size:Size|null) {
+		this._imageWidth = (size == null ? null : new CssLength(size));
+	}
+
+	public get imageHeight():Size|null {
+		return this._imageHeight == null ? null : this._imageHeight.toString();
+	}
+
+	public set imageHeight(size:Size|null) {
+		this._imageHeight = (size == null ? null : new CssLength(size));
 	}
 
 	protected createDomElement(target:UiNode, tag:string):HTMLElement {
@@ -42,17 +72,23 @@ export class UiImageNode extends UiNode {
 	}
 
 	protected renderContent():void {
-		if (this._imageContent === undefined || this._imageContent == null) {
-			return;
-		}
 		let dom = this.domElement as HTMLElement;
 		let img = dom.firstChild as HTMLImageElement;
+		if (this._imageContent === undefined || this._imageContent == null) {
+			img.src = "";			
+			return;
+		}
 		let cssStyle = img.style;
 		let uiStyle = this.style.getEffectiveStyle(this);
 		let align:TextAlign = uiStyle.textAlign;
 		let valign:VerticalAlign = uiStyle.verticalAlign;
-		cssStyle.width = this._imageSize.toString();
-		cssStyle.height = "auto";
+		if (this._imageWidth == null && this._imageHeight == null) {
+			cssStyle.width = "100%";
+			cssStyle.height = "auto";
+		} else {
+			cssStyle.width = this._imageWidth != null ? this._imageWidth.toString() : "auto";
+			cssStyle.height = this._imageHeight != null ? this._imageHeight.toString() : "auto";
+		}
 		if (align == "left") {
 			cssStyle.left = "0px";
 		} else if (align == "right" ) {

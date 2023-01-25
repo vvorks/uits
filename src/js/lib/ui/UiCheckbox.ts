@@ -2,15 +2,31 @@ import { UiNode, UiResult } from "~/lib/ui/UiNode";
 import { DataHolder } from "~/lib/ui/DataHolder";
 import { KeyCodes } from "~/lib/ui/KeyCodes";
 import { UiImageNode } from "~/lib/ui/UiImageNode";
+import { UiApplication } from "./UiApplication";
 
 export class UiCheckbox extends UiImageNode {
 
-	private _dataHolder: DataHolder = UiNode.VOID_DATA_HOLDER;
+	private _dataHolder: DataHolder;
 
-	private _value:boolean = false;
+	private _value:boolean;
 
 	public clone():UiCheckbox {
 		return new UiCheckbox(this);
+	}
+
+	constructor(app:UiApplication, name:string);
+	constructor(src:UiCheckbox);
+	public constructor(param:any, name?:string) {
+		if (param instanceof UiCheckbox) {
+			super(param as UiCheckbox);
+			let src = param as UiCheckbox;
+			this._dataHolder = UiNode.VOID_DATA_HOLDER;
+			this._value = src._value;
+		} else {
+			super(param as UiApplication, name as string);
+			this._dataHolder = UiNode.VOID_DATA_HOLDER;
+			this._value = false;
+		}
 	}
 
 	public onDataHolderChanged(holder:DataHolder):UiResult {
@@ -26,7 +42,7 @@ export class UiCheckbox extends UiImageNode {
 	public set value(on:boolean) {
 		this._value = on;
 		this.imageContent = (on ? "/images/checkbox-on.png" : "/images/checkbox-off.png");
-		this.imageSize = "1rem";
+		this.imageWidth = "1rem";
 		this._dataHolder.setValue(this.name, this._value);
 		this.onContentChanged();
 	}

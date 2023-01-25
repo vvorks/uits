@@ -4,14 +4,12 @@ import
 import { UiPane } from "~/lib/ui/UiPane";
 import { CssLength } from "~/lib/ui/CssLength";
 import { UiListNode } from "~/lib/ui/UiListNode";
-import { ActionListener, UiLocation, UiNode } from "~/lib/ui/UiNode";
+import { ActionListener, Size, UiLocation, UiNode } from "~/lib/ui/UiNode";
 import { UiStyle } from "~/lib/ui/UiStyle";
 import { UiTextNode } from "~/lib/ui/UiTextNode";
 import { UiMenu } from "~/lib/ui/UiMenu";
 import { UiImageNode } from "./UiImageNode";
 import { UiImageLookupField } from "./UiImageLookupField";
-
-type Size = string|number;
 
 export class UiNodeBuilder {
 
@@ -151,6 +149,18 @@ export class UiNodeBuilder {
 		}
 		if (this._node instanceof UiImageNode) {
 			(this._node as UiImageNode).imageContent = value;
+		}
+		return this;
+	}
+
+	public imageSize(width:Size|null, height:Size|null):UiNodeBuilder {
+		if (this._node == null) {
+			throw new StateError();
+		}
+		if (this._node instanceof UiImageNode) {
+			let e = this._node as UiImageNode;
+			e.imageWidth = width;
+			e.imageHeight = height;
 		}
 		return this;
 	}

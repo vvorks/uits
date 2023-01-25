@@ -12,6 +12,11 @@ import { UiPageNode } from "~/lib/ui/UiPageNode";
 import { KeyCodes } from "~/lib/ui/KeyCodes";
 import { Inset } from "~/lib/ui/Inset";
 
+/**
+ * （外部からパラメータとして使用する）サイズ型
+ */
+export type Size = string|number;
+
  /**
  * UiNodeフラグ定義
  *
@@ -386,7 +391,7 @@ export class UiNode implements Clonable<UiNode>, Scrollable {
 		return (this._left == null ? null : this._left.toString());
 	}
 
-	public set left(arg:string|number|null) {
+	public set left(arg:Size|null) {
 		let value:CssLength|null = (arg == null ? null : new CssLength(arg));
 		if (!CssLength.equals(this._left, value)) {
 			this._left = value;
@@ -398,7 +403,7 @@ export class UiNode implements Clonable<UiNode>, Scrollable {
 		return (this._top == null ? null : this._top.toString());
 	}
 
-	public set top(arg:string|number|null) {
+	public set top(arg:Size|null) {
 		let value:CssLength|null = (arg == null ? null : new CssLength(arg));
 		if (!CssLength.equals(this._top, value)) {
 			this._top = value;
@@ -410,7 +415,7 @@ export class UiNode implements Clonable<UiNode>, Scrollable {
 		return (this._right == null ? null : this._right.toString());
 	}
 
-	public set right(arg:string|number|null) {
+	public set right(arg:Size|null) {
 		let value:CssLength|null = (arg == null ? null : new CssLength(arg));
 		if (!CssLength.equals(this._right, value)) {
 			this._right = value;
@@ -422,7 +427,7 @@ export class UiNode implements Clonable<UiNode>, Scrollable {
 		return (this._bottom == null ? null : this._bottom.toString());
 	}
 
-	public set bottom(arg:string|number|null) {
+	public set bottom(arg:Size|null) {
 		let value:CssLength|null = (arg == null ? null : new CssLength(arg));
 		if (!CssLength.equals(this._bottom, value)) {
 			this._bottom = value;
@@ -434,7 +439,7 @@ export class UiNode implements Clonable<UiNode>, Scrollable {
 		return (this._width == null ? null : this._width.toString());
 	}
 
-	public set width(arg:string|number|null) {
+	public set width(arg:Size|null) {
 		let value:CssLength|null = (arg == null ? null : new CssLength(arg));
 		if (!CssLength.equals(this._width, value)) {
 			this._width = value;
@@ -446,7 +451,7 @@ export class UiNode implements Clonable<UiNode>, Scrollable {
 		return (this._height == null ? null : this._height.toString());
 	}
 
-	public set height(arg:string|number|null) {
+	public set height(arg:Size|null) {
 		let value:CssLength|null = (arg == null ? null : new CssLength(arg));
 		if (!CssLength.equals(this._height, value)) {
 			this._height = value;
@@ -454,7 +459,7 @@ export class UiNode implements Clonable<UiNode>, Scrollable {
 		}
 	}
 
-	public set inset(arg:string|number) {
+	public set inset(arg:Size) {
 		this.left = arg;
 		this.top = arg;
 		this.right = arg;
@@ -464,12 +469,12 @@ export class UiNode implements Clonable<UiNode>, Scrollable {
 	}
 
 	public locate(
-		left:string|number|null,
-		top:string|number|null,
-		right:string|number|null,
-		bottom:string|number|null,
-		width:string|number|null,
-		height:string|number|null
+		left:Size|null,
+		top:Size|null,
+		right:Size|null,
+		bottom:Size|null,
+		width:Size|null,
+		height:Size|null
 	):void {
 		this.left = left;
 		this.top = top;

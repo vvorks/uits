@@ -2,6 +2,7 @@ import
 	{ Asserts, Types }
 	from "~/lib/lang";
 import { Metrics } from "~/lib/ui/Metrics";
+import { Size } from "./UiNode";
 
 export class CssLength {
 
@@ -15,7 +16,7 @@ export class CssLength {
 
 	private _unit:string;
 
-	public constructor(arg:string|number, defaultUnit:string="px") {
+	public constructor(arg:Size, defaultUnit:string="px") {
 		if (Types.isString(arg)) {
 			let str = (arg as string).toLowerCase();
 			this._unit = defaultUnit;
