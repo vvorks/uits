@@ -274,45 +274,45 @@ export class UiMenu extends UiNode {
 		this.removeChildren();
 		let app = this.application;
 		let b = new UiNodeBuilder("1px");
-		b.item(this);
-		b.child(b=>{
+		b.element(this)
+		.belongs(b=>{
 			switch (this._location) {
 			case "left":
-				b.item(new UiNode(app, "1"))
-					.locate(0, 0, null, 0, this._defaultWidth, null)
-					.style(DEFAULT_STYLE);
+				b.element(new UiNode(app, "1"))
+				.position(0, 0, null, 0, this._defaultWidth, null)
+				.style(DEFAULT_STYLE);
 				for (let i = 2; i <= this.levels; i++) {
-					b.item(new UiNode(app, `${i}`))
-						.locate(this._defaultWidth, 0, null, 0, 0, null).style(DEFAULT_STYLE);
+					b.element(new UiNode(app, `${i}`))
+					.position(this._defaultWidth, 0, null, 0, 0, null).style(DEFAULT_STYLE);
 				}
 				break;
 			case "right":
-				b.item(new UiNode(app, "1"))
-					.locate(null, 0, 0, 0, this._defaultWidth, null)
-					.style(DEFAULT_STYLE);
+				b.element(new UiNode(app, "1"))
+				.position(null, 0, 0, 0, this._defaultWidth, null)
+				.style(DEFAULT_STYLE);
 				for (let i = 2; i <= this.levels; i++) {
-					b.item(new UiNode(app, `${i}`))
-						.locate(null, 0, this._defaultWidth, 0, 0, null)
-						.style(DEFAULT_STYLE);
+					b.element(new UiNode(app, `${i}`))
+					.position(null, 0, this._defaultWidth, 0, 0, null)
+					.style(DEFAULT_STYLE);
 				}
 				break;
 			case "top":
-				b.item(new UiNode(app, "1"))
-					.locate(0, 0, 0, null, null, this._defaultHeight)
-					.style(DEFAULT_STYLE);
+				b.element(new UiNode(app, "1"))
+				.position(0, 0, 0, null, null, this._defaultHeight)
+				.style(DEFAULT_STYLE);
 				for (let i = 2; i <= this.levels; i++) {
-					b.item(new UiNode(app, `${i}`))
-						.locate(0, this._defaultHeight, 0, null, null, 0)
-						.style(DEFAULT_STYLE);
+					b.element(new UiNode(app, `${i}`))
+					.position(0, this._defaultHeight, 0, null, null, 0)
+					.style(DEFAULT_STYLE);
 				}
 				break;
 			case "bottom":
-				b.item(new UiNode(app, "1"))
-					.locate(0, null, 0, 0, null, this._defaultHeight);
+				b.element(new UiNode(app, "1"))
+				.position(0, null, 0, 0, null, this._defaultHeight);
 				for (let i = 2; i <= this.levels; i++) {
-					b.item(new UiNode(app, `${i}`))
-						.locate(0, null, 0, this._defaultHeight, null, 0)
-						.style(DEFAULT_STYLE);
+					b.element(new UiNode(app, `${i}`))
+					.position(0, null, 0, this._defaultHeight, null, 0)
+					.style(DEFAULT_STYLE);
 				}
 				break;
 			}

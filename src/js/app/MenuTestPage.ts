@@ -10,38 +10,40 @@ export class MenuTestPage extends UiPageNode {
 	protected initialize(): void {
 		let app = this.application;
 		let b = new UiNodeBuilder("1px");
-		b.item(this).inset(1).style(GROUP_STYLE);
-		b.child(b=>{
+		b.element(this)
+		.inset(1)
+		.style(GROUP_STYLE);
+		b.belongs(b=>{
 			//content
-			b.item(new UiTextNode(app, "content"))
-				.locate(80, 32, 32, 32, null, null)
-				.style(DEFAULT_STYLE)
-				.textContent("content")
-				.focusable(true);
+			b.element(new UiTextNode(app, "content"))
+			.position(80, 32, 32, 32, null, null)
+			.style(DEFAULT_STYLE)
+			.textContent("content")
+			.focusable(true);
 			//menu
-			b.item(new UiMenu(app, "menu"))
-				.locate(32, 32, null, 32, 40, null)
-				.style(DEFAULT_STYLE)
-				.location("left")
-				.extentionSizes(["256px", "0px", "0px", "256px"])
-				.dataSource("menu")
-				.contentNode("/content");
-			b.child(b=>{
-				b.item(new UiMenuItem(app, "node"))
-					.locate(0, 0, 0, null, null, 30)
+			b.element(new UiMenu(app, "menu"))
+			.position(32, 32, null, 32, 40, null)
+			.style(DEFAULT_STYLE)
+			.location("left")
+			.extentionSizes(["256px", "0px", "0px", "256px"])
+			.dataSource("menu")
+			.contentNode("/content");
+			b.belongs(b=>{
+				b.element(new UiMenuItem(app, "node"))
+				.position(0, 0, 0, null, null, 30)
+				.style(DEFAULT_STYLE);
+				b.belongs(b=>{
+					b.element(new UiTextField(app, "title"))
+					.inset(0)
 					.style(DEFAULT_STYLE);
-				b.child(b=>{
-					b.item(new UiTextField(app, "title"))
-						.inset(0)
-						.style(DEFAULT_STYLE);
 				});
-				b.item(new UiMenuItem(app, "leaf"))
-					.locate(0, 0, 0, null, null, 30)
+				b.element(new UiMenuItem(app, "leaf"))
+				.position(0, 0, 0, null, null, 30)
+				.style(DEFAULT_STYLE);
+				b.belongs(b=>{
+					b.element(new UiTextField(app, "title"))
+					.inset(0)
 					.style(DEFAULT_STYLE);
-				b.child(b=>{
-					b.item(new UiTextField(app, "title"))
-						.inset(0)
-						.style(DEFAULT_STYLE);
 				})
 			})
 		});

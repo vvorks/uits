@@ -587,39 +587,41 @@ export class UiKeyboard extends UiPageNode {
 		maxHeight += EDITAREA_HEIGHT + KEYTOP_SPACING; //for input area
 		//キーボード作成
 		let b = new UiNodeBuilder("1px")
-		b.item(this).style(GROUP_STYLE);
-		b.child(b=>{
+		b.element(this)
+		.style(GROUP_STYLE);
+		b.belongs(b=>{
 			//入力表示領域
-			b.item(new UiEditArea(app, "edit"))
-				.style(DEFAULT_STYLE)
-				.locate(KEYTOP_SPACING, KEYTOP_SPACING, KEYTOP_SPACING, null, null, EDITAREA_HEIGHT);
+			b.element(new UiEditArea(app, "edit"))
+			.position(KEYTOP_SPACING, KEYTOP_SPACING, KEYTOP_SPACING, null, null, EDITAREA_HEIGHT)
+			.style(DEFAULT_STYLE)
 			//キーボード領域
-			b.item(new UiDeckNode(app, "deck"))
-				.locate(0, KEYTOP_SPACING + EDITAREA_HEIGHT, 0, 0, null, null);
-			b.child(b=>{
+			b.element(new UiDeckNode(app, "deck"))
+			.position(0, KEYTOP_SPACING + EDITAREA_HEIGHT, 0, 0, null, null)
+			.belongs(b=>{
 				//日本語キーボード領域
-				b.item(new UiNode(app, "ja"))
-					.style(GROUP_STYLE)
-					.inset(0);
-				b.child(b=>{
+				b.element(new UiNode(app, "ja"))
+				.inset(0)
+				.style(GROUP_STYLE)
+				.belongs(b=>{
 					for (let k of UiKeyboard.JA_KEYS) {
 						let r = k.asRect(KEYTOP_SIZE, KEYTOP_SIZE, KEYTOP_SPACING, KEYTOP_SPACING);
-						b.item(new UiKeytop(app, k))
-							.style(KEYTOP_STYLE)
-							.bounds(r.left, r.top, r.width, r.height)
-							.focusable(true);
+						b.element(new UiKeytop(app, k))
+						.bounds(r.left, r.top, r.width, r.height)
+						.style(KEYTOP_STYLE)
+						.focusable(true);
 					}
 				})
 				//英数キーボード領域
-				b.item(new UiNode(app, "en"))
-					.style(GROUP_STYLE).inset(0)
-				b.child(b=>{
+				b.element(new UiNode(app, "en"))
+				.inset(0)
+				.style(GROUP_STYLE)
+				.belongs(b=>{
 					for (let k of UiKeyboard.EN_KEYS) {
 						let r = k.asRect(KEYTOP_SIZE, KEYTOP_SIZE, KEYTOP_SPACING, KEYTOP_SPACING);
-						b.item(new UiKeytop(app, k))
-							.style(KEYTOP_STYLE)
-							.bounds(r.left, r.top, r.width, r.height)
-							.focusable(true);
+						b.element(new UiKeytop(app, k))
+						.bounds(r.left, r.top, r.width, r.height)
+						.style(KEYTOP_STYLE)
+						.focusable(true);
 					}
 				});
 			});

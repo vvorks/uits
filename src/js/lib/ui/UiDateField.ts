@@ -144,34 +144,38 @@ class UiDatePopup extends UiPageNode {
 		let top = Dates.addDay(lm, -lm.getDay());
 		const UNIT = 24;
 		let b = new UiNodeBuilder("1px");
-		b.item(this).child(b=>{
+		b.element(this)
+		.belongs(b=>{
 			//レイアウト定義
-			b.item(new UiNode(app, "frame")).inset(0);
-			b.item(new UiMonthNode(app, "month"))
+			b.element(new UiNode(app, "frame"))
+			.inset(0);
+			b.belongs(b=>{
+				b.element(new UiMonthNode(app, "month"))
+				.position(0, 0, 0, null, null, 1*UNIT)
 				.style(DEFAULT_STYLE)
-				.locate(0, 0, 0, null, null, 1*UNIT)
 				.focusable(true)
 				.listen((src,act,arg)=>this.watchMonth(src,act,arg));
-			//曜日行
-			for (let c = 0; c < WEEKS.length; c++) {
-				b.item(new UiTextNode(app, "week"))
-					.style(DEFAULT_STYLE)
+				//曜日行
+				for (let c = 0; c < WEEKS.length; c++) {
+					b.element(new UiTextNode(app, "week"))
 					.bounds(c*UNIT, 1*UNIT, 1*UNIT, 1*UNIT)
+					.style(DEFAULT_STYLE)
 					.textContent(WEEKS[c]);
-			}
-			//日付ブロック
-			b.item(new UiNode(app, "days"))
+				}
+				//日付ブロック
+				b.element(new UiNode(app, "days"))
+				.position(0, 2*UNIT, null, null, WEEKS.length*UNIT, 6*UNIT)
 				.style(GROUP_STYLE)
-				.locate(0, 2*UNIT, null, null, WEEKS.length*UNIT, 6*UNIT);
-			b.child(b=>{
-				for (let i = 0; i < WEEKS.length * 6; i++) {
-					const day = Dates.addDay(top, i);
-					b.item(new UiDateNode(app, "day"))
-						.style(SMALL_STYLE)
+				.belongs(b=>{
+					for (let i = 0; i < WEEKS.length * 6; i++) {
+						const day = Dates.addDay(top, i);
+						b.element(new UiDateNode(app, "day"))
 						.bounds(Math.floor(i%7)*UNIT, Math.floor(i/7)*UNIT, 1*UNIT, 1*UNIT)
+						.style(SMALL_STYLE)
 						.focusable(true)
 						.listen((src,act,arg)=>this.watchDate(src,act,arg));
-				}
+					}
+				});
 			});
 		});
 		//位置設定

@@ -14,54 +14,77 @@ export class PaneTestPage extends UiPageNode {
 		let app = this.application;
 		//ページ全体の指定
 		let b = new UiNodeBuilder("1rem")
-		b.item(this).style(GROUP_STYLE).inset(1);
-		b.child(b=>{
+		b.element(this)
+		.inset(1)
+		.style(GROUP_STYLE)
+		.belongs(b=>{
 			//ドックの設定
 			let left1 = new UiPane(app, "left1");
 			let left2 = new UiPane(app, "left2");
-			b.item(new UiDock(app, "dock"))
-				.style(GROUP_STYLE)
-				.inset(1)
-				.listen((src, act)=>this.watchDock(src, act));
-			b.child(b=>{
+			b.element(new UiDock(app, "dock"))
+			.inset(1)
+			.style(GROUP_STYLE)
+			.listen((src, act)=>this.watchDock(src, act))
+			.belongs(b=>{
 				//左ペイン
-				b.item(left1)
-					.style(DEFAULT_STYLE).location("left").flexSize(4, 20);
-				b.child(b=>{
+				b.element(left1)
+				.style(DEFAULT_STYLE)
+				.location("left")
+				.flexSize(4, 20)
+				.belongs(b=>{
 					for (let i = 0; i < 3; i++) {
 						//メニュー項目
-						b.item(new UiTextButton(app, "text"+i))
-							.style(DEFAULT_STYLE)
-							.locate(1, i*3+1, 1, null, null, 2)
-							.focusable(true)
-							.textContent("メニュー"+i)
-							.listen((src, act)=>this.watchTextButton(src, act))
-							//.nextFocusFilter((e)=> (e.parent == left1 || e.parent == left2))
+						b.element(new UiTextButton(app, "text"+i))
+						.position(1, i*3+1, 1, null, null, 2)
+						.style(DEFAULT_STYLE)
+						.focusable(true)
+						.textContent("メニュー"+i)
+						.listen((src, act)=>this.watchTextButton(src, act));
+						//.nextFocusFilter((e)=> (e.parent == left1 || e.parent == left2))
 					}
 				})
 				//左２ペイン（サブメニューペイン）
-				b.item(left2)
-					.style(DEFAULT_STYLE).location("left").flexSize(0, 16);
+				b.element(left2)
+				.style(DEFAULT_STYLE)
+				.location("left")
+				.flexSize(0, 16);
 				//中央ペイン
-				b.item(new UiPane(app, "center"))
-					.style(DEFAULT_STYLE).location("center");
-				b.child(b=>{
+				b.element(new UiPane(app, "center"))
+				.style(DEFAULT_STYLE)
+				.location("center")
+				.belongs(b=>{
 					//背景画像用リスト
-					b.item(new UiListNode(app, "bglist"))
-						.inset(1).style(LIST_STYLE).dataSource("hokusai").vertical(false).loop(true);
-					b.child(b=>{
-						b.item(new UiNode(app, "card")).inset(0);
-						b.child(b=>{
-							b.item(new UiImageField(app, "e")).inset(0).style(IMAGE_STYLE);
+					b.element(new UiListNode(app, "bglist"))
+					.inset(1)
+					.style(LIST_STYLE)
+					.dataSource("hokusai")
+					.vertical(false)
+					.loop(true)
+					.belongs(b=>{
+						b.element(new UiNode(app, "card"))
+						.inset(0)
+						.belongs(b=>{
+							b.element(new UiImageField(app, "e"))
+							.inset(0)
+							.style(IMAGE_STYLE);
 						});
 					});
 					//コンテンツ選択リスト
-					b.item(new UiListNode(app, "list")).locate(0, null, 0, 0, null, 4).style(LIST_STYLE)
-						.dataSource("hiroshige").vertical(false).loop(false).scrollLock(true);
-					b.child(b=>{
-						b.item(new UiNode(app, "card")).locate(0, 0, null, 0, 8, null);
-						b.child(b=>{
-							b.item(new UiTextField(app, "title")).inset(0).style(DEFAULT_STYLE).focusable(true);
+					b.element(new UiListNode(app, "list"))
+					.position(0, null, 0, 0, null, 4)
+					.style(LIST_STYLE)
+					.dataSource("hiroshige")
+					.vertical(false)
+					.loop(false)
+					.scrollLock(true)
+					.belongs(b=>{
+						b.element(new UiNode(app, "card"))
+						.position(0, 0, null, 0, 8, null)
+						.belongs(b=>{
+							b.element(new UiTextField(app, "title"))
+							.inset(0)
+							.style(DEFAULT_STYLE)
+							.focusable(true);
 						});
 					});
 				})
@@ -100,13 +123,13 @@ export class PaneTestPage extends UiPageNode {
 			//新項目追加
 			let text = (src as UiTextButton).textContent;
 			let b = new UiNodeBuilder("1rem");
-			b.item(pane);
-			b.child(b=>{
+			b.element(pane);
+			b.belongs(b=>{
 				for (let i = 0; i < 3; i++) {
 					//メニュー項目
-					b.item(new UiTextNode(app, "subtext"+i))
+					b.element(new UiTextNode(app, "subtext"+i))
 						.style(DEFAULT_STYLE)
-						.locate(0, i*3+1, 0, null, null, 2)
+						.position(0, i*3+1, 0, null, null, 2)
 						.focusable(true)
 						.textContent(text + " - " + i);
 				}

@@ -39,23 +39,7 @@ export class UiNodeBuilder {
 		}
 	}
 
-	public bounds(
-		left:Size, top:Size,
-		width:Size, height:Size
-	) {
-		if (this._node == null) {
-			throw new StateError();
-		}
-		this._node.left = this.toValue(left);
-		this._node.top = this.toValue(top);
-		this._node.right = null;
-		this._node.bottom = null;
-		this._node.width = this.toValue(width);
-		this._node.height = this.toValue(height);
-		return this;
-	}
-
-	public locate(
+	public position(
 		left:Size|null, top:Size|null,
 		right:Size|null, bottom: Size|null,
 		width:Size|null, height:Size|null
@@ -72,11 +56,42 @@ export class UiNodeBuilder {
 		return this;
 	}
 
-	public inset(v:Size):UiNodeBuilder {
+	public bounds(
+		left:Size, top:Size,
+		width:Size, height:Size
+	) {
 		if (this._node == null) {
 			throw new StateError();
 		}
-		this._node.inset = this.toValue(v) as string;
+		this._node.left = this.toValue(left);
+		this._node.top = this.toValue(top);
+		this._node.right = null;
+		this._node.bottom = null;
+		this._node.width = this.toValue(width);
+		this._node.height = this.toValue(height);
+		return this;
+	}
+
+	public inset(left:Size, top?:Size, right?:Size, bottom?:Size):UiNodeBuilder {
+		if (this._node == null) {
+			throw new StateError();
+		}
+		if (top !== undefined && right !== undefined && bottom !== undefined) {
+			this._node.left = this.toValue(left);
+			this._node.top = this.toValue(top);
+			this._node.right = this.toValue(right);
+			this._node.bottom = this.toValue(bottom);
+		} else if (top !== undefined) {
+			this._node.left = this.toValue(left);
+			this._node.top = this.toValue(top);
+			this._node.right = this.toValue(left);
+			this._node.bottom = this.toValue(top);
+		} else {
+			this._node.left = this.toValue(left);
+			this._node.top = this.toValue(left);
+			this._node.right = this.toValue(left);
+			this._node.bottom = this.toValue(left);
+		}
 		return this;
 	}
 
@@ -282,15 +297,15 @@ export class UiNodeBuilder {
 		return this;
 	}
 
-	public item(item:UiNode):UiNodeBuilder {
+	public element(e:UiNode):UiNodeBuilder {
 		if (this._parent != null) {
-			this._parent.appendChild(item);
+			this._parent.appendChild(e);
 		}
-		this._node = item;
+		this._node = e;
 		return this;
 	}
 
-	public child(func:(b:UiNodeBuilder)=>void) {
+	public belongs(func:(b:UiNodeBuilder)=>void) {
 		if (this._node == null) {
 			throw new StateError();
 		}
