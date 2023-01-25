@@ -38,7 +38,6 @@ export class UiImageLookupField extends UiImageNode {
 	}
 
 	public set lookupTable(table:Properties<any>) {
-		Logs.debug("lookupTable %s", JSON.stringify(table));
 		this._lookupTable = table;
 	}
 
@@ -49,7 +48,6 @@ export class UiImageLookupField extends UiImageNode {
 		if (value != null && Types.isString(value)) {
 			let image = this._lookupTable[value as string];
 			if (image !== undefined) {
-				Logs.debug("%s image %s", value as string, image);
 				this.imageContent = image;
 				result |= UiResult.AFFECTED;
 			} else {

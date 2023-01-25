@@ -1,4 +1,4 @@
-import { ParamError, Strings } from "../lang";
+import { Logs, ParamError, Strings } from "~/lib/lang";
 
 export type Color = number;
 
@@ -194,7 +194,7 @@ export class Colors {
 			let a = parseInt(values[3], 10);
 			color = ((a * 0xFF) << 24) | (r << 16) | (g << 8) | (b << 0);
 		} else if (str.startsWith("rgb(")) {
-			let values = str.substring(5, str.length - 1).split(",");
+			let values = str.substring(4, str.length - 1).split(",");
 			let r = parseInt(values[0], 10);
 			let g = parseInt(values[1], 10);
 			let b = parseInt(values[2], 10);

@@ -7,7 +7,6 @@ import { UiApplication, UiAxis } from "~/lib/ui/UiApplication";
 import { DataRecord, DataSource } from "~/lib/ui/DataSource";
 import { CssLength } from "~/lib/ui/CssLength";
 import { UiNodeBuilder } from "~/lib/ui/UiNodeBuilder";
-import { DEFAULT_STYLE } from "~/app/TestApplication"; //TODO おきて破り！要再定義
 import { KeyCodes } from "~/lib/ui/KeyCodes";
 import { DataHolder } from "~/lib/ui/DataHolder";
 import { UiTextNode } from "~/lib/ui/UiTextNode";
@@ -301,36 +300,37 @@ export class UiMenu extends UiNode {
 		this.removeChildren();
 		let app = this.application;
 		let b = new UiNodeBuilder("1px");
+		let ownerStyle = this.style;
 		b.element(this)
 		.belongs(b=>{
 			switch (this._location) {
 			case "left":
 				b.element(new UiNode(app, "1"))
 				.position(0, 0, null, 0, this._shrinkWidth, null)
-				.style(DEFAULT_STYLE);
+				.style(ownerStyle);
 				for (let i = 2; i <= this.levels; i++) {
 					b.element(new UiNode(app, `${i}`))
-					.position(this._shrinkWidth, 0, null, 0, 0, null).style(DEFAULT_STYLE);
+					.position(this._shrinkWidth, 0, null, 0, 0, null).style(ownerStyle);
 				}
 				break;
 			case "right":
 				b.element(new UiNode(app, "1"))
 				.position(null, 0, 0, 0, this._shrinkWidth, null)
-				.style(DEFAULT_STYLE);
+				.style(ownerStyle);
 				for (let i = 2; i <= this.levels; i++) {
 					b.element(new UiNode(app, `${i}`))
 					.position(null, 0, this._shrinkWidth, 0, 0, null)
-					.style(DEFAULT_STYLE);
+					.style(ownerStyle);
 				}
 				break;
 			case "top":
 				b.element(new UiNode(app, "1"))
 				.position(0, 0, 0, null, null, this._shrinkHeight)
-				.style(DEFAULT_STYLE);
+				.style(ownerStyle);
 				for (let i = 2; i <= this.levels; i++) {
 					b.element(new UiNode(app, `${i}`))
 					.position(0, this._shrinkHeight, 0, null, null, 0)
-					.style(DEFAULT_STYLE);
+					.style(ownerStyle);
 				}
 				break;
 			case "bottom":
@@ -339,7 +339,7 @@ export class UiMenu extends UiNode {
 				for (let i = 2; i <= this.levels; i++) {
 					b.element(new UiNode(app, `${i}`))
 					.position(0, null, 0, this._shrinkHeight, null, 0)
-					.style(DEFAULT_STYLE);
+					.style(ownerStyle);
 				}
 				break;
 			}

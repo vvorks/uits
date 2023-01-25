@@ -1435,13 +1435,13 @@ export class UiApplication {
 	}
 
 	public processDataSourceChanged(ds:DataSource):void {
-		Logs.info("processDataSourceChanged");
 		let at = this.newTimestamp();
 		try {
 			let result:UiResult = UiResult.IGNORED;
 			for (const [tag, entry] of Object.entries(this._dataSources)) {
 				if (entry !== undefined) {
 					if (ds == entry.dataSource) {
+						Logs.info("onDataSourceChanged %s %d", tag, ds.count());
 						result |= entry.onDataSourceChanged(at);
 					}
 				}
@@ -1561,12 +1561,13 @@ export class UiApplication {
 		let minDegree = 0;
 		let minDistance = 0;
 		let candidates = page.pageNode.getVisibleDescendantsIf((c) => {
-			if (!(c != curr && this.isFocusable(c) && filter(c) && curr.nextFocusFilter(c))) {
-				return false;
+			let result = false;
+			if (c != curr && this.isFocusable(c) && filter(c) && curr.nextFocusFilter(c)) {
+				let blocker = c.getBlockerNode();
+				let luca = c.getLucaNodeWith(curr);
+				result = (blocker == null || blocker == luca || blocker.isAncestorOf(luca));
 			}
-			let blocker = c.getBlockerNode();
-			let luca = c.getLucaNodeWith(curr);
-			return (blocker == null || blocker == luca || blocker.isAncestorOf(luca));
+			return result;
 		});
 		for (let c of candidates) {
 			let luca = c.getLucaNodeWith(curr);

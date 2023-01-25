@@ -1151,7 +1151,7 @@ export class UiNode implements Clonable<UiNode>, Scrollable {
 		if (focusNode == null) {
 			return false;
 		}
-		return this == focusNode || this.isAncestorOf(focusNode);
+		return this == focusNode || this.isAncestorOf(focusNode) || focusNode.isAncestorOf(this);
 	}
 
 	protected initialize():void {
