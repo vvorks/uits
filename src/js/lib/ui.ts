@@ -4,8 +4,8 @@ export { Rect };
 import { UiNode, UiResult } from "~/lib/ui/UiNode";
 export { UiNode, UiResult };
 
-import { UiScrollable } from "~/lib/ui/UiScrollable";
-export { UiScrollable };
+import { UiScrollNode } from "~/lib/ui/UiScrollNode";
+export { UiScrollNode as UiScrollable };
 
 import { UiNodeBuilder } from "~/lib/ui/UiNodeBuilder";
 export { UiNodeBuilder }

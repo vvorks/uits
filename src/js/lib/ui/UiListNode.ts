@@ -11,7 +11,7 @@ import { UiApplication, UiAxis } from "~/lib/ui/UiApplication";
 import { Flags, UiNode, UiResult } from "~/lib/ui/UiNode";
 import { UiPageNode } from "~/lib/ui/UiPageNode";
 import { UiStyle, UiStyleBuilder } from "~/lib/ui/UiStyle";
-import { UiScrollable } from "./UiScrollable";
+import { UiScrollNode } from "./UiScrollNode";
 
 /**
  * レコードノード用スタイル
@@ -169,7 +169,7 @@ enum ListFlags {
 /**
  * 垂直及び水平の仮想データリストノード
  */
-export class UiListNode extends UiScrollable {
+export class UiListNode extends UiScrollNode {
 
 	private _listFlags:number;
 
@@ -619,7 +619,7 @@ export class UiListNode extends UiScrollable {
 						dy = -this._recSize * (this.vertical ? 1 : 0);
 					}
 					if (dx != 0 || dy != 0) {
-						return this.scrollInside(dx, dy);
+						return this.scrollInside(dx, dy, animationTime);
 					}
 				}
 			}

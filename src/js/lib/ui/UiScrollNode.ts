@@ -2,18 +2,18 @@ import { Logs } from "../lang";
 import { UiApplication } from "./UiApplication";
 import { UiNode, UiResult } from "./UiNode";
 
-export class UiScrollable extends UiNode {
+export class UiScrollNode extends UiNode {
     
-	public clone():UiScrollable {
-		return new UiScrollable(this);
+	public clone():UiScrollNode {
+		return new UiScrollNode(this);
 	}
 
 	constructor(app:UiApplication, name:string);
-	constructor(src:UiScrollable);
+	constructor(src:UiScrollNode);
 
 	public constructor(param:any, name?:string) {
-		if (param instanceof UiScrollable) {
-            super(param as UiScrollable);
+		if (param instanceof UiScrollNode) {
+            super(param as UiScrollNode);
         } else {
             super(param as UiApplication, name as string);
         }
