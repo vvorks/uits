@@ -63,16 +63,16 @@ export class UiScrollbar extends UiNode {
 			//通常のケース
 			let left  = 100.0 * offset / count;
 			let width = 100.0 * limit  / count;
-			this._mainThumb.locate(`${left}%`, 0, null, 0, `${width}%`, null);
-			this._subThumb.locate(0, 0, null, 0, 0, null);
+			this._mainThumb.position(`${left}%`, 0, null, 0, `${width}%`, null);
+			this._subThumb.position(0, 0, null, 0, 0, null);
 			this._mainThumb.visible = true;
 			this._subThumb.visible = false;
 		} else {
 			//ラップケース
 			let left   = 100.0 * offset / count;
 			let remain = 100.0 * (offset + limit - count) / count;
-			this._mainThumb.locate(`${left}%`, 0, null, 0, "100%", null);
-			this._subThumb.locate(0, 0, null, 0, `${remain}%`, null);
+			this._mainThumb.position(`${left}%`, 0, null, 0, "100%", null);
+			this._subThumb.position(0, 0, null, 0, `${remain}%`, null);
 			this._mainThumb.visible = true;
 			this._subThumb.visible = true;
 		}
@@ -87,16 +87,16 @@ export class UiScrollbar extends UiNode {
 			//通常のケース
 			let top  = 100.0 * offset / count;
 			let height = 100.0 * limit  / count;
-			this._mainThumb.locate(0, `${top}%`, 0, null, null, `${height}%`);
-			this._subThumb.locate(0, 0, 0, null, null, 0);
+			this._mainThumb.position(0, `${top}%`, 0, null, null, `${height}%`);
+			this._subThumb.position(0, 0, 0, null, null, 0);
 			this._mainThumb.visible = true;
 			this._subThumb.visible = false;
 		} else {
 			//ラップケース
 			let top   = 100.0 * offset / count;
 			let remain = 100.0 * (offset + limit - count) / count;
-			this._mainThumb.locate(0, `${top}%`, 0, null, null, "100%");
-			this._subThumb.locate(0, 0, 0, null, null, `${remain}%`);
+			this._mainThumb.position(0, `${top}%`, 0, null, null, "100%");
+			this._subThumb.position(0, 0, 0, null, null, `${remain}%`);
 			this._mainThumb.visible = true;
 			this._subThumb.visible = true;
 		}

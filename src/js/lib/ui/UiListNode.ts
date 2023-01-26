@@ -155,23 +155,9 @@ class UiRecord extends UiNode implements DataHolder {
 }
 
 /**
- * リスト属性
- */
-enum ListFlags {
-	VERTICAL		= 0x00000001,
-	LOOP			= 0x00000002,
-	ITEM_FOCUSABLE	= 0x00000004,
-	SCROLL_LOCK		= 0x00000008,
-	OUTER_MARGIN	= 0x00000010,
-	INITIAL			= VERTICAL|LOOP|OUTER_MARGIN
-}
-
-/**
  * 垂直及び水平の仮想データリストノード
  */
 export class UiListNode extends UiScrollNode {
-
-	private _listFlags:number;
 
 	private _template: UiRecord | null;
 
@@ -201,7 +187,6 @@ export class UiListNode extends UiScrollNode {
 		if (param instanceof UiListNode) {
 			super(param as UiListNode);
 			let src = param as UiListNode;
-			this._listFlags = src._listFlags;
 			this._template = src._template;
 			this._templateRect = src._templateRect;
 			this._templateBottom = src._templateBottom;
@@ -213,7 +198,7 @@ export class UiListNode extends UiScrollNode {
 			this._dataSource = src._dataSource;
 		} else {
 			super(param as UiApplication, name as string);
-			this._listFlags = ListFlags.INITIAL;
+			this.initFlags(Flags.LIST_INITIAL);
 			this._template = null;
 			this._templateRect = null;
 			this._templateBottom = null;
@@ -228,66 +213,14 @@ export class UiListNode extends UiScrollNode {
 	}
 
 	public get focusable():boolean {
-		return super.getFlag(Flags.FOCUSABLE) || (this.itemFocusable && this.count() <= 0);
-	}
-
-	public get vertical():boolean {
-		return this.getListFlag(ListFlags.VERTICAL);
-	}
-
-	public set vertical(on:boolean) {
-		Asserts.assume(this._template == null);
-		this.setListFlag(ListFlags.VERTICAL, on);
-	}
-
-	public get loop():boolean {
-		return this.getListFlag(ListFlags.LOOP);
-	}
-
-	public set loop(on:boolean) {
-		Asserts.assume(this._template == null);
-		this.setListFlag(ListFlags.LOOP, on);
-	}
-
-	protected get itemFocusable():boolean {
-		return this.getListFlag(ListFlags.ITEM_FOCUSABLE);
-	}
-
-	protected set itemFocusable(on:boolean) {
-		this.setListFlag(ListFlags.ITEM_FOCUSABLE, on);
-	}
-
-	public get scrollLock():boolean {
-		return this.getListFlag(ListFlags.SCROLL_LOCK);
-	}
-
-	public set scrollLock(on:boolean) {
-		Asserts.assume(this._template == null);
-		this.setListFlag(ListFlags.SCROLL_LOCK, on);
-	}
-
-	public get outerMargin():boolean {
-		return this.getListFlag(ListFlags.OUTER_MARGIN);
-	}
-
-	public set outerMargin(on:boolean) {
-		this.setListFlag(ListFlags.OUTER_MARGIN, on);
-	}
-
-	protected getListFlag(bit:ListFlags):boolean {
-		return !!(this._listFlags & bit);
-	}
-
-	protected setListFlag(bit:ListFlags, on:boolean):boolean {
-		let changed:boolean = (this.getListFlag(bit) != on);
-		if (changed) {
-			if (on) {
-				this._listFlags |= bit;
-			} else {
-				this._listFlags &= ~bit;
-			}
+		if (super.getFlag(Flags.FOCUSABLE)) {
+			return true;
 		}
-		return changed;
+		if (this._template == null || this.count() > 0) {
+			return false;
+		}
+		return this._template.getVisibleDescendantsIf(
+				(e)=>this.application.isFocusable(e), 1).length > 0;
 	}
 
 	public count():number {
@@ -455,8 +388,6 @@ export class UiListNode extends UiScrollNode {
 		}
 		template.adoptChildren(this);
 		template.style = RECORD_STYLE;
-		this.itemFocusable = template.getVisibleDescendantsIf(
-				(e)=>this.application.isFocusable(e), 1).length > 0;
 		return template;
 	}
 

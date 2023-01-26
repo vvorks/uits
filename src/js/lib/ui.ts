@@ -46,6 +46,12 @@ export { UiRadio };
 import { UiLookupField } from "~/lib/ui/UiLookupField"
 export { UiLookupField };
 
+import { UiIndicatorNode } from "~/lib/ui/UiIndicatorNode"
+export { UiIndicatorNode };
+
+import { UiIndicatorField } from "~/lib/ui/UiIndicatorField"
+export { UiIndicatorField };
+
 import { UiScrollbar } from "~/lib/ui/UiScrollbar"
 export { UiScrollbar };
 

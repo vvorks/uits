@@ -1,8 +1,9 @@
 import
 	{ Types, Value }
 	from "~/lib/lang";
-import { Color, Colors } from "~/lib/ui/Colors";
+import { Color } from "~/lib/ui/Colors";
 import { UiNode } from "~/lib/ui/UiNode";
+import { UiStyle } from "./UiStyle";
 
 const RESOURCE_HEAD_MARKER = "{{";
 const RESOURCE_TAIL_MARKER = "}}";
@@ -87,10 +88,11 @@ export class UiTextNode extends UiNode {
 				divStyle.transform = "translate(0,-50%)";
 			}
 			if (this._textColor != null) {
-				divStyle.color = Colors.toCssColor(this._textColor);
+				divStyle.color = this._textColor;
 			} else {
 				divStyle.removeProperty("color");
 			}
+			this.addPaddingForRadius(divStyle, uiStyle);
 			div.innerText = this.asString(this.textContent);
 		} else {
 			let tb = dom.firstChild as HTMLTableElement;
@@ -105,11 +107,40 @@ export class UiTextNode extends UiNode {
 				tdStyle.verticalAlign = "middle";
 			}
 			if (this._textColor != null) {
-				tdStyle.color = Colors.toCssColor(this._textColor);
+				tdStyle.color = this._textColor;
 			} else {
 				tdStyle.removeProperty("color");
 			}
+			this.addPaddingForRadius(tdStyle, uiStyle);
 			td.innerText = this.asString(this.textContent);
+		}
+	}
+
+	addPaddingForRadius(style: CSSStyleDeclaration, uiStyle: UiStyle) {
+		let rect = this.getRect();
+		let topLeft = uiStyle.borderRadiusTopLeftAsLength.toPixel(()=>rect.width);
+		let bottomLeft = uiStyle.borderRadiusBottomLeftAsLength.toPixel(()=>rect.width);
+		let topRight = uiStyle.borderRadiusTopRightAsLength.toPixel(()=>rect.width);
+		let bottomRight = uiStyle.borderRadiusBottomRightAsLength.toPixel(()=>rect.width);
+		if (rect.width > rect.height * 2) {
+			//横長矩形の場合
+			style.paddingLeft   = `${Math.max(topLeft, bottomLeft)  }px`;
+			style.paddingRight  = `${Math.max(topRight, bottomRight)}px`;
+			style.paddingTop    = "0px";
+			style.paddingBottom = "0px";
+		} else if ( rect.height > rect.width * 2) {
+			//縦長矩形の場合
+			style.paddingLeft   = "0px";
+			style.paddingRight  = "0px";
+			style.paddingTop    = `${Math.max(topLeft, topRight)      }px`;
+			style.paddingBottom = `${Math.max(bottomLeft, bottomRight)}px`;
+		} else {
+			//一般矩形の場合
+			let ratio = 1.0 - 1/Math.sqrt(2);
+			style.paddingLeft   = `${Math.max(topLeft, bottomLeft)     * ratio}px`;
+			style.paddingRight  = `${Math.max(topRight, bottomRight)   * ratio}px`;
+			style.paddingTop    = `${Math.max(topLeft, topRight)       * ratio}px`;
+			style.paddingBottom = `${Math.max(bottomLeft, bottomRight) * ratio}px`;
 		}
 	}
 

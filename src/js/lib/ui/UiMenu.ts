@@ -32,20 +32,24 @@ export class UiMenuItem extends UiNode implements DataHolder {
 
 	private _record:DataRecord|null;
 
+	private _index:number;
+
 	public clone():UiMenuItem {
 		return new UiMenuItem(this);
 	}
 
 	public constructor(app:UiApplication, name:string);
-	public constructor(src:UiMenuItem);
+	public constructor(src:UiMenuItem, name?:string);
 	public constructor(param:any, name?:string) {
 		if (param instanceof UiMenuItem) {
 			super(param as UiMenuItem);
 			let src = param as UiMenuItem;
 			this._record = src._record;
+			this._index = src._index;
 		} else {
 			super(param as UiApplication, name as string);
 			this._record = null;
+			this._index = -1;
 		}
 	}
 
@@ -72,9 +76,20 @@ export class UiMenuItem extends UiNode implements DataHolder {
 		}
 	}
 
+	public get index():number {
+		return this._index;
+	}
+
+	public set index(index: number) {
+		this._index = index;
+	}
+
+	public getPathSegment(): string {
+		return "" + this._index;
+	}
+
 	private get owner():UiMenu {
 		return (this.parent as UiNode).parent as UiMenu;
-
 	}
 
 	public onKeyDown(target: UiNode, key: number, ch: number, mod: number, at: number): UiResult {
@@ -489,7 +504,8 @@ export class UiMenu extends UiNode {
 			let template = rec[FIELD_TEMPLATE] as string;
 			let node = (this._template as UiNode).getChildByName(template);
 			if (node != null) {
-				let item = node.clone() as UiMenuItem;
+				let item = (node as UiMenuItem).clone();
+				item.index = i;
 				let type = rec[FIELD_TYPE] as FieldType;
 				item.focusable = (type != "filler") ? true : false;
 				item.setReocord(rec);
@@ -558,19 +574,21 @@ export class UiMenu extends UiNode {
 	public changeContent(content:string):UiResult {
 		let app = this.application;
 		let result = UiResult.IGNORED;
-		Logs.debug("changeContent 1");
+		Logs.info("changeContent %s", this._contentNodePath);
 		if (this._contentNodePath != null) {
-			Logs.debug("changeContent 2 %s", this._contentNodePath);
 			let contentNode = this.findNodeByPath(this._contentNodePath);
 			if (contentNode != null) {
 				//save focus
 				this._focusItems[this._currentLevel - 1] = app.getFocusOf(this) as UiNode;
-				//kari
-				Logs.debug("changeContent 3");
-				(contentNode as UiTextNode).textContent = content;
+				(contentNode as UiTextNode).textContent = content; //TODO kari
 				this.application.setFocus(contentNode);
 				result = UiResult.EATEN;
 			}
+		}
+		//TODO 仮動作
+		if (!(result & UiResult.CONSUMED)) {
+			this.relocateBlocks(0);
+			result |= UiResult.AFFECTED;
 		}
 		return result;
 	}

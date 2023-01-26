@@ -238,11 +238,11 @@ class UiEditArea extends UiNode {
 		let editingFore;
 		let editingBack;
 		if (editingStyle == null) {
-			editingFore = Colors.toCssColor(Colors.BLUE);
-			editingBack = Colors.toCssColor(defaultStyle.backgroundColor);
+			editingFore = Colors.BLUE;
+			editingBack = defaultStyle.backgroundColor;
 		} else {
-			editingFore = Colors.toCssColor(editingStyle.textColor);
-			editingBack = Colors.toCssColor(editingStyle.backgroundColor);
+			editingFore = editingStyle.textColor;
+			editingBack = editingStyle.backgroundColor;
 		}
 		//文字列追加処理初期処理
 		let text = this._textContent;

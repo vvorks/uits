@@ -31,7 +31,7 @@ export class UiCheckbox extends UiImageNode {
 
 	public onDataHolderChanged(holder:DataHolder):UiResult {
 		this._dataHolder = holder;
-		this.value = !!this._dataHolder.getValue(this.name);
+		this.value = !!this._dataHolder.getValue(this.dataFieldName);
 		return UiResult.AFFECTED;
 	}
 

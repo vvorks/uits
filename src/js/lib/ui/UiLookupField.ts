@@ -167,7 +167,7 @@ export class UiLookupField extends UiTextNode {
 
 	public onDataHolderChanged(holder:DataHolder):UiResult {
 		this._dataHolder = holder;
-		let value = this._dataHolder.getValue(this.name) as DataRecord;
+		let value = this._dataHolder.getValue(this.dataFieldName) as DataRecord;
 		if (value != null) {
 			let title = value[SUBNAME_TITLE] as string;
 			this.textContent = title;

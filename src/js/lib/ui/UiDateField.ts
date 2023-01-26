@@ -286,7 +286,7 @@ export class UiDateField extends UiTextNode {
 	public onDataHolderChanged(holder:DataHolder):UiResult {
 		let result = UiResult.IGNORED;
 		this._dataHolder = holder;
-		let value = this._dataHolder.getValue(this.name);
+		let value = this._dataHolder.getValue(this.dataFieldName);
 		if (value != null && Types.isValueType(value)) {
 			this.textContent = this.formatDate(this.toDate(value as Value));
 			result |= UiResult.AFFECTED;

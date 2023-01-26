@@ -402,7 +402,7 @@ export class UiStyle {
 		let sb = "";
 		sb += "{"
 		sb += this.getColorProperty ("color", this.textColor);
-		sb += this.getColorProperty ("background-color", this.backgroundColor);
+		sb += this.getColorProperty ("background", this.backgroundColor);
 		sb += this.getStringProperty("background-image", this.backgroundImage);
 		sb += this.getStringProperty("border-left-width", this.borderLeft);
 		sb += this.getStringProperty("border-top-width", this.borderTop);
@@ -425,7 +425,7 @@ export class UiStyle {
 		if (color == null) {
 			return "";
 		}
-		return cssName + ":" + Colors.toCssColor(color) + ";";
+		return cssName + ":" + color + ";";
 	}
 
 	private getStringProperty(cssName:string, str:string|null):string {
@@ -540,21 +540,13 @@ export class UiStyleBuilder {
 		return this;
 	}
 
-	public textColor(value:string|Color|null):UiStyleBuilder {
-		if (typeof value === "string") {
-			this._textColor = Colors.parse(value as string);
-		} else {
-			this._textColor = value;
-		}
+	public textColor(value:Color|null):UiStyleBuilder {
+		this._textColor = value;
 		return this;
 	}
 
-	public backgroundColor(value:string|Color|null):UiStyleBuilder {
-		if (typeof value === "string") {
-			this._backgroundColor = Colors.parse(value);
-		} else {
-			this._backgroundColor = value;
-		}
+	public backgroundColor(value:Color|null):UiStyleBuilder {
+		this._backgroundColor = value;
 		return this;
 	}
 
@@ -672,12 +664,8 @@ export class UiStyleBuilder {
 		return this;
 	}
 
-	public borderColor(value:string|Color|null):UiStyleBuilder {
-		if (typeof value === "string") {
-			this._borderColor = Colors.parse(value as string);
-		} else {
-			this._borderColor = value;
-		}
+	public borderColor(value:Color|null):UiStyleBuilder {
+		this._borderColor = value;
 		return this;
 	}
 

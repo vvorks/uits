@@ -38,7 +38,7 @@ export class UiRadio extends UiImageNode {
 
 	public onDataHolderChanged(holder:DataHolder):UiResult {
 		this._dataHolder = holder;
-		this.value = this._dataHolder.getValue(this.name) as Value;
+		this.value = this._dataHolder.getValue(this.dataFieldName) as Value;
 		return UiResult.AFFECTED;
 	}
 

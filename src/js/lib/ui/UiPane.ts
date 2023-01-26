@@ -103,19 +103,19 @@ export class UiDock extends UiNode {
 			let size = p.computedSize;
 			switch (p.location) {
 			case "left":
-				p.locate(inset.left, inset.top, null, inset.bottom, size, null);
+				p.position(inset.left, inset.top, null, inset.bottom, size, null);
 				inset.left += size;
 				break;
 			case "right":
-				p.locate(null, inset.top, inset.right, inset.bottom, size, null);
+				p.position(null, inset.top, inset.right, inset.bottom, size, null);
 				inset.right += size;
 				break;
 			case "top":
-				p.locate(inset.left, inset.top, inset.right, null, null, size);
+				p.position(inset.left, inset.top, inset.right, null, null, size);
 				inset.top += size;
 				break;
 			case "bottom":
-				p.locate(inset.left, null, inset.right, inset.bottom, null, size);
+				p.position(inset.left, null, inset.right, inset.bottom, null, size);
 				inset.bottom += size;
 				break;
 			case "center":
@@ -127,7 +127,7 @@ export class UiDock extends UiNode {
 			let p = c as UiPane;
 			switch (p.location) {
 			case "center":
-				p.locate(inset.left, inset.top, inset.right, inset.bottom, null, null);
+				p.position(inset.left, inset.top, inset.right, inset.bottom, null, null);
 				break;
 			default:
 				break;

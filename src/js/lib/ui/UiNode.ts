@@ -20,7 +20,7 @@ export type Size = string|number;
  /**
  * UiNodeフラグ定義
  *
- * 派生クラス用にEXPORTしている
+ * あまりよろしくないが、派生クラス用の定義もここでまとめる
  */
 export enum Flags {
 
@@ -50,15 +50,27 @@ export enum Flags {
 
 	/** 初期化済みフラグ */
 	INITIALIZED		= 0x00000100,
+	
+	/** フォーカスロックフラグ */
+	FOCUS_LOCK		= 0x00000200,
 
-	/** 予約領域 */
-	RESERVED		= 0xFFFFFE00,
+	/** 縦スクロールフラグ */
+	VERTICAL		= 0x00000400,
+
+	/** スープスクロールフラグ */
+	LOOP			= 0x00000800,
+
+	/** リスト両端のマージンの要否フラグ */
+	OUTER_MARGIN	= 0x00001000,
 
 	/** 初期フラグ値 */
 	INITIAL			= ENABLE|VISIBLE,
 
 	/** クローン時に引き継ぐフラグ */
 	CLONABLE_FLAGS	= FOCUSABLE|ENABLE|VISIBLE|EDITABLE,
+
+	/** UiListNodeで使用 */
+	LIST_INITIAL	= VERTICAL|LOOP|OUTER_MARGIN,
 
 }
 
@@ -108,6 +120,7 @@ export enum UiResult {
 
 	/** イベントにより内部状態が変化した */
 	AFFECTED = 2,
+	
 	/** イベントを消費し、かつ内部状態も変化した */
 	EATEN = CONSUMED|AFFECTED,
 
@@ -258,7 +271,8 @@ export class UiNode implements Clonable<UiNode>, Scrollable {
 			}
 			this._nextFocusFilter = src._nextFocusFilter;
 			this._actionListeners = src._actionListeners.slice();
-			this._flags = src._flags & Flags.CLONABLE_FLAGS;
+			this._flags = 0;
+			this.initFlags(src._flags & Flags.CLONABLE_FLAGS);
 			this._changed = src._changed;
 			this._domElement = null;
 			this._endElement = null;
@@ -289,7 +303,8 @@ export class UiNode implements Clonable<UiNode>, Scrollable {
 			this._children = [];
 			this._nextFocusFilter = (e)=>true;
 			this._actionListeners = [];
-			this._flags = Flags.INITIAL;
+			this._flags = 0;
+			this.initFlags(Flags.INITIAL);
 			this._changed = Changed.ALL;
 			this._domElement = null;
 			this._endElement = null;
@@ -337,7 +352,7 @@ export class UiNode implements Clonable<UiNode>, Scrollable {
 		}
 	}
 
-	public get dataFieldName():string|null {
+	public get dataFieldName():string {
 		if (this._dataFieldName == null) {
 			return this._name;
 		} else {
@@ -468,7 +483,7 @@ export class UiNode implements Clonable<UiNode>, Scrollable {
 		this.height = null;
 	}
 
-	public locate(
+	public position(
 		left:Size|null,
 		top:Size|null,
 		right:Size|null,
@@ -489,7 +504,7 @@ export class UiNode implements Clonable<UiNode>, Scrollable {
 		for (let c of this._children) {
 			c.onLocationChanged();
 		}
-		this.setChanged(Changed.LOCATION, true);
+		this.setChanged(Changed.CONTENT|Changed.LOCATION, true);
 	}
 
 	public get scrollLeft():string|null {
@@ -1118,8 +1133,45 @@ export class UiNode implements Clonable<UiNode>, Scrollable {
 		this.setFlag(Flags.BINDED, on);
 	}
 
+	public get vertical():boolean {
+		return this.getFlag(Flags.VERTICAL);
+	}
+
+	public set vertical(on:boolean) {
+		this.setFlag(Flags.VERTICAL, on);
+	}
+
+	public get loop():boolean {
+		return this.getFlag(Flags.LOOP);
+	}
+
+	public set loop(on:boolean) {
+		this.setFlag(Flags.LOOP, on);
+	}
+
+	public get scrollLock():boolean {
+		return this.getFlag(Flags.FOCUS_LOCK);
+	}
+
+	public set scrollLock(on:boolean) {
+		this.setFlag(Flags.FOCUS_LOCK, on);
+	}
+
+	public get outerMargin():boolean {
+		return this.getFlag(Flags.OUTER_MARGIN);
+	}
+
+	public set outerMargin(on:boolean) {
+		this.setFlag(Flags.OUTER_MARGIN, on);
+	}
+
 	protected getFlag(bit:Flags):boolean {
 		return !!(this._flags & bit);
+	}
+
+	/**初期化時にのみ使用。注意して使う事 */
+	protected initFlags(value:Flags) {
+		this._flags |= value;
 	}
 
 	protected setFlag(bit:Flags, on:boolean):boolean {

@@ -44,7 +44,7 @@ export class UiImageLookupField extends UiImageNode {
 	public onDataHolderChanged(holder:DataHolder):UiResult {
 		let result = UiResult.IGNORED;
 		this._dataHolder = holder;
-		let value = this._dataHolder.getValue(this.name);
+		let value = this._dataHolder.getValue(this.dataFieldName);
 		if (value != null && Types.isString(value)) {
 			let image = this._lookupTable[value as string];
 			if (image !== undefined) {

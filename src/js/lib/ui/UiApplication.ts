@@ -92,7 +92,7 @@ class LivePage {
 		return this._type == PageType.NORMAL && this._focusNode != null ? this._focusNode : this._pageNode;
 	}
 
-	public focus(newNode: UiNode, axis:UiAxis = UiAxis.XY):UiResult {
+	public doFocus(newNode: UiNode, axis:UiAxis = UiAxis.XY):UiResult {
 		let oldNode:UiNode|null = this._focusNode;
 		if (oldNode == newNode) {
 			return UiResult.IGNORED;
@@ -291,9 +291,9 @@ class RunIntervalEntry extends RunEntry<RunAfterTask> {
 		if (Math.floor(this._lastTime / this._cycle) != Math.floor(now / this._cycle)) {
 			result = this.task();
 			if (result & UiResult.EXIT) {
-				this._flags |= RunFlags.EXIT;
+				this._flags |= RunFlags.EXIT; //終了要求が来た場合、その情報を一旦保持
+				result      &= UiResult.EXIT; //上位レベルに対する応答にはEXITフラグは不要なので落とす
 			}
-			result &= UiResult.EXIT;
 			this._lastTime = now;
 		}
 		return result;
@@ -795,7 +795,7 @@ export class UiApplication {
 		let list = node.getVisibleDescendantsIf((e)=>this.isAppearedFocusable(e), 1);
 		let found = (list.length > 0);
 		if (found) {
-			page.focus(list[0]);
+			page.doFocus(list[0]);
 		}
 		return found;
 	}
@@ -804,7 +804,7 @@ export class UiApplication {
 		let page = this.getLivePageOf(node);
 		let result = UiResult.IGNORED;
 		if (page != null) {
-			page.focus(node, axis);
+			page.doFocus(node, axis);
 			result |= UiResult.AFFECTED;
 		}
 		return result;
