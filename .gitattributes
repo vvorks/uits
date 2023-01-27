@@ -1,0 +1,9 @@
+*         text=auto
+*.zip     binary
+*.docx    binary
+*.xlsx    binary
+*.pptx    binary
+*.ts      text  eol=lf
+*.js      text  eof=lf
+*.html    text  eol=lf
+*.css     text  eol=lf
