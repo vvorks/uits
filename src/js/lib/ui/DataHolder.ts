@@ -1,18 +1,12 @@
-import
-	{ Value }
-	from "~/lib/lang";
-import
-	{ DataRecord }
-	from "~/lib/ui/DataSource";
+import { Value } from '~/lib/lang';
+import { DataRecord } from '~/lib/ui/DataSource';
 
 export interface DataHolder {
+  getValue(name: string): Value | DataRecord | null;
 
-	getValue(name:string):Value|DataRecord|null;
+  setValue(name: string, value: Value | DataRecord | null): void;
 
-	setValue(name:string, value:Value|DataRecord|null):void;
+  getRecord(): DataRecord | null;
 
-	getRecord():DataRecord|null;
-
-	setReocord(rec:DataRecord):void;
-
+  setReocord(rec: DataRecord): void;
 }
