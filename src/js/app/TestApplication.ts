@@ -11,6 +11,8 @@ import {
   DataRecord,
   COMPONENT_THUMB,
   UiLaunchPage,
+  HistoryState,
+  PageLayer,
 } from '~/lib/ui';
 import { GridPage } from '~/app/GridPage';
 import { HorizontalListPage } from '~/app/HorizontalListPage';
@@ -268,7 +270,10 @@ export class TestApplication extends UiApplication {
       case KeyCodes.PAGEUP:
       case KeyCodes.PAGEDOWN:
         //TODO 仮
-        result = this.toast('volume', {}) != null ? UiResult.EATEN : UiResult.IGNORED;
+        result =
+          this.popup(new HistoryState('volume', {}), PageLayer.HIGH) != null
+            ? UiResult.EATEN
+            : UiResult.IGNORED;
         break;
       default:
         result = super.onKeyDown(target, key, ch, mod, at);

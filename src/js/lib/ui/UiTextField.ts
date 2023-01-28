@@ -4,6 +4,7 @@ import { KeyCodes } from '~/lib/ui/KeyCodes';
 import { UiKeyboard } from '~/lib/ui/UiKeyboard';
 import { UiNode, UiResult } from '~/lib/ui/UiNode';
 import { UiTextNode } from '~/lib/ui/UiTextNode';
+import { HistoryState } from './HistoryManager';
 import { UiApplication } from './UiApplication';
 
 /**
@@ -79,7 +80,7 @@ export class UiTextField extends UiTextNode {
   }
 
   public showPopup(): UiResult {
-    this.application.call(new UiKeyboard(this.application, '', this));
+    this.application.call(new UiKeyboard(this.application, '', this), new HistoryState('', {}));
     return UiResult.AFFECTED;
   }
 

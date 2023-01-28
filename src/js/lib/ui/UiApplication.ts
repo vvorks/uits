@@ -37,9 +37,16 @@ export enum UiAxis {
   XY = 3,
 }
 
-enum PageType {
-  NORMAL,
-  TOAST,
+/**
+ * ページレイヤー
+ */
+export enum PageLayer {
+  /** 優先度：低（選局バナー等） */
+  LOW = 30,
+  /** 優先度：通常（ページ、モーダルPOPUP等） */
+  NORMAL = 50,
+  /** 優先度：高（通知等） */
+  HIGH = 80,
 }
 
 type RunFinallyTask = () => void;
@@ -50,16 +57,16 @@ type AnimationTask = (step: number) => UiResult;
 
 class LivePage {
   private _pageNode: UiPageNode;
-  private _type: PageType;
+  private _layer: PageLayer;
   private _xAxis: number;
   private _yAxis: number;
   private _focusNode: UiNode | null;
   private _clickNode: UiNode | null;
   private _lastAxis: UiAxis;
 
-  public constructor(pageNode: UiPageNode, type: PageType = PageType.NORMAL) {
+  public constructor(pageNode: UiPageNode, layer: PageLayer) {
     this._pageNode = pageNode;
-    this._type = type;
+    this._layer = layer;
     this._xAxis = 0;
     this._yAxis = 0;
     this._focusNode = null;
@@ -71,8 +78,8 @@ class LivePage {
     return this._pageNode;
   }
 
-  public isToast(): boolean {
-    return this._type == PageType.TOAST;
+  public get layer(): PageLayer {
+    return this._layer;
   }
 
   public get xAxis(): number {
@@ -96,9 +103,7 @@ class LivePage {
   }
 
   public get focusOrPage(): UiNode {
-    return this._type == PageType.NORMAL && this._focusNode != null
-      ? this._focusNode
-      : this._pageNode;
+    return this._focusNode != null ? this._focusNode : this._pageNode;
   }
 
   public doFocus(newNode: UiNode, axis: UiAxis = UiAxis.XY): UiResult {
@@ -673,49 +678,59 @@ export class UiApplication {
     return this._pageFactories;
   }
 
-  public transit(state: HistoryState): UiPageNode | null {
+  public transit(state: HistoryState, layer: PageLayer = PageLayer.NORMAL): UiPageNode | null {
     let factory: PageFactory | undefined = this._pageFactories[state.tag];
     if (factory == null) {
       Logs.error("page '%s' not found", state.tag);
       return null;
-    } else {
-      this.unmountNormalPages();
-      let newPage = factory(state.tag);
-      this.call0(newPage, state);
-      return newPage;
     }
+    this.unmountLayerPages(layer);
+    let newPage = factory(state.tag);
+    this.call(newPage, state, layer);
+    return newPage;
   }
 
-  public toast(tag: string, args: Properties<string>): UiPageNode | null {
-    let factory: PageFactory | undefined = this._pageFactories[tag];
+  public popup(state: HistoryState, layer: PageLayer = PageLayer.NORMAL): UiPageNode | null {
+    let factory: PageFactory | undefined = this._pageFactories[state.tag];
     if (factory == null) {
+      Logs.error("page '%s' not found", state.tag);
       return null;
-    } else {
-      let newPage = factory(tag);
-      newPage.setHistoryState(new HistoryState(tag, args));
-      this.call(newPage, PageType.TOAST);
-      return newPage;
     }
+    let newPage = factory(state.tag);
+    this.call(newPage, state, layer);
+    return newPage;
   }
 
   private getHistoryStates(): HistoryState[] | null {
-    let pageTail = this.getPageTail();
-    if (pageTail == 0) {
+    let layer = PageLayer.NORMAL;
+    let firstIndex = this._pageStack.findIndex((e) => e.layer == layer);
+    if (firstIndex == -1) {
       return null;
     }
     let result: HistoryState[] = [];
-    for (let i = pageTail - 1; i >= 0; i--) {
+    for (let i = firstIndex; i < this._pageStack.length; i++) {
       let page = this._pageStack[i];
+      if (page.layer != layer) {
+        break;
+      }
       let pageNode = page.pageNode;
-      result.unshift(pageNode.getHistoryState());
+      result.push(pageNode.getHistoryState());
     }
     return result;
   }
 
-  private unmountNormalPages(): void {
-    let pageTail = this.getPageTail();
-    for (let i = pageTail - 1; i >= 0; i--) {
+  private unmountLayerPages(layer: PageLayer): void {
+    let nextIndex = this._pageStack.findIndex((e) => e.layer > layer);
+    if (nextIndex == -1) {
+      nextIndex = this._pageStack.length;
+    }
+    let firstIndex = 0;
+    for (let i = nextIndex - 1; i >= firstIndex; i--) {
       let page = this._pageStack[i];
+      if (page.layer < layer) {
+        firstIndex = i + 1;
+        break;
+      }
       let pageNode = page.pageNode;
       pageNode.onUnmount();
       this.rootNode.removeChild(pageNode);
@@ -723,62 +738,34 @@ export class UiApplication {
       this.cancelIntervalTasksIn(pageNode);
       this.cancelAnimationTasksIn(pageNode);
     }
-    this._pageStack.splice(0, pageTail);
-  }
-
-  private getPageTail(): number {
-    let pageTail: number = this._pageStack.length;
-    while (pageTail > 0 && this._pageStack[pageTail - 1].isToast()) {
-      pageTail--;
+    let count = nextIndex - firstIndex;
+    if (count > 0) {
+      this._pageStack.splice(firstIndex, count);
     }
-    return pageTail;
   }
 
-  private call0(pageNode: UiPageNode, state: HistoryState, type: PageType = PageType.NORMAL): void {
-    let page = new LivePage(pageNode, type);
-    if (type == PageType.NORMAL) {
-      let pageTail = this.getPageTail();
-      if (pageTail < this._pageStack.length) {
-        let afterNode = this._pageStack[pageTail].pageNode;
-        this._pageStack.splice(pageTail, 0, page);
-        this.rootNode.insertChild(pageNode, afterNode);
-      } else {
-        this._pageStack.push(page);
-        this.rootNode.appendChild(pageNode);
-      }
+  public call(
+    pageNode: UiPageNode,
+    state: HistoryState,
+    layer: PageLayer = PageLayer.NORMAL
+  ): void {
+    let page = new LivePage(pageNode, layer);
+    let biggerIndex = this._pageStack.findIndex((e) => e.layer > layer);
+    if (biggerIndex >= 0) {
+      let afterNode = this._pageStack[biggerIndex].pageNode;
+      this._pageStack.splice(biggerIndex, 0, page);
+      this.rootNode.insertChild(pageNode, afterNode);
     } else {
       this._pageStack.push(page);
       this.rootNode.appendChild(pageNode);
     }
     pageNode.onMount();
     pageNode.setHistoryState(state);
-    if (!page.isToast() && (page.focusNode == null || !this.isAppearedFocusable(page.focusNode))) {
-      if (!this.resetFocus(pageNode)) {
-        Logs.error('LOST FOCUS!');
-      }
-    }
-  }
-
-  public call(pageNode: UiPageNode, type: PageType = PageType.NORMAL): void {
-    let page = new LivePage(pageNode, type);
-    if (type == PageType.NORMAL) {
-      let pageTail = this.getPageTail();
-      if (pageTail < this._pageStack.length) {
-        let afterNode = this._pageStack[pageTail].pageNode;
-        this._pageStack.splice(pageTail, 0, page);
-        this.rootNode.insertChild(pageNode, afterNode);
-      } else {
-        this._pageStack.push(page);
-        this.rootNode.appendChild(pageNode);
-      }
-    } else {
-      this._pageStack.push(page);
-      this.rootNode.appendChild(pageNode);
-    }
-    pageNode.onMount();
-    if (!page.isToast() && (page.focusNode == null || !this.isAppearedFocusable(page.focusNode))) {
-      if (!this.resetFocus(pageNode)) {
-        Logs.error('LOST FOCUS!');
+    if (layer == PageLayer.NORMAL) {
+      if (page.focusNode == null || !this.isAppearedFocusable(page.focusNode)) {
+        if (!this.resetFocus(pageNode)) {
+          Logs.error('LOST FOCUS!');
+        }
       }
     }
   }
@@ -851,12 +838,23 @@ export class UiApplication {
     return result;
   }
 
-  public getFocus(): UiNode | null {
-    let pageTail = this.getPageTail();
-    if (pageTail > 0) {
-      return this._pageStack[pageTail - 1].focusNode;
+  private getLastPage(layer: PageLayer): LivePage | null {
+    let nextIndex = this._pageStack.findIndex((e) => e.layer > layer);
+    if (nextIndex == -1) {
+      nextIndex = this._pageStack.length;
+    }
+    for (let i = nextIndex - 1; i >= 0; i--) {
+      let page = this._pageStack[i];
+      if (page.layer == layer) {
+        return page;
+      }
     }
     return null;
+  }
+
+  public getFocus(): UiNode | null {
+    let lastPage = this.getLastPage(PageLayer.NORMAL);
+    return lastPage != null ? lastPage.focusNode : null;
   }
 
   public getFocusOf(node: UiNode): UiNode | null {
@@ -897,14 +895,10 @@ export class UiApplication {
 
   private recoverFocus(): UiResult {
     let result = UiResult.IGNORED;
-    let pageTail = this.getPageTail();
-    if (pageTail > 0) {
-      let page = this._pageStack[pageTail - 1];
-      if (
-        !page.isToast() &&
-        (page.focusNode == null || !this.isAppearedFocusableAll(page.focusNode))
-      ) {
-        if (!this.resetFocus(page.pageNode)) {
+    let lastPage = this.getLastPage(PageLayer.NORMAL);
+    if (lastPage != null) {
+      if (lastPage.focusNode == null || !this.isAppearedFocusableAll(lastPage.focusNode)) {
+        if (!this.resetFocus(lastPage.pageNode)) {
           Logs.error('LOST FOCUS!');
         } else {
           Logs.warn('RECOVER FOCUS!');
@@ -1101,7 +1095,7 @@ export class UiApplication {
           }
           node = node.parent;
         }
-        if (result & UiResult.CONSUMED || !page.isToast()) {
+        if (result & UiResult.CONSUMED || page.layer == PageLayer.NORMAL) {
           break;
         }
       }
@@ -1142,7 +1136,7 @@ export class UiApplication {
           }
           node = node.parent;
         }
-        if (result & UiResult.CONSUMED || !page.isToast()) {
+        if (result & UiResult.CONSUMED || page.layer == PageLayer.NORMAL) {
           break;
         }
       }
@@ -1183,7 +1177,7 @@ export class UiApplication {
           }
           node = node.parent;
         }
-        if (result & UiResult.CONSUMED || !page.isToast()) {
+        if (result & UiResult.CONSUMED || page.layer == PageLayer.NORMAL) {
           break;
         }
       }

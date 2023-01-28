@@ -64,8 +64,8 @@ export { UiPane, UiDock };
 import { UiMenu, UiMenuItem } from '~/lib/ui/UiMenu';
 export { UiMenu, UiMenuItem };
 
-import { UiApplication, UiAxis } from '~/lib/ui/UiApplication';
-export { UiApplication, UiAxis };
+import { UiApplication, UiAxis, PageLayer } from '~/lib/ui/UiApplication';
+export { UiApplication, UiAxis, PageLayer };
 
 import { UiLaunchPage } from '~/lib/ui/UiLaunchPage';
 export { UiLaunchPage };
@@ -105,3 +105,6 @@ export type ActionListener = RawActionListener;
 
 import { UiLocation as RawUiLocation } from '~/lib/ui/UiNode';
 export type UiLocation = RawUiLocation;
+
+import { HistoryState } from './ui/HistoryManager';
+export { HistoryState };

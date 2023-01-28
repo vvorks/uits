@@ -1780,7 +1780,21 @@ export class UiNode implements Clonable<UiNode>, Scrollable {
     Asserts.assume(dom.parentElement == null);
     let parent = this.parent as UiNode;
     if (parent._domElement != null) {
-      parent._domElement.appendChild(dom);
+      let index = parent.getIndexOfChild(this);
+      let ref: HTMLElement | null = null;
+      if (index >= 0) {
+        for (let i = index + 1; i < parent._children.length; i++) {
+          if (parent._children[i]._domElement != null) {
+            ref = parent._children[i]._domElement;
+            break;
+          }
+        }
+      }
+      if (ref != null) {
+        parent._domElement.insertBefore(dom, ref);
+      } else {
+        parent._domElement.appendChild(dom);
+      }
     } else {
       Asserts.ensure(false);
     }

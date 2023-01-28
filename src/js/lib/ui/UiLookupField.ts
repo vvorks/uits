@@ -9,6 +9,7 @@ import { UiNode, UiResult } from '~/lib/ui/UiNode';
 import { UiNodeBuilder } from '~/lib/ui/UiNodeBuilder';
 import { UiPageNode } from '~/lib/ui/UiPageNode';
 import { UiTextNode } from '~/lib/ui/UiTextNode';
+import { HistoryState } from './HistoryManager';
 
 const SUBNAME_TITLE = 'title';
 
@@ -270,7 +271,7 @@ export class UiLookupField extends UiTextNode {
   }
 
   public showPopup(args: Properties<string>): UiResult {
-    this.application.call(new UiLookupPopup(this.application, '', this));
+    this.application.call(new UiLookupPopup(this.application, '', this), new HistoryState('', {}));
     return UiResult.AFFECTED;
   }
 

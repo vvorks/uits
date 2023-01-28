@@ -10,6 +10,7 @@ import { UiNodeBuilder } from '~/lib/ui/UiNodeBuilder';
 import { UiPageNode } from '~/lib/ui/UiPageNode';
 import { UiTextButton } from '~/lib/ui/UiTextButton';
 import { UiTextNode } from '~/lib/ui/UiTextNode';
+import { HistoryState } from './HistoryManager';
 
 /* 曜日データ（暫定：本当はI18nライブラリから取らないと・・・） */
 const WEEKS = ['日', '月', '火', '水', '木', '金', '土'];
@@ -433,7 +434,7 @@ export class UiDateField extends UiTextNode {
   }
 
   public showPopup(): UiResult {
-    this.application.call(new UiDatePopup(this.application, '', this));
+    this.application.call(new UiDatePopup(this.application, '', this), new HistoryState('', {}));
     return UiResult.AFFECTED;
   }
 
