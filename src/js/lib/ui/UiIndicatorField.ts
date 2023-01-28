@@ -14,35 +14,34 @@ export class UiIndicatorField extends UiIndicatorNode {
   private _dataHolder: DataHolder;
 
   /**
-   * クローン操作
+   * クローンメソッド
    *
-   * @returns オブジェクトの複製
+   * @returns 複製
    */
   public clone(): UiIndicatorField {
     return new UiIndicatorField(this);
   }
 
   /**
-   *  新規コンストラクタ
+   * 通常コンストラクタ
    *
-   * @param app UiApplication
+   * @param app アプリケーション
    * @param name ノード名
    */
   constructor(app: UiApplication, name: string);
 
   /**
-   *  複製コンストラクタ
+   * コピーコンストラクタ
    *
-   * @param app UiApplication
-   * @param name ノード名
+   * @param src 複製元
    */
   constructor(src: UiIndicatorField);
 
   /**
    * コンストラクタ実装
    *
-   * @param param 第一引数
-   * @param name 第二引数
+   * @param param 第一パラメータ
+   * @param name 第二パラメータ
    */
   public constructor(param: any, name?: string) {
     if (param instanceof UiIndicatorField) {

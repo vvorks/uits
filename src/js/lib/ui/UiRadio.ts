@@ -12,12 +12,36 @@ export class UiRadio extends UiImageNode {
 
   private _specValue: Value;
 
+  /**
+   * クローンメソッド
+   *
+   * @returns 複製
+   */
   public clone(): UiRadio {
     return new UiRadio(this);
   }
 
+  /**
+   * 通常コンストラクタ
+   *
+   * @param app アプリケーション
+   * @param name ノード名
+   */
   constructor(app: UiApplication, name: string, spec: Value);
+
+  /**
+   * コピーコンストラクタ
+   *
+   * @param src 複製元
+   */
   constructor(src: UiRadio);
+
+  /**
+   * コンストラクタ実装
+   *
+   * @param param 第一パラメータ
+   * @param name 第二パラメータ
+   */
   public constructor(param: any, name?: string, spec?: Value) {
     if (param instanceof UiRadio) {
       super(param as UiRadio);

@@ -9,12 +9,36 @@ export class UiImageLookupField extends UiImageNode {
 
   private _lookupTable: Properties<any>;
 
+  /**
+   * クローンメソッド
+   *
+   * @returns 複製
+   */
   public clone(): UiImageLookupField {
     return new UiImageLookupField(this);
   }
 
+  /**
+   * 通常コンストラクタ
+   *
+   * @param app アプリケーション
+   * @param name ノード名
+   */
   public constructor(app: UiApplication, name: string);
+
+  /**
+   * コピーコンストラクタ
+   *
+   * @param src 複製元
+   */
   public constructor(src: UiImageLookupField);
+
+  /**
+   * コンストラクタ実装
+   *
+   * @param param 第一パラメータ
+   * @param name 第二パラメータ
+   */
   public constructor(param: any, name?: string) {
     if (param instanceof UiImageLookupField) {
       super(param as UiImageLookupField);

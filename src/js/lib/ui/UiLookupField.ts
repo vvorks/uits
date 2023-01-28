@@ -19,8 +19,36 @@ class UiLookupItem extends UiTextNode {
 
   private _dataHolder: DataHolder;
 
+  /**
+   * クローンメソッド
+   *
+   * @returns 複製
+   */
+  public clone(): UiLookupItem {
+    return new UiLookupItem(this);
+  }
+
+  /**
+   * 通常コンストラクタ
+   *
+   * @param app アプリケーション
+   * @param name ノード名
+   */
   constructor(app: UiApplication, name: string, owner: UiLookupField);
+
+  /**
+   * コピーコンストラクタ
+   *
+   * @param src 複製元
+   */
   constructor(src: UiLookupItem);
+
+  /**
+   * コンストラクタ実装
+   *
+   * @param param 第一パラメータ
+   * @param name 第二パラメータ
+   */
   public constructor(param: any, name?: string, owner?: UiLookupField) {
     if (param instanceof UiLookupItem) {
       super(param as UiLookupItem);
@@ -33,10 +61,6 @@ class UiLookupItem extends UiTextNode {
       this._dataHolder = UiNode.VOID_DATA_HOLDER;
       this.focusable = true;
     }
-  }
-
-  public clone(): UiLookupItem {
-    return new UiLookupItem(this);
   }
 
   public onDataHolderChanged(holder: DataHolder): UiResult {
@@ -81,8 +105,36 @@ class UiLookupItem extends UiTextNode {
 export class UiLookupPopup extends UiPageNode {
   private _owner: UiLookupField;
 
+  /**
+   * クローンメソッド
+   *
+   * @returns 複製
+   */
+  public clone(): UiLookupPopup {
+    return new UiLookupPopup(this);
+  }
+
+  /**
+   * 通常コンストラクタ
+   *
+   * @param app アプリケーション
+   * @param name ノード名
+   */
   constructor(app: UiApplication, name: string, owner: UiLookupField);
+
+  /**
+   * コピーコンストラクタ
+   *
+   * @param src 複製元
+   */
   constructor(src: UiLookupPopup);
+
+  /**
+   * コンストラクタ実装
+   *
+   * @param param 第一パラメータ
+   * @param name 第二パラメータ
+   */
   public constructor(param: any, name?: string, owner?: UiLookupField) {
     if (param instanceof UiLookupPopup) {
       super(param as UiLookupPopup);
@@ -92,10 +144,6 @@ export class UiLookupPopup extends UiPageNode {
       super(param as UiApplication, name as string);
       this._owner = owner as UiLookupField;
     }
-  }
-
-  public clone(): UiLookupPopup {
-    return new UiLookupPopup(this);
   }
 
   protected initialize(): void {
@@ -152,10 +200,47 @@ export class UiLookupPopup extends UiPageNode {
 }
 
 export class UiLookupField extends UiTextNode {
-  private _dataHolder: DataHolder = UiNode.VOID_DATA_HOLDER;
+  private _dataHolder: DataHolder;
 
+  /**
+   * クローンメソッド
+   *
+   * @returns 複製
+   */
   public clone(): UiLookupField {
     return new UiLookupField(this);
+  }
+
+  /**
+   * 通常コンストラクタ
+   *
+   * @param app アプリケーション
+   * @param name ノード名
+   */
+  constructor(app: UiApplication, name: string);
+
+  /**
+   * コピーコンストラクタ
+   *
+   * @param src 複製元
+   */
+  constructor(src: UiLookupField);
+
+  /**
+   * コンストラクタ実装
+   *
+   * @param param 第一パラメータ
+   * @param name 第二パラメータ
+   */
+  public constructor(param: any, name?: string) {
+    if (param instanceof UiLookupField) {
+      super(param as UiLookupField);
+      let src = param as UiLookupField;
+      this._dataHolder = src._dataHolder;
+    } else {
+      super(param as UiApplication, name as string);
+      this._dataHolder = UiNode.VOID_DATA_HOLDER;
+    }
   }
 
   public onDataHolderChanged(holder: DataHolder): UiResult {

@@ -87,8 +87,36 @@ class KeyInfo {
 class UiKeytop extends UiTextNode {
   private _info: KeyInfo;
 
+  /**
+   * クローンメソッド
+   *
+   * @returns 複製
+   */
+  public clone(): UiKeytop {
+    return new UiKeytop(this);
+  }
+
+  /**
+   * 通常コンストラクタ
+   *
+   * @param app アプリケーション
+   * @param name ノード名
+   */
   constructor(app: UiApplication, info: KeyInfo);
+
+  /**
+   * コピーコンストラクタ
+   *
+   * @param src 複製元
+   */
   constructor(src: UiKeytop);
+
+  /**
+   * コンストラクタ実装
+   *
+   * @param param 第一パラメータ
+   * @param name 第二パラメータ
+   */
   constructor(param: any, info?: KeyInfo) {
     super(param);
     if (param instanceof UiKeytop) {
@@ -292,12 +320,36 @@ class UiEditArea extends UiNode {
 
   private _divLeft: number;
 
+  /**
+   * クローンメソッド
+   *
+   * @returns 複製
+   */
   public clone(): UiEditArea {
     return new UiEditArea(this);
   }
 
+  /**
+   * 通常コンストラクタ
+   *
+   * @param app アプリケーション
+   * @param name ノード名
+   */
   constructor(app: UiApplication, name: string);
+
+  /**
+   * コピーコンストラクタ
+   *
+   * @param src 複製元
+   */
   constructor(src: UiEditArea);
+
+  /**
+   * コンストラクタ実装
+   *
+   * @param param 第一パラメータ
+   * @param name 第二パラメータ
+   */
   public constructor(param: any, name?: string) {
     if (param instanceof UiEditArea) {
       super(param as UiEditArea);

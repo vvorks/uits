@@ -7,12 +7,36 @@ import { UiApplication } from './UiApplication';
 export class UiImageField extends UiImageNode {
   private _dataHolder: DataHolder;
 
+  /**
+   * クローンメソッド
+   *
+   * @returns 複製
+   */
   public clone(): UiImageField {
     return new UiImageField(this);
   }
 
+  /**
+   * 通常コンストラクタ
+   *
+   * @param app アプリケーション
+   * @param name ノード名
+   */
   constructor(app: UiApplication, name: string);
+
+  /**
+   * コピーコンストラクタ
+   *
+   * @param src 複製元
+   */
   constructor(src: UiImageField);
+
+  /**
+   * コンストラクタ実装
+   *
+   * @param param 第一パラメータ
+   * @param name 第二パラメータ
+   */
   public constructor(param: any, name?: string) {
     if (param instanceof UiImageField) {
       super(param as UiImageField);

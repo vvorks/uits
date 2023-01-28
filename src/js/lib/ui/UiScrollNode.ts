@@ -8,9 +8,9 @@ export class UiScrollNode extends UiNode {
   private _lockY: number;
 
   /**
-   * クローン操作
+   * クローンメソッド
    *
-   * @returns 複製されたオブジェクト
+   * @returns 複製
    */
   public clone(): UiScrollNode {
     return new UiScrollNode(this);
@@ -19,7 +19,7 @@ export class UiScrollNode extends UiNode {
   /**
    * 通常コンストラクタ
    *
-   * @param app アプリケーションオブジェクト
+   * @param app アプリケーション
    * @param name ノード名
    */
   constructor(app: UiApplication, name: string);

@@ -36,7 +36,7 @@ export class MenuTestPage extends UiPageNode {
           .style(LIST_STYLE)
           .dataSource('hiroshige')
           .vertical(false)
-          .focusLock(false)
+          .focusLock(true)
           .loop(false);
         b.belongs((b) => {
           b.element(new UiNode(app, 'card')).position(0, 0, null, 0, 4, null);
@@ -64,7 +64,7 @@ export class MenuTestPage extends UiPageNode {
           .style(LIST_STYLE)
           .dataSource('hiroshige')
           .vertical(false)
-          .focusLock(false)
+          .focusLock(true)
           .loop(false);
         b.belongs((b) => {
           b.element(new UiNode(app, 'card')).position(0, 0, null, 0, 4, null);

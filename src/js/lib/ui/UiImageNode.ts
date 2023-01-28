@@ -10,12 +10,36 @@ export class UiImageNode extends UiNode {
 
   private _imageHeight: CssLength | null;
 
+  /**
+   * クローンメソッド
+   *
+   * @returns 複製
+   */
   public clone(): UiImageNode {
     return new UiImageNode(this);
   }
 
+  /**
+   * 通常コンストラクタ
+   *
+   * @param app アプリケーション
+   * @param name ノード名
+   */
   constructor(app: UiApplication, name: string);
+
+  /**
+   * コピーコンストラクタ
+   *
+   * @param src 複製元
+   */
   constructor(src: UiImageNode);
+
+  /**
+   * コンストラクタ実装
+   *
+   * @param param 第一パラメータ
+   * @param name 第二パラメータ
+   */
   public constructor(param: any, name?: string) {
     if (param instanceof UiImageNode) {
       super(param as UiImageNode);

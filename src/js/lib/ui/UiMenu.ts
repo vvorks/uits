@@ -35,18 +35,32 @@ export class UiMenuItem extends UiNode implements DataHolder {
   /** 論理位置 */
   private _index: number;
 
-  /** クローンメソッド */
+  /**
+   * クローンメソッド
+   *
+   * @returns 複製
+   */
   public clone(): UiMenuItem {
     return new UiMenuItem(this);
   }
 
-  /** 通常コンストラクタ */
+  /**
+   * 通常コンストラクタ
+   *
+   * @param app アプリケーション
+   * @param name ノード名
+   */
   public constructor(app: UiApplication, name: string);
 
   /** コピーコンストラクタ */
   public constructor(src: UiMenuItem);
 
-  /** コンストラクタ実装 */
+  /**
+   * コンストラクタ実装
+   *
+   * @param param 第一パラメータ
+   * @param name 第二パラメータ
+   */
   public constructor(param: any, name?: string) {
     if (param instanceof UiMenuItem) {
       super(param as UiMenuItem);
@@ -185,12 +199,36 @@ export class UiMenu extends UiNode {
 
   private _commingNode: UiNode | null;
 
+  /**
+   * クローンメソッド
+   *
+   * @returns 複製
+   */
   public clone(): UiMenu {
     return new UiMenu(this);
   }
 
+  /**
+   * 通常コンストラクタ
+   *
+   * @param app アプリケーション
+   * @param name ノード名
+   */
   public constructor(app: UiApplication, name?: string);
+
+  /**
+   * コピーコンストラクタ
+   *
+   * @param src 複製元
+   */
   public constructor(src: UiMenu);
+
+  /**
+   * コンストラクタ実装
+   *
+   * @param param 第一パラメータ
+   * @param name 第二パラメータ
+   */
   public constructor(param: any, name?: string) {
     if (param instanceof UiMenu) {
       super(param as UiMenu);

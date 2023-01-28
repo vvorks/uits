@@ -1,6 +1,7 @@
 import { Types, Value } from '~/lib/lang';
 import { Color } from '~/lib/ui/Colors';
 import { UiNode } from '~/lib/ui/UiNode';
+import { UiApplication } from './UiApplication';
 import { UiStyle } from './UiStyle';
 
 const RESOURCE_HEAD_MARKER = '{{';
@@ -9,12 +10,51 @@ const RESOURCE_TAIL_MARKER = '}}';
 const VALIGN_TRANSFORM = false;
 
 export class UiTextNode extends UiNode {
-  private _textContent: Value = null;
+  private _textContent: Value;
 
-  private _textColor: Color | null = null;
+  private _textColor: Color | null;
 
+  /**
+   * クローンメソッド
+   *
+   * @returns 複製
+   */
   public clone(): UiTextNode {
     return new UiTextNode(this);
+  }
+
+  /**
+   * 通常コンストラクタ
+   *
+   * @param app アプリケーション
+   * @param name ノード名
+   */
+  constructor(app: UiApplication, name: string);
+
+  /**
+   * コピーコンストラクタ
+   *
+   * @param src 複製元
+   */
+  constructor(src: UiTextNode);
+
+  /**
+   * コンストラクタ実装
+   *
+   * @param param 第一パラメータ
+   * @param name 第二パラメータ
+   */
+  public constructor(param: any, name?: string) {
+    if (param instanceof UiTextNode) {
+      super(param as UiTextNode);
+      let src = param as UiTextNode;
+      this._textContent = src._textContent;
+      this._textColor = src._textColor;
+    } else {
+      super(param as UiApplication, name as string);
+      this._textContent = null;
+      this._textColor = null;
+    }
   }
 
   public get textContent(): Value {

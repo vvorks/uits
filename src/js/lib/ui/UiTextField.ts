@@ -4,15 +4,53 @@ import { KeyCodes } from '~/lib/ui/KeyCodes';
 import { UiKeyboard } from '~/lib/ui/UiKeyboard';
 import { UiNode, UiResult } from '~/lib/ui/UiNode';
 import { UiTextNode } from '~/lib/ui/UiTextNode';
+import { UiApplication } from './UiApplication';
 
 /**
  * テキスト入出力フィールド
  */
 export class UiTextField extends UiTextNode {
-  private _dataHolder: DataHolder = UiNode.VOID_DATA_HOLDER;
+  private _dataHolder: DataHolder;
 
+  /**
+   * クローンメソッド
+   *
+   * @returns 複製
+   */
   public clone(): UiTextField {
     return new UiTextField(this);
+  }
+
+  /**
+   * 通常コンストラクタ
+   *
+   * @param app アプリケーション
+   * @param name ノード名
+   */
+  constructor(app: UiApplication, name: string);
+
+  /**
+   * コピーコンストラクタ
+   *
+   * @param src 複製元
+   */
+  constructor(src: UiTextField);
+
+  /**
+   * コンストラクタ実装
+   *
+   * @param param 第一パラメータ
+   * @param name 第二パラメータ
+   */
+  public constructor(param: any, name?: string) {
+    if (param instanceof UiTextField) {
+      super(param as UiTextField);
+      let src = param as UiTextField;
+      this._dataHolder = src._dataHolder;
+    } else {
+      super(param as UiApplication, name as string);
+      this._dataHolder = UiNode.VOID_DATA_HOLDER;
+    }
   }
 
   public onDataHolderChanged(holder: DataHolder): UiResult {

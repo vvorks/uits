@@ -19,12 +19,36 @@ class UiMonthNode extends UiTextNode {
 
   private _month: Date;
 
+  /**
+   * クローンメソッド
+   *
+   * @returns 複製
+   */
   public clone(): UiMonthNode {
     return new UiMonthNode(this);
   }
 
+  /**
+   * 通常コンストラクタ
+   *
+   * @param app アプリケーション
+   * @param name ノード名
+   */
   constructor(app: UiApplication, name: string);
+
+  /**
+   * コピーコンストラクタ
+   *
+   * @param src 複製元
+   */
   constructor(src: UiMonthNode);
+
+  /**
+   * コンストラクタ実装
+   *
+   * @param param 第一パラメータ
+   * @param name 第二パラメータ
+   */
   public constructor(param: any, name?: string) {
     if (param instanceof UiMonthNode) {
       super(param as UiMonthNode);
@@ -90,12 +114,47 @@ class UiMonthNode extends UiTextNode {
 }
 
 class UiDateNode extends UiTextButton {
-  private _month: Date = new Date();
+  private _month: Date;
 
-  private _date: Date = new Date();
+  private _date: Date;
 
   public clone(): UiDateNode {
     return new UiDateNode(this);
+  }
+
+  /**
+   * 通常コンストラクタ
+   *
+   * @param app アプリケーション
+   * @param name ノード名
+   */
+  constructor(app: UiApplication, name: string);
+
+  /**
+   * コピーコンストラクタ
+   *
+   * @param src 複製元
+   */
+  constructor(src: UiDateNode);
+
+  /**
+   * コンストラクタ実装
+   *
+   * @param param 第一パラメータ
+   * @param name 第二パラメータ
+   */
+  public constructor(param: any, name?: string) {
+    if (param instanceof UiDateNode) {
+      super(param as UiDateNode);
+      let src = param as UiDateNode;
+      this._month = src._month;
+      this._date = src._date;
+    } else {
+      super(param as UiApplication, name as string);
+      let now = new Date();
+      this._month = now;
+      this._date = now;
+    }
   }
 
   public setDate(month: Date, date: Date, i: number): void {
@@ -128,8 +187,36 @@ class UiDateNode extends UiTextButton {
 class UiDatePopup extends UiPageNode {
   private _owner: UiDateField;
 
+  /**
+   * クローンメソッド
+   *
+   * @returns 複製
+   */
+  public clone(): UiDatePopup {
+    return new UiDatePopup(this);
+  }
+
+  /**
+   * 通常コンストラクタ
+   *
+   * @param app アプリケーション
+   * @param name ノード名
+   */
   constructor(app: UiApplication, name: string, owner: UiDateField);
+
+  /**
+   * コピーコンストラクタ
+   *
+   * @param src 複製元
+   */
   constructor(src: UiDatePopup);
+
+  /**
+   * コンストラクタ実装
+   *
+   * @param param 第一パラメータ
+   * @param name 第二パラメータ
+   */
   public constructor(param: any, name?: string, owner?: UiDateField) {
     if (param instanceof UiDatePopup) {
       super(param as UiDatePopup);
@@ -139,10 +226,6 @@ class UiDatePopup extends UiPageNode {
       super(param as UiApplication, name as string);
       this._owner = owner as UiDateField;
     }
-  }
-
-  public clone(): UiDatePopup {
-    return new UiDatePopup(this);
   }
 
   protected initialize(): void {
@@ -268,10 +351,47 @@ class UiDatePopup extends UiPageNode {
 }
 
 export class UiDateField extends UiTextNode {
-  private _dataHolder: DataHolder = UiNode.VOID_DATA_HOLDER;
+  private _dataHolder: DataHolder;
 
+  /**
+   * クローンメソッド
+   *
+   * @returns 複製
+   */
   public clone(): UiDateField {
     return new UiDateField(this);
+  }
+
+  /**
+   * 通常コンストラクタ
+   *
+   * @param app アプリケーション
+   * @param name ノード名
+   */
+  constructor(app: UiApplication, name: string);
+
+  /**
+   * コピーコンストラクタ
+   *
+   * @param src 複製元
+   */
+  constructor(src: UiDateField);
+
+  /**
+   * コンストラクタ実装
+   *
+   * @param param 第一パラメータ
+   * @param name 第二パラメータ
+   */
+  public constructor(param: any, name?: string) {
+    if (param instanceof UiDateField) {
+      super(param as UiDateField);
+      let src = param as UiDateField;
+      this._dataHolder = src._dataHolder;
+    } else {
+      super(param as UiApplication, name as string);
+      this._dataHolder = UiNode.VOID_DATA_HOLDER;
+    }
   }
 
   public onDataHolderChanged(holder: DataHolder): UiResult {

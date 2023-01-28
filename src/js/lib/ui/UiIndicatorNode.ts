@@ -18,35 +18,34 @@ export class UiIndicatorNode extends UiNode {
   private _indicatorValue: number;
 
   /**
-   * クローン操作
+   * クローンメソッド
    *
-   * @returns オブジェクトの複製
+   * @returns 複製
    */
   public clone(): UiIndicatorNode {
     return new UiIndicatorNode(this);
   }
 
   /**
-   *  新規コンストラクタ
+   * 通常コンストラクタ
    *
-   * @param app UiApplication
+   * @param app アプリケーション
    * @param name ノード名
    */
   constructor(app: UiApplication, name: string);
 
   /**
-   *  複製コンストラクタ
+   * コピーコンストラクタ
    *
-   * @param app UiApplication
-   * @param name ノード名
+   * @param src 複製元
    */
   constructor(src: UiIndicatorNode);
 
   /**
    * コンストラクタ実装
    *
-   * @param param 第一引数
-   * @param name 第二引数
+   * @param param 第一パラメータ
+   * @param name 第二パラメータ
    */
   public constructor(param: any, name?: string) {
     if (param instanceof UiIndicatorNode) {

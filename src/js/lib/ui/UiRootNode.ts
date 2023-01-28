@@ -1,10 +1,45 @@
 import { Rect } from '~/lib/ui/Rect';
 import { Changed, UiNode } from '~/lib/ui/UiNode';
 import { UiPageNode } from '~/lib/ui/UiPageNode';
+import { UiApplication } from './UiApplication';
 
 export class UiRootNode extends UiNode {
+  /**
+   * クローンメソッド
+   *
+   * @returns 複製
+   */
   public clone(): UiRootNode {
     return new UiRootNode(this);
+  }
+
+  /**
+   * 通常コンストラクタ
+   *
+   * @param app アプリケーション
+   * @param name ノード名
+   */
+  constructor(app: UiApplication, name: string);
+
+  /**
+   * コピーコンストラクタ
+   *
+   * @param src 複製元
+   */
+  constructor(src: UiRootNode);
+
+  /**
+   * コンストラクタ実装
+   *
+   * @param param 第一パラメータ
+   * @param name 第二パラメータ
+   */
+  public constructor(param: any, name?: string) {
+    if (param instanceof UiRootNode) {
+      super(param as UiRootNode);
+    } else {
+      super(param as UiApplication, name as string);
+    }
   }
 
   public getPageNode(): UiPageNode | null {

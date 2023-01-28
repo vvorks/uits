@@ -11,12 +11,36 @@ export class UiPane extends UiNode {
 
   private _expandedSize: CssLength;
 
+  /**
+   * クローンメソッド
+   *
+   * @returns 複製
+   */
   public clone(): UiPane {
     return new UiPane(this);
   }
 
+  /**
+   * 通常コンストラクタ
+   *
+   * @param app アプリケーション
+   * @param name ノード名
+   */
   constructor(app: UiApplication, name: string);
+
+  /**
+   * コピーコンストラクタ
+   *
+   * @param src 複製元
+   */
   constructor(src: UiPane);
+
+  /**
+   * コンストラクタ実装
+   *
+   * @param param 第一パラメータ
+   * @param name 第二パラメータ
+   */
   public constructor(param: any, name?: string) {
     if (param instanceof UiPane) {
       super(param as UiPane);
@@ -82,6 +106,44 @@ export class UiPane extends UiNode {
 }
 
 export class UiDock extends UiNode {
+  /**
+   * クローンメソッド
+   *
+   * @returns 複製
+   */
+  public clone(): UiDock {
+    return new UiDock(this);
+  }
+
+  /**
+   * 通常コンストラクタ
+   *
+   * @param app アプリケーション
+   * @param name ノード名
+   */
+  constructor(app: UiApplication, name: string);
+
+  /**
+   * コピーコンストラクタ
+   *
+   * @param src 複製元
+   */
+  constructor(src: UiDock);
+
+  /**
+   * コンストラクタ実装
+   *
+   * @param param 第一パラメータ
+   * @param name 第二パラメータ
+   */
+  public constructor(param: any, name?: string) {
+    if (param instanceof UiDock) {
+      super(param as UiDock);
+    } else {
+      super(param as UiApplication, name as string);
+    }
+  }
+
   public insertChild(child: UiNode, after: UiNode | null): void {
     if (!(child instanceof UiPane)) {
       throw new ParamError();
