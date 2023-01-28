@@ -1,4 +1,4 @@
-import { StateError, Value } from '~/lib/lang';
+import { Logs, ParamError, Predicate, StateError, Value } from '~/lib/lang';
 import { Colors } from '~/lib/ui/Colors';
 import { DataHolder } from '~/lib/ui/DataHolder';
 import { DataRecord, DataSource } from '~/lib/ui/DataSource';
@@ -207,15 +207,16 @@ export class UiListNode extends UiScrollNode {
   }
 
   public get focusable(): boolean {
-    if (super.getFlag(Flags.FOCUSABLE)) {
-      return true;
+    return super.getFlag(Flags.FOCUSABLE) || this.itemFocusable();
+  }
+
+  private itemFocusable(): boolean {
+    if (this._template != null) {
+      let app = this.application;
+      let t = this._template;
+      return t.getFocusableDescendantsIf((e) => app.isFocusable(e), 1).length > 0;
     }
-    if (this._template == null || this.count() > 0) {
-      return false;
-    }
-    return (
-      this._template.getFocusableDescendantsIf((e) => this.application.isFocusable(e), 1).length > 0
-    );
+    return false;
   }
 
   public count(): number {
@@ -269,17 +270,16 @@ export class UiListNode extends UiScrollNode {
     if (tag != this.dataSourceName) {
       return UiResult.IGNORED;
     }
+    let app = this.application;
     if (this.count() < 0) {
       //最初の通知
-      let oldFocusable = this.focusable;
       this._dataSource = ds;
-      this._pageTopIndex = this.validateIndex(0); //TODO 仮
+      this._pageTopIndex = this.validateIndex(0); //TODO ds.offset()を考慮すべき
       this.adjustScroll();
       this.renumberRecs(true);
       this.setRecsVisiblity();
-      let newFocusable = this.focusable;
-      if (oldFocusable && !newFocusable && this.application.getFocusOf(this) == this) {
-        this.application.resetFocus(this);
+      if (this.focusable && app.getFocusOf(this) == this) {
+        app.resetFocus(this.adjustFocus(this));
       }
       (this.getPageNode() as UiPageNode).setHistoryStateAgain();
     } else {
@@ -473,7 +473,7 @@ export class UiListNode extends UiScrollNode {
     return Math.min(Math.max(0, index), limit);
   }
 
-  protected adjustScroll() {
+  private adjustScroll() {
     if (this._templateRect == null) {
       throw new StateError();
     }
@@ -527,28 +527,56 @@ export class UiListNode extends UiScrollNode {
     }
   }
 
-  public scrollFor(curr: UiNode | null, next: UiNode, animationTime?: number): UiResult {
-    if (this.focusLock) {
-      let currRec = curr != null ? this.getRecordOf(curr) : null;
-      let nextRec = this.getRecordOf(next);
-      if (currRec != null && nextRec != null) {
-        if (this._pageTopIndex < this.count() - this._recsPerPage) {
-          let dx = 0;
-          let dy = 0;
-          if (nextRec.index > currRec.index) {
-            dx = +this._recSize * (this.vertical ? 0 : 1);
-            dy = +this._recSize * (this.vertical ? 1 : 0);
-          } else if (nextRec.index < currRec.index && this._pageTopIndex > 0) {
-            dx = -this._recSize * (this.vertical ? 0 : 1);
-            dy = -this._recSize * (this.vertical ? 1 : 0);
-          }
-          if (dx != 0 || dy != 0) {
-            return this.scrollInside(dx, dy, animationTime);
-          }
-        }
+  protected getFocusableChildrenIf(
+    filter: Predicate<UiNode>,
+    limit: number,
+    list: UiNode[]
+  ): UiNode[] {
+    if (!(this.hasFocus() || this.focusing)) {
+      Logs.debug('SKIP CHILDREN %s', this.getNodePath());
+      return list;
+    } else {
+      Logs.debug('TRIP CHILDREN %s', this.getNodePath());
+      return super.getFocusableChildrenIf(filter, limit, list);
+    }
+  }
+
+  public adjustFocus(prev: UiNode): UiNode {
+    let app = this.application;
+    Logs.debug('adjustFocus %s', this.focusing);
+    if (this.focusLock || prev == this) {
+      let firstRec = this._children[MARGIN];
+      let list = firstRec.getFocusableDescendantsIf((e) => app.isFocusable(e), 1);
+      if (list.length > 0) {
+        return list[0];
+      }
+    } else {
+      let nearest = app.getNearestNode(prev, this, (e) => e != this);
+      if (nearest != null) {
+        Logs.debug('nearest from %s is %s', prev.getNodePath(), nearest.getNodePath());
+        return nearest;
       }
     }
-    return super.scrollFor(curr, next, animationTime);
+    return this;
+  }
+
+  public scrollFor(target: UiNode, animationTime?: number): UiResult {
+    if (target.parent != this) {
+      throw new ParamError();
+    }
+    let result: UiResult = UiResult.IGNORED;
+    if (!this.focusLock || this._pageTopIndex >= this.count() - this._recsPerPage) {
+      result = this.scrollIfNecessary(target, animationTime);
+    } else {
+      let nextRec = this.getRecordOf(target) as UiRecord;
+      let delta = nextRec.index - this._pageTopIndex;
+      let dx = this._recSize * (this.vertical ? 0 : delta);
+      let dy = this._recSize * (this.vertical ? delta : 0);
+      if (dx != 0 || dy != 0) {
+        return this.scrollInside(dx, dy, animationTime);
+      }
+    }
+    return result;
   }
 
   protected getRecordOf(node: UiNode): UiRecord | null {

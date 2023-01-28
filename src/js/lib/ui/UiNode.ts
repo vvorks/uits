@@ -18,7 +18,7 @@ export type Size = string | number;
 /**
  * UiNodeフラグ定義
  *
- * あまりよろしくないが、派生クラス用の定義もここでまとめる
+ * 派生クラス用の定義もここに集約する
  */
 export enum Flags {
   /** フォーカス可能フラグ */
@@ -36,35 +36,38 @@ export enum Flags {
   /** クリック中フラグ */
   CLICKING = 0x00000010,
 
+  /** フォーカス移動中フラグ */
+  FOCUSING = 0x00000020,
+
   /** 削除済みフラグ */
-  DELETED = 0x00000020,
+  DELETED = 0x00000040,
 
   /** マウント済みフラグ */
-  MOUNTED = 0x00000040,
+  MOUNTED = 0x00000080,
 
   /** DOM接続済みフラグ */
-  BINDED = 0x00000080,
+  BINDED = 0x00000100,
 
   /** 初期化済みフラグ */
-  INITIALIZED = 0x00000100,
+  INITIALIZED = 0x00000200,
 
   /** フォーカスロックフラグ */
-  FOCUS_LOCK = 0x00000200,
+  FOCUS_LOCK = 0x00000400,
 
   /** 縦スクロールフラグ */
-  VERTICAL = 0x00000400,
+  VERTICAL = 0x00000800,
 
   /** スープスクロールフラグ */
-  LOOP = 0x00000800,
+  LOOP = 0x00001000,
 
   /** リスト両端のマージンの要否フラグ */
-  OUTER_MARGIN = 0x00001000,
+  OUTER_MARGIN = 0x00002000,
 
   /** 初期フラグ値 */
   INITIAL = ENABLE | VISIBLE,
 
-  /** クローン時に引き継ぐフラグ */
-  CLONABLE_FLAGS = FOCUSABLE | ENABLE | VISIBLE | EDITABLE,
+  /** クローン時に落とすフラグ */
+  NOT_CLONABLE_FLAGS = CLICKING | DELETED | MOUNTED,
 
   /** UiListNodeで使用 */
   LIST_INITIAL = VERTICAL | LOOP | OUTER_MARGIN,
@@ -257,8 +260,7 @@ export class UiNode implements Clonable<UiNode>, Scrollable {
         this.appendChild(c.clone());
       }
       this._actionListeners = src._actionListeners.slice();
-      this._flags = 0;
-      this.initFlags(src._flags & Flags.CLONABLE_FLAGS);
+      this._flags = src._flags & ~Flags.NOT_CLONABLE_FLAGS;
       this._changed = src._changed;
       this._domElement = null;
       this._endElement = null;
@@ -1019,7 +1021,7 @@ export class UiNode implements Clonable<UiNode>, Scrollable {
     return rMe.inflate(dLeft, dTop, dRight, dBottom);
   }
 
-  public scrollFor(prev: UiNode | null, target: UiNode, animationTime?: number): UiResult {
+  public scrollFor(target: UiNode, animationTime?: number): UiResult {
     return UiResult.IGNORED;
   }
 
@@ -1066,6 +1068,14 @@ export class UiNode implements Clonable<UiNode>, Scrollable {
     if (this.setFlag(Flags.CLICKING, on)) {
       this.setChanged(Changed.DISPLAY, true);
     }
+  }
+
+  public get focusing(): boolean {
+    return this.getFlag(Flags.FOCUSING);
+  }
+
+  public set focusing(on: boolean) {
+    this.setFlag(Flags.FOCUSING, on);
   }
 
   public get deleted(): boolean {
@@ -1424,7 +1434,6 @@ export class UiNode implements Clonable<UiNode>, Scrollable {
       }
     }
     let luca = tList.length < oList.length ? tList[n - 1] : oList[n - 1];
-    console.log('getLucaNodeWith ' + this._id + ' and ' + other._id + ' is ' + luca._id);
     return luca;
   }
 

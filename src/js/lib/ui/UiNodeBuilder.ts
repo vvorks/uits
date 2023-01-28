@@ -22,17 +22,23 @@ export class UiNodeBuilder {
     this._defaultLength = new CssLength(len);
   }
 
-  private toValue(s: Size | null): string | null {
-    if (s == null) {
-      return null;
-    } else if (typeof s == 'string') {
-      return s as string;
-    } else if (typeof s == 'number') {
-      let v = (s as number) * this._defaultLength.value;
-      return `${v}${this._defaultLength.unit}`;
-    } else {
-      return '0px';
+  public element(e: UiNode): UiNodeBuilder {
+    if (this._parent != null) {
+      this._parent.appendChild(e);
     }
+    this._node = e;
+    return this;
+  }
+
+  public belongs(func: (b: UiNodeBuilder) => void) {
+    if (this._node == null) {
+      throw new StateError();
+    }
+    this._parent = this._node;
+    this._node = null;
+    func(this);
+    this._node = this._parent;
+    this._parent = this._node.parent as UiNode;
   }
 
   public position(
@@ -91,6 +97,22 @@ export class UiNodeBuilder {
     return this;
   }
 
+  public scrollWidth(width: Size): UiNodeBuilder {
+    if (this._node == null) {
+      throw new StateError();
+    }
+    this._node.scrollWidth = this.toValue(width);
+    return this;
+  }
+
+  public scrollHeight(height: Size): UiNodeBuilder {
+    if (this._node == null) {
+      throw new StateError();
+    }
+    this._node.scrollHeight = this.toValue(height);
+    return this;
+  }
+
   public style(value: UiStyle): UiNodeBuilder {
     if (this._node == null) {
       throw new StateError();
@@ -128,6 +150,38 @@ export class UiNodeBuilder {
       throw new StateError();
     }
     this._node.editable = value;
+    return this;
+  }
+
+  public dataSource(name: string): UiNodeBuilder {
+    if (this._node == null) {
+      throw new StateError();
+    }
+    this._node.dataSourceName = name;
+    return this;
+  }
+
+  public dataField(name: string): UiNodeBuilder {
+    if (this._node == null) {
+      throw new StateError();
+    }
+    this._node.dataFieldName = name;
+    return this;
+  }
+
+  public vscroll(name: string): UiNodeBuilder {
+    if (this._node == null) {
+      throw new StateError();
+    }
+    this._node.vScrollName = name;
+    return this;
+  }
+
+  public hscroll(name: string): UiNodeBuilder {
+    if (this._node == null) {
+      throw new StateError();
+    }
+    this._node.hScrollName = name;
     return this;
   }
 
@@ -173,22 +227,6 @@ export class UiNodeBuilder {
     return this;
   }
 
-  public dataSource(name: string): UiNodeBuilder {
-    if (this._node == null) {
-      throw new StateError();
-    }
-    this._node.dataSourceName = name;
-    return this;
-  }
-
-  public dataField(name: string): UiNodeBuilder {
-    if (this._node == null) {
-      throw new StateError();
-    }
-    this._node.dataFieldName = name;
-    return this;
-  }
-
   public contentNode(path: string): UiNodeBuilder {
     if (this._node == null) {
       throw new StateError();
@@ -204,24 +242,8 @@ export class UiNodeBuilder {
       throw new StateError();
     }
     if (this._node instanceof UiMenu) {
-      (this._node as UiMenu).spacing = value;
+      (this._node as UiMenu).spacing = this.toValue(value);
     }
-    return this;
-  }
-
-  public vscroll(name: string): UiNodeBuilder {
-    if (this._node == null) {
-      throw new StateError();
-    }
-    this._node.vScrollName = name;
-    return this;
-  }
-
-  public hscroll(name: string): UiNodeBuilder {
-    if (this._node == null) {
-      throw new StateError();
-    }
-    this._node.hScrollName = name;
     return this;
   }
 
@@ -308,22 +330,16 @@ export class UiNodeBuilder {
     return this;
   }
 
-  public element(e: UiNode): UiNodeBuilder {
-    if (this._parent != null) {
-      this._parent.appendChild(e);
+  private toValue(s: Size | null): string | null {
+    if (s == null) {
+      return null;
+    } else if (typeof s == 'string') {
+      return s as string;
+    } else if (typeof s == 'number') {
+      let v = (s as number) * this._defaultLength.value;
+      return `${v}${this._defaultLength.unit}`;
+    } else {
+      return '0px';
     }
-    this._node = e;
-    return this;
-  }
-
-  public belongs(func: (b: UiNodeBuilder) => void) {
-    if (this._node == null) {
-      throw new StateError();
-    }
-    this._parent = this._node;
-    this._node = null;
-    func(this);
-    this._node = this._parent;
-    this._parent = this._node.parent as UiNode;
   }
 }

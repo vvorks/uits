@@ -48,7 +48,8 @@ export class GridPage extends UiPageNode {
         .position(10, 3, 1, 1, null, null)
         .style(GROUP_STYLE)
         .hscroll('h')
-        .vscroll('v');
+        .vscroll('v')
+        .focusLock(true);
       b.belongs((b) => {
         for (let row = 0; row < ROW; row++) {
           for (let col = 0; col < COL; col++) {

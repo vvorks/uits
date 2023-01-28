@@ -1519,30 +1519,32 @@ export class UiApplication {
     let tRect = curr.getRectOnRoot();
     let next: UiNode | null = null;
     let axis = UiAxis.NONE;
+    let page = this.getLivePageOf(curr) as LivePage;
+    let from = page.pageNode;
     switch (key | (mod & KeyCodes.MOD_ACS)) {
       case KeyCodes.LEFT:
-        next = this.getNearestNode(curr, (c) => c.getRectOnRoot().right <= tRect.left);
+        next = this.getNearestNode(curr, from, (c) => c.getRectOnRoot().right <= tRect.left);
         axis = UiAxis.X;
         break;
       case KeyCodes.RIGHT:
-        next = this.getNearestNode(curr, (c) => c.getRectOnRoot().left >= tRect.right);
+        next = this.getNearestNode(curr, from, (c) => c.getRectOnRoot().left >= tRect.right);
         axis = UiAxis.X;
         break;
       case KeyCodes.UP:
-        next = this.getNearestNode(curr, (c) => c.getRectOnRoot().bottom <= tRect.top);
+        next = this.getNearestNode(curr, from, (c) => c.getRectOnRoot().bottom <= tRect.top);
         axis = UiAxis.Y;
         break;
       case KeyCodes.DOWN:
-        next = this.getNearestNode(curr, (c) => c.getRectOnRoot().top >= tRect.bottom);
+        next = this.getNearestNode(curr, from, (c) => c.getRectOnRoot().top >= tRect.bottom);
         axis = UiAxis.Y;
         break;
       case KeyCodes.TAB:
-        next = this.getAdjacentNode(curr, +1);
+        next = this.getAdjacentNode(curr, from, +1);
         axis = UiAxis.XY;
         result |= UiResult.CONSUMED;
         break;
       case KeyCodes.TAB | KeyCodes.MOD_SHIFT:
-        next = this.getAdjacentNode(curr, -1);
+        next = this.getAdjacentNode(curr, from, -1);
         axis = UiAxis.XY;
         result |= UiResult.CONSUMED;
         break;
@@ -1573,23 +1575,27 @@ export class UiApplication {
         break;
     }
     if (next != null) {
+      next.focusing = true;
       let adjusted = next.adjustFocus(curr);
       if (next != adjusted) {
+        next.focusing = false;
         next = adjusted;
+        next.focusing = true;
         axis |= UiAxis.XY;
       }
-      result |= this.scrollFor(curr, next);
+      result |= this.scrollFor(next);
       result |= this.setFocus(next, axis);
+      next.focusing = false;
     }
     return result;
   }
 
-  public scrollFor(curr: UiNode | null, next: UiNode, animationTime?: number): UiResult {
+  public scrollFor(next: UiNode, animationTime?: number): UiResult {
     let result = UiResult.IGNORED;
     let target = next;
-    let parent = next.parent;
+    let parent = target.parent;
     while (parent != null) {
-      result |= parent.scrollFor(curr, target, animationTime);
+      result |= parent.scrollFor(target, animationTime);
       target = parent;
       parent = target.parent;
     }
@@ -1611,12 +1617,12 @@ export class UiApplication {
     return result;
   }
 
-  protected getNearestNode(curr: UiNode, filter: Predicate<UiNode>): UiNode | null {
+  public getNearestNode(curr: UiNode, from: UiNode, filter: Predicate<UiNode>): UiNode | null {
     let page = this.getLivePageOf(curr) as LivePage;
     let next: UiNode | null = null;
     let minDegree = 0;
     let minDistance = 0;
-    let candidates = page.pageNode.getFocusableDescendantsIf((c) => {
+    let candidates = from.getFocusableDescendantsIf((c) => {
       let result = false;
       if (c != curr && this.isFocusable(c) && filter(c) && curr.canMoveFocus(c)) {
         let blocker = c.getBlockerNode();
@@ -1639,15 +1645,15 @@ export class UiApplication {
     return next;
   }
 
-  protected getAdjacentNode(curr: UiNode, dir: number): UiNode | null {
-    let page = this.getLivePageOf(curr) as LivePage;
-    let candidates = page.pageNode.getFocusableDescendantsIf((c) => {
-      if (!this.isFocusable(c)) {
-        return false;
+  public getAdjacentNode(curr: UiNode, from: UiNode, dir: number): UiNode | null {
+    let candidates = from.getFocusableDescendantsIf((c) => {
+      let result = false;
+      if (this.isFocusable(c) && curr.canMoveFocus(c)) {
+        let blocker = c.getBlockerNode();
+        let luca = c.getLucaNodeWith(curr);
+        result = blocker == null || blocker == luca || blocker.isAncestorOf(luca);
       }
-      let blocker = c.getBlockerNode();
-      let luca = c.getLucaNodeWith(curr);
-      return blocker == null || blocker == luca || blocker.isAncestorOf(luca);
+      return result;
     });
     let index = candidates.indexOf(curr);
     let n = candidates.length;

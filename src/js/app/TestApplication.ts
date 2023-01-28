@@ -21,15 +21,6 @@ import { PaneTestPage } from '~/app/PaneTestPage';
 import { MenuTestPage } from '~/app/MenuTestPage';
 import { MenuDataSource } from '~/app/MenuDataSource';
 import { VolumeToast } from '~/app/VolumeToast';
-import { HomePage } from './HomePage';
-import {
-  EveryoneCriesDataSource,
-  LiveDataSource,
-  NaviDataSource,
-  RankingDataSource,
-  RecommendDataSource,
-  WatchingDataSource,
-} from './HomeDataSources';
 
 export const DEFAULT_STYLE: UiStyle = new UiStyleBuilder()
   .textColor(Colors.BLACK)
@@ -175,7 +166,6 @@ export class TestApplication extends UiApplication {
 
   protected initialize(at: number): void {
     this.addPageFactory('', (tag) => new UiLaunchPage(this, tag));
-    this.addPageFactory('home', (tag) => new HomePage(this, tag));
     this.addPageFactory('vlist', (tag) => new VerticalListPage(this, tag));
     this.addPageFactory('hlist', (tag) => new HorizontalListPage(this, tag));
     this.addPageFactory('grid', (tag) => new GridPage(this, tag));
@@ -265,15 +255,6 @@ export class TestApplication extends UiApplication {
     );
 
     this.addDataSource('menu', new MenuDataSource());
-
-    this.addDataSource('recommend1', new RecommendDataSource());
-    this.addDataSource('watching', new WatchingDataSource());
-    this.addDataSource('ranking', new RankingDataSource());
-    this.addDataSource('live', new LiveDataSource());
-    this.addDataSource('recommend2', new RecommendDataSource());
-    this.addDataSource('recommend3', new RecommendDataSource());
-    this.addDataSource('everyoneCries', new EveryoneCriesDataSource());
-    this.addDataSource('navi', new NaviDataSource());
 
     //this.testFormatter();
   }
