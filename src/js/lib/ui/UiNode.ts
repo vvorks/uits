@@ -1219,13 +1219,12 @@ export class UiNode implements Clonable<UiNode>, Scrollable {
 
   protected initialize(): void {}
 
-  protected start(): void {}
-
   public onMount(): void {
     if (!this.initialized) {
       this.initialize();
       this.initialized = true;
     }
+    this.beforeMount();
     for (let c of this._children) {
       c.onMount();
     }
@@ -1239,11 +1238,16 @@ export class UiNode implements Clonable<UiNode>, Scrollable {
     if (this._vScrollName != null) {
       page.attachVScroll(this._vScrollName, this);
     }
-    this.start();
     this.mounted = true;
+    this.afterMount();
   }
 
+  protected beforeMount(): void {}
+
+  protected afterMount(): void {}
+
   public onUnmount(): void {
+    this.beforeUnmount();
     this.mounted = false;
     let page = this.getPageNode() as UiPageNode;
     if (this._vScrollName != null) {
@@ -1258,7 +1262,12 @@ export class UiNode implements Clonable<UiNode>, Scrollable {
     for (let c of this._children) {
       c.onUnmount();
     }
+    this.afterUnmount();
   }
+
+  protected beforeUnmount(): void {}
+
+  protected afterUnmount(): void {}
 
   public isAncestorOf(other: UiNode): boolean {
     return other.getAncestorsIf((e) => e == this, 1).length == 1;

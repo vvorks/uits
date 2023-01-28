@@ -323,15 +323,15 @@ export class UiMenu extends UiNode {
     }
   }
 
-  public onMount(): void {
-    if (this._template == null) {
-      this._template = this.makeTemplate();
-    }
+  protected initialize(): void {
+    this._template = this.makeTemplate();
+  }
+
+  protected beforeMount(): void {
     this._shrinkWidth = this.innerWidth;
     this._shrinkHeight = this.innerHeight;
     this.prepareBlocks();
     this.relocateBlocks(0);
-    super.onMount();
   }
 
   private makeTemplate(): UiNode {

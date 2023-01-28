@@ -192,7 +192,7 @@ export class UiLookupPopup extends UiPageNode {
     });
   }
 
-  protected start(): void {
+  protected afterMount(): void {
     let app = this.application;
     let dsName = this._owner.dataSourceName as string;
     (app.getDataSource(dsName) as DataSource).select({});

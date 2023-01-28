@@ -50,7 +50,7 @@ export class UiScrollNode extends UiNode {
     }
   }
 
-  protected start(): void {
+  protected afterMount(): void {
     let rect = this.getChildrenRect();
     this._lockX = rect.x;
     this._lockY = rect.y;

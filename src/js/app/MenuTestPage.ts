@@ -101,7 +101,7 @@ export class MenuTestPage extends UiPageNode {
     });
   }
 
-  protected start(): void {
+  protected afterMount(): void {
     let app = this.application;
     //set datasource
     (app.getDataSource('menu') as DataSource).select({ path: '/' });

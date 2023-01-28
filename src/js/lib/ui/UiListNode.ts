@@ -281,17 +281,17 @@ export class UiListNode extends UiScrollNode {
     }
   }
 
-  public onMount(): void {
-    if (this._template == null) {
-      this._template = this.makeTemplate();
-    }
+  protected initialize(): void {
+    this._template = this.makeTemplate();
+  }
+
+  public beforeMount(): void {
     this.measureSize();
     this.prepareArea();
     this.prepareRecs();
     this.relocateRecs();
     this.renumberRecs(true);
     this.setRecsVisiblity();
-    super.onMount();
   }
 
   public onResize(): UiResult {

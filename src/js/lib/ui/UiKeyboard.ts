@@ -785,7 +785,7 @@ export class UiKeyboard extends UiPageNode {
     this.height = `${maxHeight}px`;
   }
 
-  protected start(): void {
+  protected afterMount(): void {
     //初期データ設定
     let value = this._owner.getValue();
     Logs.debug('initial value is %s', value);

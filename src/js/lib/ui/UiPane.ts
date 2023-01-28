@@ -151,9 +151,8 @@ export class UiDock extends UiNode {
     super.insertChild(child, after);
   }
 
-  public onMount(): void {
+  public beforeMount(): void {
     this.relocatePane();
-    super.onMount();
   }
 
   protected relocatePane(): void {

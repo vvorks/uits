@@ -91,8 +91,7 @@ export class UiPageNode extends UiNode {
     return this;
   }
 
-  public onMount(): void {
-    super.onMount();
+  protected afterMount(): void {
     this.initScroll(this._hScrollables, (s) => s.fireHScroll());
     this.initScroll(this._vScrollables, (s) => s.fireVScroll());
     this.setChanged(Changed.STYLE, true);

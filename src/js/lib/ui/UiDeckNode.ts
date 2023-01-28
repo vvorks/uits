@@ -50,8 +50,7 @@ export class UiDeckNode extends UiNode {
     }
   }
 
-  public onMount(): void {
-    super.onMount();
+  protected afterMount(): void {
     this.initSavedFocusNodes();
     if (this._selected == null && this._children.length > 0) {
       this.select(this._children[0].name);

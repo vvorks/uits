@@ -295,7 +295,7 @@ class UiDatePopup extends UiPageNode {
     }
   }
 
-  protected start(): void {
+  protected afterMount(): void {
     let value = new Date(this._owner.getValue() as number);
     this.reload(value, true);
   }
