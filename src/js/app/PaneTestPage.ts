@@ -27,7 +27,7 @@ export class PaneTestPage extends UiPageNode {
       b.element(new UiDock(app, 'dock'))
         .inset(1)
         .style(GROUP_STYLE)
-        .listen((src, act) => this.watchDock(src, act));
+        .action((src, act) => this.watchDock(src, act));
       b.belongs((b) => {
         //左ペイン
         b.element(left1).style(DEFAULT_STYLE).location('left').flexSize(4, 20);
@@ -39,7 +39,7 @@ export class PaneTestPage extends UiPageNode {
               .style(DEFAULT_STYLE)
               .focusable(true)
               .textContent('メニュー' + i)
-              .listen((src, act) => this.watchTextButton(src, act));
+              .action((src, act) => this.watchTextButton(src, act));
             //.nextFocusFilter((e)=> (e.parent == left1 || e.parent == left2))
           }
         });

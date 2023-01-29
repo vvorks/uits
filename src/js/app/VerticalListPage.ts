@@ -26,7 +26,7 @@ export class VerticalListPage extends UiPageNode {
         .style(DEFAULT_STYLE)
         .focusable(true)
         .textContent('go hlist')
-        .listen((src, act) => this.application.forwardTo('hlist', {}));
+        .action((src, act) => this.application.forwardTo('hlist', {}));
       b.element(new UiNode(app, 'west'))
         .position(1, 4, null, 4, 2, null)
         .style(DEFAULT_STYLE)
@@ -98,7 +98,7 @@ export class VerticalListPage extends UiPageNode {
         .style(DEFAULT_STYLE)
         .focusable(true)
         .textContent('restart')
-        .listen((src, act) => this.application.restartTo('hlist', {}));
+        .action((src, act) => this.application.restartTo('hlist', {}));
     });
     (app.getDataSource('sample') as DataSource).select({});
   }

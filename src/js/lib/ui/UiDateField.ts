@@ -246,7 +246,7 @@ class UiDatePopup extends UiPageNode {
           .position(0, 0, 0, null, null, 1 * UNIT)
           .style(DEFAULT_STYLE)
           .focusable(true)
-          .listen((src, act, arg) => this.watchMonth(src, act, arg));
+          .action((src, act, arg) => this.watchMonth(src, act, arg));
         //曜日行
         for (let c = 0; c < WEEKS.length; c++) {
           b.element(new UiTextNode(app, 'week'))
@@ -265,7 +265,7 @@ class UiDatePopup extends UiPageNode {
                 .bounds(Math.floor(i % 7) * UNIT, Math.floor(i / 7) * UNIT, 1 * UNIT, 1 * UNIT)
                 .style(SMALL_STYLE)
                 .focusable(true)
-                .listen((src, act, arg) => this.watchDate(src, act, arg));
+                .action((src, act, arg) => this.watchDate(src, act, arg));
             }
           });
       });

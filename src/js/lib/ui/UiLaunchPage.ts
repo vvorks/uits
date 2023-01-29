@@ -60,7 +60,7 @@ export class UiLaunchPage extends UiPageNode {
                 .style(DEFAULT_STYLE)
                 .focusable(true)
                 .textContent(key)
-                .listen((src, act) => this.application.forwardTo(key, {}));
+                .action((src, act) => this.application.forwardTo(key, {}));
             }
           });
       });

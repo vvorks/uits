@@ -266,7 +266,7 @@ export class UiNodeBuilder {
     return this;
   }
 
-  public listen(listener: ActionListener): UiNodeBuilder {
+  public action(listener: ActionListener): UiNodeBuilder {
     Asserts.assume(this._node != null);
     this._node.addActionListener(listener);
     return this;

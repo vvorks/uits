@@ -22,7 +22,7 @@ export class HorizontalListPage extends UiPageNode {
         .style(DEFAULT_STYLE)
         .focusable(true)
         .textContent('go vlist')
-        .listen((src, act) => this.application.forwardTo('vlist', {}));
+        .action((src, act) => this.application.forwardTo('vlist', {}));
       b.element(new UiNode(app, 'west'))
         .position(1, 4, null, 4, 2, null)
         .style(DEFAULT_STYLE)
