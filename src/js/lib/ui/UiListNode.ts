@@ -1,4 +1,4 @@
-import { Logs, ParamError, Predicate, StateError, Value } from '~/lib/lang';
+import { Asserts, Logs, Predicate, Value } from '~/lib/lang';
 import { Colors } from '~/lib/ui/Colors';
 import { DataHolder } from '~/lib/ui/DataHolder';
 import { DataRecord, DataSource } from '~/lib/ui/DataSource';
@@ -296,9 +296,7 @@ export class UiListNode extends UiScrollNode {
 
   public onResize(): UiResult {
     super.onResize();
-    if (this._templateRect == null) {
-      throw new StateError();
-    }
+    Asserts.assume(this._templateRect != null);
     if (this._templateRight != null) {
       this._templateRect.width = this.innerWidth - this._templateRight - this._templateRect.x;
     }
@@ -433,9 +431,7 @@ export class UiListNode extends UiScrollNode {
   }
 
   protected getTemplateRect(): Rect {
-    if (this._templateRect == null) {
-      throw new StateError();
-    }
+    Asserts.assume(this._templateRect != null);
     return this._templateRect as Rect;
   }
 
@@ -470,9 +466,7 @@ export class UiListNode extends UiScrollNode {
   }
 
   protected prepareRecs(): void {
-    if (this._template == null) {
-      throw new StateError();
-    }
+    Asserts.assume(this._template != null);
     let m = this._children.length;
     let n = this._recsPerPage + MARGIN * 2;
     if (m < n) {
@@ -488,9 +482,7 @@ export class UiListNode extends UiScrollNode {
   }
 
   protected relocateRecs(): void {
-    if (this._template == null) {
-      throw new StateError();
-    }
+    Asserts.assume(this._template != null);
     let n = this._children.length;
     let r = this.getTemplateRect();
     if (this.vertical) {
@@ -522,9 +514,7 @@ export class UiListNode extends UiScrollNode {
   }
 
   private adjustScroll() {
-    if (this._templateRect == null) {
-      throw new StateError();
-    }
+    Asserts.assume(this._templateRect != null);
     let count = this.count();
     if (count < this._recsPerPage) {
       let margin = this._recSize * MARGIN;
@@ -609,9 +599,7 @@ export class UiListNode extends UiScrollNode {
   }
 
   public scrollFor(target: UiNode, animationTime?: number): UiResult {
-    if (target.parent != this) {
-      throw new ParamError();
-    }
+    Asserts.require(target.parent == this);
     let result: UiResult = UiResult.IGNORED;
     if (!this.focusLock || this._pageTopIndex >= this.count() - this._recsPerPage) {
       result = this.scrollIfNecessary(target, animationTime);

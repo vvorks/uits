@@ -602,9 +602,7 @@ export class UiNode implements Clonable<UiNode>, Scrollable {
   }
 
   public getChildAt(index: number): UiNode {
-    if (!(0 <= index && index < this._children.length)) {
-      throw new ParamError();
-    }
+    Asserts.require(0 <= index && index < this._children.length);
     return this._children[index];
   }
 

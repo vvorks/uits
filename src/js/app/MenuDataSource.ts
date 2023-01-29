@@ -1,4 +1,4 @@
-import { ParamError, Properties, UnsupportedError, Value } from '~/lib/lang';
+import { Asserts, Properties, UnsupportedError, Value } from '~/lib/lang';
 import { DataRecord, DataSource } from '~/lib/ui';
 
 const MENU_DATA: Properties<DataRecord[]> = {
@@ -41,9 +41,7 @@ export class MenuDataSource extends DataSource {
   }
 
   public getRecord(index: number): DataRecord | null {
-    if (!(0 <= index && index < this.count())) {
-      throw new ParamError();
-    }
+    Asserts.require(0 <= index && index < this.count());
     return this._currentRecs[index];
   }
 

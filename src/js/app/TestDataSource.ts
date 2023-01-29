@@ -1,4 +1,4 @@
-import { ParamError, Properties, Value } from '~/lib/lang';
+import { Asserts, Properties, Value } from '~/lib/lang';
 import { DataRecord, DataSource } from '~/lib/ui';
 
 export class TestDataSource extends DataSource {
@@ -37,12 +37,10 @@ export class TestDataSource extends DataSource {
   }
 
   public getRecord(index: number): DataRecord | null {
-    if (!(0 <= index && index < this.count())) {
-      throw new ParamError();
-    }
     if (!this._loaded) {
       return null;
     }
+    Asserts.require(0 <= index && index < this.count());
     let result = this._records[index];
     result['_index_'] = index;
     return result;

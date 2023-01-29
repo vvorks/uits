@@ -1,4 +1,4 @@
-import { Predicate, Properties, StateError, Value } from '~/lib/lang';
+import { Asserts, Properties, Value } from '~/lib/lang';
 import { UiPane } from '~/lib/ui/UiPane';
 import { CssLength } from '~/lib/ui/CssLength';
 import { UiListNode } from '~/lib/ui/UiListNode';
@@ -31,9 +31,7 @@ export class UiNodeBuilder {
   }
 
   public belongs(func: (b: UiNodeBuilder) => void) {
-    if (this._node == null) {
-      throw new StateError();
-    }
+    Asserts.assume(this._node != null);
     this._parent = this._node;
     this._node = null;
     func(this);
@@ -49,9 +47,7 @@ export class UiNodeBuilder {
     width: Size | null,
     height: Size | null
   ): UiNodeBuilder {
-    if (this._node == null) {
-      throw new StateError();
-    }
+    Asserts.assume(this._node != null);
     this._node.left = this.toValue(left);
     this._node.top = this.toValue(top);
     this._node.right = this.toValue(right);
@@ -62,9 +58,7 @@ export class UiNodeBuilder {
   }
 
   public bounds(left: Size, top: Size, width: Size, height: Size) {
-    if (this._node == null) {
-      throw new StateError();
-    }
+    Asserts.assume(this._node != null);
     this._node.left = this.toValue(left);
     this._node.top = this.toValue(top);
     this._node.right = null;
@@ -75,9 +69,7 @@ export class UiNodeBuilder {
   }
 
   public inset(left: Size, top?: Size, right?: Size, bottom?: Size): UiNodeBuilder {
-    if (this._node == null) {
-      throw new StateError();
-    }
+    Asserts.assume(this._node != null);
     if (top !== undefined && right !== undefined && bottom !== undefined) {
       this._node.left = this.toValue(left);
       this._node.top = this.toValue(top);
@@ -98,97 +90,73 @@ export class UiNodeBuilder {
   }
 
   public scrollWidth(width: Size): UiNodeBuilder {
-    if (this._node == null) {
-      throw new StateError();
-    }
+    Asserts.assume(this._node != null);
     this._node.scrollWidth = this.toValue(width);
     return this;
   }
 
   public scrollHeight(height: Size): UiNodeBuilder {
-    if (this._node == null) {
-      throw new StateError();
-    }
+    Asserts.assume(this._node != null);
     this._node.scrollHeight = this.toValue(height);
     return this;
   }
 
   public style(value: UiStyle): UiNodeBuilder {
-    if (this._node == null) {
-      throw new StateError();
-    }
+    Asserts.assume(this._node != null);
     this._node.style = value;
     return this;
   }
 
   public visible(value: boolean): UiNodeBuilder {
-    if (this._node == null) {
-      throw new StateError();
-    }
+    Asserts.assume(this._node != null);
     this._node.visible = value;
     return this;
   }
 
   public enable(value: boolean): UiNodeBuilder {
-    if (this._node == null) {
-      throw new StateError();
-    }
+    Asserts.assume(this._node != null);
     this._node.enable = value;
     return this;
   }
 
   public focusable(value: boolean): UiNodeBuilder {
-    if (this._node == null) {
-      throw new StateError();
-    }
+    Asserts.assume(this._node != null);
     this._node.focusable = value;
     return this;
   }
 
   public editable(value: boolean): UiNodeBuilder {
-    if (this._node == null) {
-      throw new StateError();
-    }
+    Asserts.assume(this._node != null);
     this._node.editable = value;
     return this;
   }
 
   public dataSource(name: string): UiNodeBuilder {
-    if (this._node == null) {
-      throw new StateError();
-    }
+    Asserts.assume(this._node != null);
     this._node.dataSourceName = name;
     return this;
   }
 
   public dataField(name: string): UiNodeBuilder {
-    if (this._node == null) {
-      throw new StateError();
-    }
+    Asserts.assume(this._node != null);
     this._node.dataFieldName = name;
     return this;
   }
 
   public vscroll(name: string): UiNodeBuilder {
-    if (this._node == null) {
-      throw new StateError();
-    }
+    Asserts.assume(this._node != null);
     this._node.vScrollName = name;
     return this;
   }
 
   public hscroll(name: string): UiNodeBuilder {
-    if (this._node == null) {
-      throw new StateError();
-    }
+    Asserts.assume(this._node != null);
     this._node.hScrollName = name;
     return this;
   }
 
   public textContent(value: Value): UiNodeBuilder {
-    if (this._node == null) {
-      throw new StateError();
-    }
+    Asserts.assume(this._node != null);
     if (this._node instanceof UiTextNode) {
       (this._node as UiTextNode).textContent = value;
     }
@@ -196,9 +164,7 @@ export class UiNodeBuilder {
   }
 
   public imageContent(value: Value): UiNodeBuilder {
-    if (this._node == null) {
-      throw new StateError();
-    }
+    Asserts.assume(this._node != null);
     if (this._node instanceof UiImageNode) {
       (this._node as UiImageNode).imageContent = value;
     }
@@ -206,9 +172,7 @@ export class UiNodeBuilder {
   }
 
   public imageSize(width: Size | null, height: Size | null): UiNodeBuilder {
-    if (this._node == null) {
-      throw new StateError();
-    }
+    Asserts.assume(this._node != null);
     if (this._node instanceof UiImageNode) {
       let e = this._node as UiImageNode;
       e.imageWidth = width;
@@ -218,9 +182,7 @@ export class UiNodeBuilder {
   }
 
   public lookupTable(table: Properties<any>): UiNodeBuilder {
-    if (this._node == null) {
-      throw new StateError();
-    }
+    Asserts.assume(this._node != null);
     if (this._node instanceof UiImageLookupField) {
       (this._node as UiImageLookupField).lookupTable = table;
     }
@@ -228,9 +190,7 @@ export class UiNodeBuilder {
   }
 
   public contentNode(path: string): UiNodeBuilder {
-    if (this._node == null) {
-      throw new StateError();
-    }
+    Asserts.assume(this._node != null);
     if (this._node instanceof UiMenu) {
       (this._node as UiMenu).contentNodePath = path;
     }
@@ -238,9 +198,7 @@ export class UiNodeBuilder {
   }
 
   public spacing(value: Size | null): UiNodeBuilder {
-    if (this._node == null) {
-      throw new StateError();
-    }
+    Asserts.assume(this._node != null);
     if (this._node instanceof UiMenu) {
       (this._node as UiMenu).spacing = this.toValue(value);
     }
@@ -248,9 +206,7 @@ export class UiNodeBuilder {
   }
 
   public loop(value: boolean): UiNodeBuilder {
-    if (this._node == null) {
-      throw new StateError();
-    }
+    Asserts.assume(this._node != null);
     if (this._node instanceof UiListNode) {
       (this._node as UiListNode).loop = value;
     }
@@ -258,9 +214,7 @@ export class UiNodeBuilder {
   }
 
   public vertical(value: boolean): UiNodeBuilder {
-    if (this._node == null) {
-      throw new StateError();
-    }
+    Asserts.assume(this._node != null);
     if (this._node instanceof UiListNode) {
       (this._node as UiListNode).vertical = value;
     }
@@ -268,9 +222,7 @@ export class UiNodeBuilder {
   }
 
   public outerMargin(value: boolean): UiNodeBuilder {
-    if (this._node == null) {
-      throw new StateError();
-    }
+    Asserts.assume(this._node != null);
     if (this._node instanceof UiListNode) {
       (this._node as UiListNode).outerMargin = value;
     }
@@ -278,9 +230,7 @@ export class UiNodeBuilder {
   }
 
   public location(value: UiLocation): UiNodeBuilder {
-    if (this._node == null) {
-      throw new StateError();
-    }
+    Asserts.assume(this._node != null);
     if (this._node instanceof UiPane) {
       (this._node as UiPane).location = value;
     } else if (this._node instanceof UiMenu) {
@@ -290,9 +240,7 @@ export class UiNodeBuilder {
   }
 
   public extentionSizes(value: string[]): UiNodeBuilder {
-    if (this._node == null) {
-      throw new StateError();
-    }
+    Asserts.assume(this._node != null);
     if (this._node instanceof UiMenu) {
       (this._node as UiMenu).extentionSizes = value;
     }
@@ -300,9 +248,7 @@ export class UiNodeBuilder {
   }
 
   public flexSize(size1: Size, size2: Size): UiNodeBuilder {
-    if (this._node == null) {
-      throw new StateError();
-    }
+    Asserts.assume(this._node != null);
     if (this._node instanceof UiPane) {
       (this._node as UiPane).setFlexSize(
         this.toValue(size1) as string,
@@ -313,9 +259,7 @@ export class UiNodeBuilder {
   }
 
   public focusLock(on: boolean): UiNodeBuilder {
-    if (this._node == null) {
-      throw new StateError();
-    }
+    Asserts.assume(this._node != null);
     if (this._node instanceof UiScrollNode) {
       (this._node as UiScrollNode).focusLock = on;
     }
@@ -323,9 +267,7 @@ export class UiNodeBuilder {
   }
 
   public listen(listener: ActionListener): UiNodeBuilder {
-    if (this._node == null) {
-      throw new StateError();
-    }
+    Asserts.assume(this._node != null);
     this._node.addActionListener(listener);
     return this;
   }

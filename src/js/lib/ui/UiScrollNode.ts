@@ -1,4 +1,4 @@
-import { Logs, ParamError } from '../lang';
+import { Asserts } from '../lang';
 import { UiApplication } from './UiApplication';
 import { UiNode, UiResult } from './UiNode';
 
@@ -57,9 +57,7 @@ export class UiScrollNode extends UiNode {
   }
 
   public scrollFor(target: UiNode, animationTime?: number): UiResult {
-    if (target.parent != this) {
-      throw new ParamError();
-    }
+    Asserts.require(target.parent == this);
     let result: UiResult = UiResult.IGNORED;
     if (!this.focusLock) {
       result = this.scrollIfNecessary(target, animationTime);

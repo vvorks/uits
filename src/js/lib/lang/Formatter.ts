@@ -1,7 +1,6 @@
-import { ParamError } from '~/lib/lang/Error';
 import { Strings } from '~/lib/lang/Strings';
 import { Types } from '~/lib/lang/Types';
-import { Properties, Value } from '~/lib/lang';
+import { Asserts, Properties, Value } from '~/lib/lang';
 
 // prettier-ignore
 type PatternType = 'b'|'o'|'d'|'x'|'X'|'c'|'s'|'G'|'Y'|'m'|'D'|'A'|'P'|'H'|'M'|'S'|'L'|'Z'|'F'|'T'|'%'|'n';
@@ -1171,9 +1170,7 @@ export class Formatter {
     let mpos = -1;
     for (let i = 0; pos < str.length && (i = '.01234567890'.indexOf(str.charAt(pos))) >= 0; pos++) {
       if (i == 0) {
-        if (mpos != -1) {
-          throw new ParamError();
-        }
+        Asserts.require(mpos == -1, 'period detected twice');
         mpos = pos;
       }
     }

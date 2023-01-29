@@ -1,4 +1,4 @@
-import { Logs, ParamError, Predicate, UnsupportedError, Value } from '~/lib/lang';
+import { Asserts, Logs, Predicate, UnsupportedError, Value } from '~/lib/lang';
 import { Flags, Size, UiLocation, UiNode, UiResult } from '~/lib/ui/UiNode';
 import { UiApplication, UiAxis } from '~/lib/ui/UiApplication';
 import { DataRecord, DataSource } from '~/lib/ui/DataSource';
@@ -431,9 +431,7 @@ export class UiMenu extends UiNode {
   }
 
   private relocateBlocks(level: number): void {
-    if (!(0 <= level && level <= this.levels)) {
-      throw new ParamError();
-    }
+    Asserts.require(0 <= level && level <= this.levels);
     Logs.debug('relocateBlocks %d', level);
     if (level == 0) {
       this.relocateBlocks0();

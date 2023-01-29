@@ -1,14 +1,4 @@
-import {
-  Asserts,
-  Properties,
-  Logs,
-  StateError,
-  ParamError,
-  Arrays,
-  Value,
-  Types,
-  Predicate,
-} from '~/lib/lang';
+import { Asserts, Properties, Logs, Arrays, Value, Types, Predicate } from '~/lib/lang';
 import { Metrics } from '~/lib/ui/Metrics';
 import { UiNode, UiResult } from '~/lib/ui/UiNode';
 import { UiRootNode } from '~/lib/ui/UiRootNode';
@@ -201,9 +191,6 @@ class DataSourceEntry {
   }
 
   public set dataSource(ds: DataSource | null) {
-    if (this._dataSource != null && ds != null) {
-      throw new StateError('');
-    }
     this._dataSource = ds;
   }
 
@@ -601,9 +588,7 @@ export class UiApplication {
     let entry = this._dataSources[tag];
     if (entry !== undefined) {
       let ds = entry.dataSource;
-      if (ds == null) {
-        throw new ParamError();
-      }
+      Asserts.require(ds != null);
       ds.removeAppliation(this);
       entry.dataSource = null;
     }
@@ -807,9 +792,7 @@ export class UiApplication {
 
   public resetFocus(node: UiNode): boolean {
     let page = this.getLivePageOf(node);
-    if (page == null) {
-      throw new ParamError();
-    }
+    Asserts.require(page != null);
     let list = node.getFocusableDescendantsIf((e) => this.isAppearedFocusable(e), 1);
     let found = list.length > 0;
     if (found) {

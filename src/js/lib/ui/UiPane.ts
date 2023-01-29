@@ -1,4 +1,4 @@
-import { ParamError } from '~/lib/lang';
+import { Asserts } from '~/lib/lang';
 import { CssLength } from '~/lib/ui/CssLength';
 import { Inset } from '~/lib/ui/Inset';
 import { UiApplication } from '~/lib/ui/UiApplication';
@@ -145,9 +145,7 @@ export class UiDock extends UiNode {
   }
 
   public insertChild(child: UiNode, after: UiNode | null): void {
-    if (!(child instanceof UiPane)) {
-      throw new ParamError();
-    }
+    Asserts.require(child instanceof UiPane);
     super.insertChild(child, after);
   }
 
