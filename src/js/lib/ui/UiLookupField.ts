@@ -6,10 +6,10 @@ import { Rect } from '~/lib/ui/Rect';
 import { UiApplication } from '~/lib/ui/UiApplication';
 import { UiListNode } from '~/lib/ui/UiListNode';
 import { UiNode, UiResult } from '~/lib/ui/UiNode';
-import { UiNodeBuilder } from '~/lib/ui/UiNodeBuilder';
+import { UiBuilder } from '~/lib/ui/UiBuilder';
 import { UiPageNode } from '~/lib/ui/UiPageNode';
 import { UiTextNode } from '~/lib/ui/UiTextNode';
-import { HistoryState } from './HistoryManager';
+import { HistoryState } from '~/lib/ui/HistoryManager';
 
 const SUBNAME_TITLE = 'title';
 
@@ -180,16 +180,15 @@ export class UiLookupPopup extends UiPageNode {
     this.height = `${rPopup.height}px`;
     //Popup画面構築
     let dsName = this._owner.dataSourceName as string;
-    let b = new UiNodeBuilder('1px');
-    b.element(this).belongs((b) => {
-      b.element(new UiListNode(app, 'list'))
-        .inset(0)
-        .dataSource(dsName)
-        .belongs((b) => {
-          b.element(new UiLookupItem(app, 'rec', this._owner))
-            .bounds(0, 0, rOwner.width, rOwner.height)
-            .style(this._owner.style);
-        });
+    let b = new UiBuilder('1px');
+    b.element(this);
+    b.belongs((b) => {
+      b.element(new UiListNode(app, 'list')).inset(0).dataSource(dsName);
+      b.belongs((b) => {
+        b.element(new UiLookupItem(app, 'rec', this._owner))
+          .bounds(0, 0, rOwner.width, rOwner.height)
+          .style(this._owner.style);
+      });
     });
   }
 

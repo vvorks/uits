@@ -1,9 +1,27 @@
 import { CssLength } from '~/lib/ui/CssLength';
-import { Size, UiNode } from '~/lib/ui/UiNode';
+import { Size, UiNode, UiNodeSetter } from '~/lib/ui/UiNode';
 import { TextAlign, VerticalAlign } from '~/lib/ui/UiStyle';
-import { UiApplication } from './UiApplication';
+import { Value } from '../lang';
+import { UiApplication } from '~/lib/ui/UiApplication';
+import { HasSetter } from '~/lib/ui/UiBuilder';
 
-export class UiImageNode extends UiNode {
+export class UiImageNodeSetter extends UiNodeSetter {
+  public static readonly INSTANCE = new UiImageNodeSetter();
+  public imageContent(value: Value): this {
+    let node = this.node as UiImageNode;
+    node.imageContent = value;
+    return this;
+  }
+
+  public imageSize(width: Size | null, height: Size | null): this {
+    let node = this.node as UiImageNode;
+    node.imageWidth = width;
+    node.imageHeight = height;
+    return this;
+  }
+}
+
+export class UiImageNode extends UiNode implements HasSetter<UiImageNodeSetter> {
   private _imageContent: any;
 
   private _imageWidth: CssLength | null;
@@ -53,6 +71,10 @@ export class UiImageNode extends UiNode {
       this._imageWidth = new CssLength('100%');
       this._imageHeight = null;
     }
+  }
+
+  public getSetter(): UiImageNodeSetter {
+    return UiImageNodeSetter.INSTANCE;
   }
 
   public get imageContent(): any {

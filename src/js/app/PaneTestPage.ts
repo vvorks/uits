@@ -3,7 +3,7 @@ import {
   UiImageField,
   UiListNode,
   UiNode,
-  UiNodeBuilder,
+  UiBuilder,
   UiPageNode,
   UiPane,
   UiDock,
@@ -18,7 +18,7 @@ export class PaneTestPage extends UiPageNode {
   protected initialize(): void {
     let app = this.application;
     //ページ全体の指定
-    let b = new UiNodeBuilder('1rem');
+    let b = new UiBuilder('1rem');
     b.element(this).inset(1).style(GROUP_STYLE);
     b.belongs((b) => {
       //ドックの設定
@@ -113,7 +113,7 @@ export class PaneTestPage extends UiPageNode {
       pane.removeChildren();
       //新項目追加
       let text = (src as UiTextButton).textContent;
-      let b = new UiNodeBuilder('1rem');
+      let b = new UiBuilder('1rem');
       b.element(pane);
       b.belongs((b) => {
         for (let i = 0; i < 3; i++) {

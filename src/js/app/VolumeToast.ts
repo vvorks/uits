@@ -1,4 +1,4 @@
-import { KeyCodes, UiNode, UiNodeBuilder, UiPageNode, UiResult, UiTextNode } from '~/lib/ui';
+import { KeyCodes, UiNode, UiBuilder, UiPageNode, UiResult, UiTextNode } from '~/lib/ui';
 import { DEFAULT_STYLE, TOAST_STYLE } from '~/app/TestApplication';
 
 const VOLUME_TIMEOUT_ID = 1;
@@ -9,7 +9,7 @@ export class VolumeToast extends UiPageNode {
 
   protected initialize(): void {
     let app = this.application;
-    let b = new UiNodeBuilder('1rem');
+    let b = new UiBuilder('1rem');
     b.element(this).position(null, null, 2, 2, 15, 5).style(TOAST_STYLE);
     b.belongs((b) => {
       b.element(new UiTextNode(app, 'test')).inset(1).style(DEFAULT_STYLE);

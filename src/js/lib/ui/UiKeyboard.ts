@@ -6,7 +6,7 @@ import { Rect } from '~/lib/ui/Rect';
 import { UiApplication } from '~/lib/ui/UiApplication';
 import { UiDeckNode } from '~/lib/ui/UiDeckNode';
 import { UiNode, UiResult } from '~/lib/ui/UiNode';
-import { UiNodeBuilder } from '~/lib/ui/UiNodeBuilder';
+import { UiBuilder } from '~/lib/ui/UiBuilder';
 import { UiPageNode } from '~/lib/ui/UiPageNode';
 import { UiStyle, UiStyleBuilder } from '~/lib/ui/UiStyle';
 import { UiTextField } from '~/lib/ui/UiTextField';
@@ -738,7 +738,7 @@ export class UiKeyboard extends UiPageNode {
     }
     maxHeight += EDITAREA_HEIGHT + KEYTOP_SPACING; //for input area
     //キーボード作成
-    let b = new UiNodeBuilder('1px');
+    let b = new UiBuilder('1px');
     b.element(this).style(GROUP_STYLE);
     b.belongs((b) => {
       //入力表示領域
@@ -746,36 +746,31 @@ export class UiKeyboard extends UiPageNode {
         .position(KEYTOP_SPACING, KEYTOP_SPACING, KEYTOP_SPACING, null, null, EDITAREA_HEIGHT)
         .style(DEFAULT_STYLE);
       //キーボード領域
-      b.element(new UiDeckNode(app, 'deck'))
-        .position(0, KEYTOP_SPACING + EDITAREA_HEIGHT, 0, 0, null, null)
-        .belongs((b) => {
-          //日本語キーボード領域
-          b.element(new UiNode(app, 'ja'))
-            .inset(0)
-            .style(GROUP_STYLE)
-            .belongs((b) => {
-              for (let k of UiKeyboard.JA_KEYS) {
-                let r = k.asRect(KEYTOP_SIZE, KEYTOP_SIZE, KEYTOP_SPACING, KEYTOP_SPACING);
-                b.element(new UiKeytop(app, k))
-                  .bounds(r.left, r.top, r.width, r.height)
-                  .style(KEYTOP_STYLE)
-                  .focusable(true);
-              }
-            });
-          //英数キーボード領域
-          b.element(new UiNode(app, 'en'))
-            .inset(0)
-            .style(GROUP_STYLE)
-            .belongs((b) => {
-              for (let k of UiKeyboard.EN_KEYS) {
-                let r = k.asRect(KEYTOP_SIZE, KEYTOP_SIZE, KEYTOP_SPACING, KEYTOP_SPACING);
-                b.element(new UiKeytop(app, k))
-                  .bounds(r.left, r.top, r.width, r.height)
-                  .style(KEYTOP_STYLE)
-                  .focusable(true);
-              }
-            });
+      b.element(new UiDeckNode(app, 'deck')).inset(0, KEYTOP_SPACING + EDITAREA_HEIGHT, 0, 0);
+      b.belongs((b) => {
+        //日本語キーボード領域
+        b.element(new UiNode(app, 'ja')).inset(0).style(GROUP_STYLE);
+        b.belongs((b) => {
+          for (let k of UiKeyboard.JA_KEYS) {
+            let r = k.asRect(KEYTOP_SIZE, KEYTOP_SIZE, KEYTOP_SPACING, KEYTOP_SPACING);
+            b.element(new UiKeytop(app, k))
+              .bounds(r.left, r.top, r.width, r.height)
+              .style(KEYTOP_STYLE)
+              .focusable(true);
+          }
         });
+        //英数キーボード領域
+        b.element(new UiNode(app, 'en')).inset(0).style(GROUP_STYLE);
+        b.belongs((b) => {
+          for (let k of UiKeyboard.EN_KEYS) {
+            let r = k.asRect(KEYTOP_SIZE, KEYTOP_SIZE, KEYTOP_SPACING, KEYTOP_SPACING);
+            b.element(new UiKeytop(app, k))
+              .bounds(r.left, r.top, r.width, r.height)
+              .style(KEYTOP_STYLE)
+              .focusable(true);
+          }
+        });
+      });
     });
     //Popupの表示位置設定
     this.left = '0px';

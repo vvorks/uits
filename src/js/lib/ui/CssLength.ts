@@ -1,6 +1,6 @@
 import { Asserts, Types } from '~/lib/lang';
 import { Metrics } from '~/lib/ui/Metrics';
-import { Size } from './UiNode';
+import { Size } from '~/lib/ui/UiNode';
 
 export class CssLength {
   private static UNITS = ['px', 'pt', 'rem', 'rex', '%', 'in', 'cm', 'mm', 'pc', 'em', 'ex'];

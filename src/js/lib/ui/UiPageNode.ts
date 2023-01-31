@@ -1,13 +1,18 @@
 import { Properties } from '~/lib/lang';
 import { Scrollable } from '~/lib/ui/Scrollable';
 import { UiApplication } from '~/lib/ui/UiApplication';
-import { Changed, UiNode } from '~/lib/ui/UiNode';
+import { Changed, UiNode, UiNodeSetter } from '~/lib/ui/UiNode';
 import { UiStyle } from '~/lib/ui/UiStyle';
 import { HistoryState } from '~/lib/ui/HistoryManager';
+import { HasSetter } from '~/lib/ui/UiBuilder';
 
 const PARAM_SAVED_FOCUS = '__SAVED_FOCUS__';
 
-export class UiPageNode extends UiNode {
+export class UiPageNodeSetter extends UiNodeSetter {
+  public static readonly INSTANCE = new UiPageNodeSetter();
+}
+
+export class UiPageNode extends UiNode implements HasSetter<UiPageNodeSetter> {
   private _hScrollables: Properties<Scrollable[]>;
 
   private _vScrollables: Properties<Scrollable[]>;
@@ -55,6 +60,10 @@ export class UiPageNode extends UiNode {
     }
     this._hScrollables = {};
     this._vScrollables = {};
+  }
+
+  public getSetter(): UiPageNodeSetter {
+    return UiPageNodeSetter.INSTANCE;
   }
 
   public getHistoryState(): HistoryState {

@@ -2,7 +2,7 @@ import { Types } from '~/lib/lang';
 import { DataHolder } from '~/lib/ui/DataHolder';
 import { UiImageNode } from '~/lib/ui/UiImageNode';
 import { UiNode, UiResult } from '~/lib/ui/UiNode';
-import { UiApplication } from './UiApplication';
+import { UiApplication } from '~/lib/ui/UiApplication';
 
 export class UiImageField extends UiImageNode {
   private _dataHolder: DataHolder;

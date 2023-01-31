@@ -2,9 +2,25 @@ import { Asserts } from '~/lib/lang';
 import { CssLength } from '~/lib/ui/CssLength';
 import { Inset } from '~/lib/ui/Inset';
 import { UiApplication } from '~/lib/ui/UiApplication';
-import { UiLocation, UiNode, UiResult } from '~/lib/ui/UiNode';
+import { Size, UiLocation, UiNode, UiNodeSetter, UiResult } from '~/lib/ui/UiNode';
+import { HasSetter } from '~/lib/ui/UiBuilder';
 
-export class UiPane extends UiNode {
+export class UiPaneSetter extends UiNodeSetter {
+  public static readonly INSTANCE = new UiPaneSetter();
+  public location(value: UiLocation): this {
+    let node = this.node as UiPane;
+    node.location = value;
+    return this;
+  }
+
+  public flexSize(size1: Size, size2: Size): this {
+    let node = this.node as UiPane;
+    node.setFlexSize(this.toValue(size1) as string, this.toValue(size2) as string);
+    return this;
+  }
+}
+
+export class UiPane extends UiNode implements HasSetter<UiPaneSetter> {
   private _location: UiLocation;
 
   private _shrinkedSize: CssLength;
@@ -54,6 +70,10 @@ export class UiPane extends UiNode {
       this._shrinkedSize = new CssLength('0px');
       this._expandedSize = new CssLength('0px');
     }
+  }
+
+  public getSetter(): UiPaneSetter {
+    return UiPaneSetter.INSTANCE;
   }
 
   public get location(): UiLocation {

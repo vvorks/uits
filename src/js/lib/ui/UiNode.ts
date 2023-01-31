@@ -1,4 +1,4 @@
-import { Asserts, Clonable, ParamError, Predicate, UnsupportedError, Value } from '~/lib/lang';
+import { Asserts, Clonable, Predicate, UnsupportedError, Value } from '~/lib/lang';
 import { Rect } from '~/lib/ui/Rect';
 import { CssLength } from '~/lib/ui/CssLength';
 import { UiStyle } from '~/lib/ui/UiStyle';
@@ -9,6 +9,7 @@ import { Scrollable } from '~/lib/ui/Scrollable';
 import { UiPageNode } from '~/lib/ui/UiPageNode';
 import { KeyCodes } from '~/lib/ui/KeyCodes';
 import { Inset } from '~/lib/ui/Inset';
+import { UiSetter, HasSetter } from '~/lib/ui/UiBuilder';
 
 /**
  * （外部からパラメータとして使用する）サイズ型
@@ -152,10 +153,135 @@ export type ActionListener = (source: UiNode, action: string, param?: any) => Ui
  */
 export type UiLocation = 'top' | 'left' | 'right' | 'bottom' | 'center';
 
+export class UiNodeSetter extends UiSetter {
+  public static readonly INSTANCE = new UiNodeSetter();
+  public position(
+    left: Size | null,
+    top: Size | null,
+    right: Size | null,
+    bottom: Size | null,
+    width: Size | null,
+    height: Size | null
+  ): this {
+    let node = this.node as UiNode;
+    node.left = this.toValue(left);
+    node.top = this.toValue(top);
+    node.right = this.toValue(right);
+    node.bottom = this.toValue(bottom);
+    node.width = this.toValue(width);
+    node.height = this.toValue(height);
+    return this;
+  }
+
+  public bounds(left: Size, top: Size, width: Size, height: Size): this {
+    let node = this.node as UiNode;
+    node.left = this.toValue(left);
+    node.top = this.toValue(top);
+    node.right = null;
+    node.bottom = null;
+    node.width = this.toValue(width);
+    node.height = this.toValue(height);
+    return this;
+  }
+
+  public inset(left: Size, top?: Size, right?: Size, bottom?: Size): this {
+    let node = this.node as UiNode;
+    if (top !== undefined && right !== undefined && bottom !== undefined) {
+      node.left = this.toValue(left);
+      node.top = this.toValue(top);
+      node.right = this.toValue(right);
+      node.bottom = this.toValue(bottom);
+    } else if (top !== undefined) {
+      node.left = this.toValue(left);
+      node.top = this.toValue(top);
+      node.right = this.toValue(left);
+      node.bottom = this.toValue(top);
+    } else {
+      node.left = this.toValue(left);
+      node.top = this.toValue(left);
+      node.right = this.toValue(left);
+      node.bottom = this.toValue(left);
+    }
+    return this;
+  }
+
+  public scrollWidth(width: Size): this {
+    let node = this.node as UiNode;
+    node.scrollWidth = this.toValue(width);
+    return this;
+  }
+
+  public scrollHeight(height: Size): this {
+    let node = this.node as UiNode;
+    node.scrollHeight = this.toValue(height);
+    return this;
+  }
+
+  public style(value: UiStyle): this {
+    let node = this.node as UiNode;
+    node.style = value;
+    return this;
+  }
+
+  public visible(value: boolean): this {
+    let node = this.node as UiNode;
+    node.visible = value;
+    return this;
+  }
+
+  public enable(value: boolean): this {
+    let node = this.node as UiNode;
+    node.enable = value;
+    return this;
+  }
+
+  public focusable(value: boolean): this {
+    let node = this.node as UiNode;
+    node.focusable = value;
+    return this;
+  }
+
+  public editable(value: boolean): this {
+    let node = this.node as UiNode;
+    node.editable = value;
+    return this;
+  }
+
+  public dataSource(name: string): this {
+    let node = this.node as UiNode;
+    node.dataSourceName = name;
+    return this;
+  }
+
+  public dataField(name: string): this {
+    let node = this.node as UiNode;
+    node.dataFieldName = name;
+    return this;
+  }
+
+  public vscroll(name: string): this {
+    let node = this.node as UiNode;
+    node.vScrollName = name;
+    return this;
+  }
+
+  public hscroll(name: string): this {
+    let node = this.node as UiNode;
+    node.hScrollName = name;
+    return this;
+  }
+
+  public action(listener: ActionListener): this {
+    let node = this.node as UiNode;
+    node.addActionListener(listener);
+    return this;
+  }
+}
+
 /**
  * UiNode
  */
-export class UiNode implements Clonable<UiNode>, Scrollable {
+export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSetter> {
   public static readonly VOID_DATA_HOLDER: DataHolder = new VoidDataHolder();
 
   private _application: UiApplication;
@@ -320,6 +446,10 @@ export class UiNode implements Clonable<UiNode>, Scrollable {
       this._domElement = null;
       this._endElement = null;
     }
+  }
+
+  public getSetter(): UiNodeSetter {
+    return UiNodeSetter.INSTANCE;
   }
 
   /**

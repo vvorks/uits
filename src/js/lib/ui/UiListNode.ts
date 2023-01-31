@@ -9,7 +9,8 @@ import { UiApplication, UiAxis } from '~/lib/ui/UiApplication';
 import { Flags, UiNode, UiResult } from '~/lib/ui/UiNode';
 import { UiPageNode } from '~/lib/ui/UiPageNode';
 import { UiStyle, UiStyleBuilder } from '~/lib/ui/UiStyle';
-import { UiScrollNode } from './UiScrollNode';
+import { HasSetter } from '~/lib/ui/UiBuilder';
+import { UiScrollNode, UiScrollNodeSetter } from '~/lib/ui/UiScrollNode';
 
 /**
  * レコードノード用スタイル
@@ -174,9 +175,33 @@ class UiRecord extends UiNode implements DataHolder {
 }
 
 /**
+ * UiListNodeのセッター
+ */
+export class UiListNodeSetter extends UiScrollNodeSetter {
+  public static readonly INSTANCE = new UiListNodeSetter();
+  public loop(value: boolean): this {
+    let node = this.node as UiListNode;
+    node.loop = value;
+    return this;
+  }
+
+  public vertical(value: boolean): this {
+    let node = this.node as UiListNode;
+    node.vertical = value;
+    return this;
+  }
+
+  public outerMargin(value: boolean): this {
+    let node = this.node as UiListNode;
+    node.outerMargin = value;
+    return this;
+  }
+}
+
+/**
  * 垂直及び水平の仮想データリストノード
  */
-export class UiListNode extends UiScrollNode {
+export class UiListNode extends UiScrollNode implements HasSetter<UiListNodeSetter> {
   private _template: UiRecord | null;
 
   private _templateRect: Rect | null;
@@ -252,6 +277,10 @@ export class UiListNode extends UiScrollNode {
       this._pageTopIndex = 0;
       this._dataSource = null;
     }
+  }
+
+  public getSetter(): UiListNodeSetter {
+    return UiListNodeSetter.INSTANCE;
   }
 
   public get focusable(): boolean {

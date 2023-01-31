@@ -1,4 +1,4 @@
-import { UiNodeBuilder, UiPageNode, UiScrollNode, UiScrollbar, UiTextNode } from '~/lib/ui';
+import { UiBuilder, UiPageNode, UiScrollNode, UiScrollbar, UiTextNode } from '~/lib/ui';
 import { DEFAULT_STYLE, GROUP_STYLE, SB_STYLE } from '~/app/TestApplication';
 
 /**
@@ -12,7 +12,7 @@ export class GridPage extends UiPageNode {
     let app = this.application;
     const ROW = 30;
     const COL = 30;
-    let b = new UiNodeBuilder('1rem');
+    let b = new UiBuilder('1rem');
     b.element(this).inset(1).style(GROUP_STYLE);
     b.belongs((b) => {
       //行ヘッダ

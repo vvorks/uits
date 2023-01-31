@@ -3,7 +3,7 @@ import {
   UiImageField,
   UiListNode,
   UiNode,
-  UiNodeBuilder,
+  UiBuilder,
   UiPageNode,
   UiResult,
   UiTextField,
@@ -14,7 +14,7 @@ import { DEFAULT_STYLE, GROUP_STYLE, IMAGE_STYLE, LIST_STYLE } from '~/app/TestA
 export class SlidePage extends UiPageNode {
   protected initialize(): void {
     let app = this.application;
-    let b = new UiNodeBuilder('1rem');
+    let b = new UiBuilder('1rem');
     b.element(this).inset(0).style(GROUP_STYLE);
     b.belongs((b) => {
       b.element(new UiTextNode(app, 'label'))

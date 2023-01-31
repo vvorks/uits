@@ -1,5 +1,5 @@
 import {
-  UiNodeBuilder,
+  UiBuilder,
   UiPageNode,
   UiMenu,
   DataSource,
@@ -15,7 +15,7 @@ import { GROUP_STYLE, DEFAULT_STYLE, LIST_STYLE } from '~/app/TestApplication';
 export class MenuTestPage extends UiPageNode {
   protected initialize(): void {
     let app = this.application;
-    let b = new UiNodeBuilder('1rem');
+    let b = new UiBuilder('1rem');
     b.element(this).inset(1).style(GROUP_STYLE);
     b.belongs((b) => {
       //content
@@ -86,16 +86,16 @@ export class MenuTestPage extends UiPageNode {
       b.belongs((b) => {
         b.element(new UiMenuItem(app, 'node'))
           .position(0, 0, 0, null, null, 2)
-          .style(DEFAULT_STYLE)
-          .belongs((b) => {
-            b.element(new UiTextField(app, 'title')).inset(0).style(DEFAULT_STYLE);
-          });
+          .style(DEFAULT_STYLE);
+        b.belongs((b) => {
+          b.element(new UiTextField(app, 'title')).inset(0).style(DEFAULT_STYLE);
+        });
         b.element(new UiMenuItem(app, 'leaf'))
           .position(0, 0, 0, null, null, 2)
-          .style(DEFAULT_STYLE)
-          .belongs((b) => {
-            b.element(new UiTextField(app, 'title')).inset(0).style(DEFAULT_STYLE);
-          });
+          .style(DEFAULT_STYLE);
+        b.belongs((b) => {
+          b.element(new UiTextField(app, 'title')).inset(0).style(DEFAULT_STYLE);
+        });
         b.element(new UiMenuItem(app, 'void')).position(0, 0, 0, null, null, 6).style(GROUP_STYLE);
       });
     });

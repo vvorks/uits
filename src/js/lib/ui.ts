@@ -7,8 +7,8 @@ export { UiNode, UiResult };
 import { UiScrollNode } from '~/lib/ui/UiScrollNode';
 export { UiScrollNode as UiScrollNode };
 
-import { UiNodeBuilder } from '~/lib/ui/UiNodeBuilder';
-export { UiNodeBuilder };
+import { UiBuilder } from '~/lib/ui/UiBuilder';
+export { UiBuilder };
 
 import { UiPageNode } from '~/lib/ui/UiPageNode';
 export { UiPageNode };
@@ -106,5 +106,5 @@ export type ActionListener = RawActionListener;
 import { UiLocation as RawUiLocation } from '~/lib/ui/UiNode';
 export type UiLocation = RawUiLocation;
 
-import { HistoryState } from './ui/HistoryManager';
+import { HistoryState } from '~/lib/ui/HistoryManager';
 export { HistoryState };

@@ -1,9 +1,9 @@
 import { Asserts, Logs, Predicate, UnsupportedError, Value } from '~/lib/lang';
-import { Flags, Size, UiLocation, UiNode, UiResult } from '~/lib/ui/UiNode';
-import { UiApplication, UiAxis } from '~/lib/ui/UiApplication';
+import { Flags, Size, UiLocation, UiNode, UiNodeSetter, UiResult } from '~/lib/ui/UiNode';
+import { UiApplication } from '~/lib/ui/UiApplication';
 import { DataRecord, DataSource } from '~/lib/ui/DataSource';
 import { CssLength } from '~/lib/ui/CssLength';
-import { UiNodeBuilder } from '~/lib/ui/UiNodeBuilder';
+import { HasSetter, UiBuilder } from '~/lib/ui/UiBuilder';
 import { KeyCodes } from '~/lib/ui/KeyCodes';
 import { DataHolder } from '~/lib/ui/DataHolder';
 import { UiTextNode } from '~/lib/ui/UiTextNode';
@@ -170,10 +170,36 @@ export class UiMenuItem extends UiNode implements DataHolder {
   }
 }
 
+export class UiMenuSetter extends UiNodeSetter {
+  public static readonly INSTANCE = new UiMenuSetter();
+  public location(value: UiLocation): this {
+    let node = this.node as UiMenu;
+    node.location = value;
+    return this;
+  }
+  public contentNode(path: string): this {
+    let node = this.node as UiMenu;
+    node.contentNodePath = path;
+    return this;
+  }
+
+  public spacing(value: Size | null): this {
+    let node = this.node as UiMenu;
+    node.spacing = this.toValue(value);
+    return this;
+  }
+
+  public extentionSizes(value: string[]): this {
+    let node = this.node as UiMenu;
+    node.extentionSizes = value;
+    return this;
+  }
+}
+
 /**
  * メニュークラス
  */
-export class UiMenu extends UiNode {
+export class UiMenu extends UiNode implements HasSetter<UiMenuSetter> {
   /** 表示位置 */
   private _location: UiLocation;
 
@@ -260,6 +286,10 @@ export class UiMenu extends UiNode {
       this._spacing = null;
       this._commingNode = null;
     }
+  }
+
+  public getSetter(): UiMenuSetter {
+    return UiMenuSetter.INSTANCE;
   }
 
   public get location(): UiLocation {
@@ -384,9 +414,10 @@ export class UiMenu extends UiNode {
   private prepareBlocks(): void {
     this.removeChildren();
     let app = this.application;
-    let b = new UiNodeBuilder('1px');
+    let b = new UiBuilder('1px');
     let ownerStyle = this.style;
-    b.element(this).belongs((b) => {
+    b.element(this);
+    b.belongs((b) => {
       switch (this._location) {
         case 'left':
           b.element(new UiNode(app, '1'))

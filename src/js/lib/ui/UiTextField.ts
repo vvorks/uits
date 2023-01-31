@@ -4,8 +4,8 @@ import { KeyCodes } from '~/lib/ui/KeyCodes';
 import { UiKeyboard } from '~/lib/ui/UiKeyboard';
 import { UiNode, UiResult } from '~/lib/ui/UiNode';
 import { UiTextNode } from '~/lib/ui/UiTextNode';
-import { HistoryState } from './HistoryManager';
-import { UiApplication } from './UiApplication';
+import { HistoryState } from '~/lib/ui/HistoryManager';
+import { UiApplication } from '~/lib/ui/UiApplication';
 
 /**
  * テキスト入出力フィールド

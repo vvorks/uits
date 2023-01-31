@@ -1,7 +1,7 @@
 import { KeyCodes } from '~/lib/ui/KeyCodes';
 import { UiNode, UiResult } from '~/lib/ui/UiNode';
 import { UiTextNode } from '~/lib/ui/UiTextNode';
-import { UiApplication } from './UiApplication';
+import { UiApplication } from '~/lib/ui/UiApplication';
 
 /**
  * テキストボタン

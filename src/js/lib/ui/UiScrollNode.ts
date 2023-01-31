@@ -1,8 +1,18 @@
 import { Asserts } from '../lang';
-import { UiApplication } from './UiApplication';
-import { UiNode, UiResult } from './UiNode';
+import { UiApplication } from '~/lib/ui/UiApplication';
+import { UiNode, UiNodeSetter, UiResult } from '~/lib/ui/UiNode';
+import { HasSetter } from '~/lib/ui/UiBuilder';
 
-export class UiScrollNode extends UiNode {
+export class UiScrollNodeSetter extends UiNodeSetter {
+  public static readonly INSTANCE = new UiScrollNodeSetter();
+  public focusLock(on: boolean): this {
+    let node = this.node as UiScrollNode;
+    node.focusLock = on;
+    return this;
+  }
+}
+
+export class UiScrollNode extends UiNode implements HasSetter<UiScrollNodeSetter> {
   private _lockX: number;
 
   private _lockY: number;
@@ -48,6 +58,10 @@ export class UiScrollNode extends UiNode {
       this._lockX = 0;
       this._lockY = 0;
     }
+  }
+
+  public getSetter(): UiScrollNodeSetter {
+    return UiScrollNodeSetter.INSTANCE;
   }
 
   protected afterMount(): void {

@@ -3,7 +3,7 @@ import {
   UiCheckbox,
   UiListNode,
   UiNode,
-  UiNodeBuilder,
+  UiBuilder,
   UiPageNode,
   UiScrollbar,
   UiTextButton,
@@ -14,7 +14,7 @@ import { GROUP_STYLE, DEFAULT_STYLE, LIST_STYLE, SB_STYLE } from '~/app/TestAppl
 export class HorizontalListPage extends UiPageNode {
   protected initialize(): void {
     let app = this.application;
-    let b = new UiNodeBuilder('1rem');
+    let b = new UiBuilder('1rem');
     b.element(this).inset(1).style(GROUP_STYLE);
     b.belongs((b) => {
       b.element(new UiTextButton(app, 'north'))

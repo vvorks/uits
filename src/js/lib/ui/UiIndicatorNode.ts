@@ -1,7 +1,5 @@
-import { Types } from '../lang';
-import { DataHolder } from './DataHolder';
-import { UiApplication } from './UiApplication';
-import { UiNode, UiResult } from './UiNode';
+import { UiApplication } from '~/lib/ui/UiApplication';
+import { UiNode, UiResult } from '~/lib/ui/UiNode';
 
 /**
  * UiIndicator 値（0.0～1.0）をバーチャートのように表示するUIコンポーネント

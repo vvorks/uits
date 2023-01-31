@@ -1,8 +1,8 @@
-import { Logs, Types } from '../lang';
-import { DataHolder } from './DataHolder';
-import { UiApplication } from './UiApplication';
-import { UiIndicatorNode } from './UiIndicatorNode';
-import { UiNode, UiResult } from './UiNode';
+import { Logs, Types } from '~/lib/lang';
+import { DataHolder } from '~/lib/ui/DataHolder';
+import { UiApplication } from '~/lib/ui/UiApplication';
+import { UiIndicatorNode } from '~/lib/ui/UiIndicatorNode';
+import { UiNode, UiResult } from '~/lib/ui/UiNode';
 
 /**
  * UiIndicator 値（0.0～1.0）をバーチャートのように表示するUIコンポーネント

@@ -1,10 +1,20 @@
 import { Properties, Types } from '~/lib/lang';
 import { DataHolder } from '~/lib/ui/DataHolder';
-import { UiImageNode } from '~/lib/ui/UiImageNode';
+import { UiImageNode, UiImageNodeSetter } from '~/lib/ui/UiImageNode';
 import { UiNode, UiResult } from '~/lib/ui/UiNode';
-import { UiApplication } from './UiApplication';
+import { UiApplication } from '~/lib/ui/UiApplication';
+import { HasSetter } from '~/lib/ui/UiBuilder';
 
-export class UiImageLookupField extends UiImageNode {
+export class UiImageLookupFieldSetter extends UiImageNodeSetter {
+  public static readonly INSTANCE = new UiImageLookupFieldSetter();
+  public lookupTable(table: Properties<any>): this {
+    let node = this.node as UiImageLookupField;
+    node.lookupTable = table;
+    return this;
+  }
+}
+
+export class UiImageLookupField extends UiImageNode implements HasSetter<UiImageLookupFieldSetter> {
   private _dataHolder: DataHolder;
 
   private _lookupTable: Properties<any>;
@@ -50,6 +60,10 @@ export class UiImageLookupField extends UiImageNode {
       this._dataHolder = UiNode.VOID_DATA_HOLDER;
       this._lookupTable = {};
     }
+  }
+
+  public getSetter(): UiImageLookupFieldSetter {
+    return UiImageLookupFieldSetter.INSTANCE;
   }
 
   public get lookupTable(): Properties<any> {

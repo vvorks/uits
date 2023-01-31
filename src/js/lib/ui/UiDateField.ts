@@ -4,13 +4,13 @@ import { Colors } from '~/lib/ui/Colors';
 import { DataHolder } from '~/lib/ui/DataHolder';
 import { KeyCodes } from '~/lib/ui/KeyCodes';
 import { Rect } from '~/lib/ui/Rect';
-import { UiApplication, UiAxis } from '~/lib/ui/UiApplication';
+import { UiApplication } from '~/lib/ui/UiApplication';
 import { UiNode, UiResult } from '~/lib/ui/UiNode';
-import { UiNodeBuilder } from '~/lib/ui/UiNodeBuilder';
+import { UiBuilder } from '~/lib/ui/UiBuilder';
 import { UiPageNode } from '~/lib/ui/UiPageNode';
 import { UiTextButton } from '~/lib/ui/UiTextButton';
 import { UiTextNode } from '~/lib/ui/UiTextNode';
-import { HistoryState } from './HistoryManager';
+import { HistoryState } from '~/lib/ui/HistoryManager';
 
 /* 曜日データ（暫定：本当はI18nライブラリから取らないと・・・） */
 const WEEKS = ['日', '月', '火', '水', '木', '金', '土'];
@@ -237,8 +237,9 @@ class UiDatePopup extends UiPageNode {
     let lm = Dates.getLastMonth(bom);
     let top = Dates.addDay(lm, -lm.getDay());
     const UNIT = 24;
-    let b = new UiNodeBuilder('1px');
-    b.element(this).belongs((b) => {
+    let b = new UiBuilder('1px');
+    b.element(this);
+    b.belongs((b) => {
       //レイアウト定義
       b.element(new UiNode(app, 'frame')).inset(0);
       b.belongs((b) => {
@@ -257,17 +258,17 @@ class UiDatePopup extends UiPageNode {
         //日付ブロック
         b.element(new UiNode(app, 'days'))
           .position(0, 2 * UNIT, null, null, WEEKS.length * UNIT, 6 * UNIT)
-          .style(GROUP_STYLE)
-          .belongs((b) => {
-            for (let i = 0; i < WEEKS.length * 6; i++) {
-              const day = Dates.addDay(top, i);
-              b.element(new UiDateNode(app, 'day'))
-                .bounds(Math.floor(i % 7) * UNIT, Math.floor(i / 7) * UNIT, 1 * UNIT, 1 * UNIT)
-                .style(SMALL_STYLE)
-                .focusable(true)
-                .action((src, act, arg) => this.watchDate(src, act, arg));
-            }
-          });
+          .style(GROUP_STYLE);
+        b.belongs((b) => {
+          for (let i = 0; i < WEEKS.length * 6; i++) {
+            const day = Dates.addDay(top, i);
+            b.element(new UiDateNode(app, 'day'))
+              .bounds(Math.floor(i % 7) * UNIT, Math.floor(i / 7) * UNIT, 1 * UNIT, 1 * UNIT)
+              .style(SMALL_STYLE)
+              .focusable(true)
+              .action((src, act, arg) => this.watchDate(src, act, arg));
+          }
+        });
       });
     });
     //位置設定

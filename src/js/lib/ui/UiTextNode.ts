@@ -1,15 +1,25 @@
 import { Types, Value } from '~/lib/lang';
 import { Color } from '~/lib/ui/Colors';
-import { UiNode } from '~/lib/ui/UiNode';
-import { UiApplication } from './UiApplication';
-import { UiStyle } from './UiStyle';
+import { UiNode, UiNodeSetter } from '~/lib/ui/UiNode';
+import { UiApplication } from '~/lib/ui/UiApplication';
+import { HasSetter } from '~/lib/ui/UiBuilder';
+import { UiStyle } from '~/lib/ui/UiStyle';
 
 const RESOURCE_HEAD_MARKER = '{{';
 const RESOURCE_TAIL_MARKER = '}}';
 
 const VALIGN_TRANSFORM = false;
 
-export class UiTextNode extends UiNode {
+export class UiTextNodeSetter extends UiNodeSetter {
+  public static readonly INSTANCE = new UiTextNodeSetter();
+  public textContent(value: Value): this {
+    let node = this.node as UiTextNode;
+    node.textContent = value;
+    return this;
+  }
+}
+
+export class UiTextNode extends UiNode implements HasSetter<UiTextNodeSetter> {
   private _textContent: Value;
 
   private _textColor: Color | null;
@@ -55,6 +65,10 @@ export class UiTextNode extends UiNode {
       this._textContent = null;
       this._textColor = null;
     }
+  }
+
+  public getSetter(): UiTextNodeSetter {
+    return UiTextNodeSetter.INSTANCE;
   }
 
   public get textContent(): Value {
