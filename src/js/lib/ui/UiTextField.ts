@@ -5,7 +5,7 @@ import { UiKeyboard } from '~/lib/ui/UiKeyboard';
 import { UiNode, UiResult } from '~/lib/ui/UiNode';
 import { UiTextNode } from '~/lib/ui/UiTextNode';
 import { HistoryState } from '~/lib/ui/HistoryManager';
-import { UiApplication } from '~/lib/ui/UiApplication';
+import type { UiApplication } from '~/lib/ui/UiApplication';
 
 /**
  * テキスト入出力フィールド
@@ -86,7 +86,7 @@ export class UiTextField extends UiTextNode {
 
   public getValue(): string {
     let result: string;
-    let value = this._dataHolder.getValue(this.name);
+    let value = this._dataHolder.getValue(this.dataFieldName);
     if (value != null && Types.isValueType(value)) {
       result = this.asString(value as Value);
     } else {
@@ -96,6 +96,6 @@ export class UiTextField extends UiTextNode {
   }
 
   public setValue(value: string): void {
-    this._dataHolder.setValue(this.name, value);
+    this._dataHolder.setValue(this.dataFieldName, value);
   }
 }

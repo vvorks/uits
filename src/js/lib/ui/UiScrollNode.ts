@@ -1,5 +1,5 @@
 import { Asserts } from '../lang';
-import { UiApplication } from '~/lib/ui/UiApplication';
+import type { UiApplication } from '~/lib/ui/UiApplication';
 import { UiNode, UiNodeSetter, UiResult } from '~/lib/ui/UiNode';
 import { HasSetter } from '~/lib/ui/UiBuilder';
 
@@ -123,7 +123,7 @@ export class UiScrollNode extends UiNode implements HasSetter<UiScrollNodeSetter
 
   protected scrollInside(dx: number, dy: number, animationTime?: number): UiResult {
     let app = this.application;
-    let time = animationTime !== undefined ? animationTime : app.scrollAnimationTime;
+    let time = animationTime !== undefined ? animationTime : app.animationTime;
     let s = this.getViewRect();
     let result;
     if (time == 0) {

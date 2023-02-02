@@ -1,8 +1,8 @@
 import { Scrollable } from '~/lib/ui/Scrollable';
-import { UiApplication } from '~/lib/ui/UiApplication';
+import type { UiApplication } from '~/lib/ui/UiApplication';
 import { UiNode } from '~/lib/ui/UiNode';
 
-export const COMPONENT_THUMB = 'thumb';
+const COMPONENT_THUMB = 'thumb';
 
 export class UiScrollbar extends UiNode {
   private _mainThumb: UiNode;

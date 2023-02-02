@@ -1,12 +1,17 @@
 import { Asserts, Properties, Logs, Arrays, Value, Types, Predicate } from '~/lib/lang';
 import { Metrics } from '~/lib/ui/Metrics';
-import { UiNode, UiResult } from '~/lib/ui/UiNode';
-import { UiRootNode } from '~/lib/ui/UiRootNode';
+import { UiResult } from '~/lib/ui/UiNode';
+import { UiNode } from '~/lib/ui/UiNode';
 import { UiPageNode } from '~/lib/ui/UiPageNode';
+import { UiRootNode } from '~/lib/ui/UiRootNode';
 import { KeyCodes } from '~/lib/ui/KeyCodes';
 import { Rect } from '~/lib/ui/Rect';
-import { DataSource } from '~/lib/ui/DataSource';
+import type { DataSource } from '~/lib/ui/DataSource';
 import { HistoryManager, HistoryState } from '~/lib/ui/HistoryManager';
+import { PageLayer, PageLayers } from '~/lib/ui/PageLayer';
+import { UiAxis } from '~/lib/ui/UiAxis';
+import { UiStyle, UiStyleBuilder } from './UiStyle';
+import { Colors } from './Colors';
 
 /** システムWheel調整比の既定値  */
 const DEFAULT_WHEEL_SCALE = 0.5;
@@ -14,30 +19,26 @@ const DEFAULT_WHEEL_SCALE = 0.5;
 /** 周期タスクの分解能の既定値 */
 const DEFAULT_INTERVAL_PRECISION = 500;
 
-/** スクロールアニメーション時間の既定値 */
-const DEFAULT_SCROLL_ANIMATION_TIME = 100;
+/** アニメーション時間の既定値 */
+const DEFAULT_ANIMATION_TIME = 100;
 
 /** リソース読み込み時のセパレータ */
 const RESOURCE_NAME_SEPARATOR = '.';
 
-export enum UiAxis {
-  NONE = 0,
-  X = 1,
-  Y = 2,
-  XY = 3,
-}
+export const GROUP_STYLE: UiStyle = new UiStyleBuilder()
+  .backgroundColor(Colors.SILVER)
+  .borderSize('0px')
+  .build();
 
-/**
- * ページレイヤー
- */
-export enum PageLayer {
-  /** 優先度：低（選局バナー等） */
-  LOW = 30,
-  /** 優先度：通常（ページ、モーダルPOPUP等） */
-  NORMAL = 50,
-  /** 優先度：高（通知等） */
-  HIGH = 80,
-}
+export const FIELD_STYLE: UiStyle = new UiStyleBuilder()
+  .textColor(Colors.BLACK)
+  .backgroundColor(Colors.WHITE)
+  .borderSize('2px')
+  .borderColor(Colors.BLUE)
+  .fontSize('12pt')
+  .textAlign('center')
+  .verticalAlign('middle')
+  .build();
 
 type RunFinallyTask = () => void;
 
@@ -105,6 +106,12 @@ class LivePage {
     let luca: UiNode | null =
       oldNode != null && newNode != null ? oldNode.getLucaNodeWith(newNode) : null;
     let lucaParent = luca != null ? luca.parent : null;
+
+    Logs.info(
+      'FOCUS %s -> %s',
+      oldNode != null ? oldNode.getNodePath() : 'null',
+      newNode != null ? newNode.getNodePath() : 'null'
+    );
     if (oldNode != null) {
       let node: UiNode | null = oldNode;
       while (node != null && node != lucaParent) {
@@ -129,7 +136,6 @@ class LivePage {
     if (axis & UiAxis.Y) {
       this.yAxis = rect.top;
     }
-    Logs.info('focus %s axis %d,%d', this._focusNode.getNodePath(), this.xAxis, this.yAxis);
     return result;
   }
 
@@ -338,7 +344,7 @@ class RunAnimationEntry extends RunEntry<AnimationTask> {
 
 type PageFactory = (tag: string) => UiPageNode;
 
-export type Resource = Properties<Value | Resource>;
+type Resource = Properties<Value | Resource>;
 
 export class UiApplication {
   /** 描画対象要素を検索するためのセレクタ（通常はBODY） */
@@ -380,8 +386,8 @@ export class UiApplication {
   /** 周期タスクの分解能（単位：ミリ秒） */
   private _intervalPrecision: number;
 
-  /** スクロールアニメーション時間（単位：ミリ秒） */
-  private _scrollAnimationTime: number;
+  /** アニメーション時間（単位：ミリ秒） */
+  private _animationTime: number;
 
   /** イベント処理終了後に実行するタスクのリスト */
   private _finallyTasks: RunFinallyTask[];
@@ -404,6 +410,7 @@ export class UiApplication {
   /** ページ履歴 */
   private _history: HistoryManager;
 
+  private static _launchCounter: number = 0;
   public constructor(selector: string) {
     Logs.info('UiApplication start');
     this._selector = selector;
@@ -419,7 +426,7 @@ export class UiApplication {
     this._savedResizeEvent = null;
     this._wheelScale = DEFAULT_WHEEL_SCALE;
     this._intervalPrecision = DEFAULT_INTERVAL_PRECISION;
-    this._scrollAnimationTime = DEFAULT_SCROLL_ANIMATION_TIME;
+    this._animationTime = DEFAULT_ANIMATION_TIME;
     this._finallyTasks = [];
     this._afterTasks = [];
     this._intervalTasks = [];
@@ -427,6 +434,10 @@ export class UiApplication {
     this._textResourceUrl = null;
     this._textResource = {};
     this._history = new HistoryManager();
+    if (UiApplication._launchCounter > 0) {
+      return;
+    }
+    UiApplication._launchCounter = 1;
     if (document !== undefined && document.querySelector(this._selector) != null) {
       Logs.info('onLoad now');
       this.onLoad();
@@ -476,12 +487,12 @@ export class UiApplication {
     this._intervalPrecision = precision;
   }
 
-  public get scrollAnimationTime(): number {
-    return this._scrollAnimationTime;
+  public get animationTime(): number {
+    return this._animationTime;
   }
 
-  public set scrollAnimationTime(time: number) {
-    this._scrollAnimationTime = time;
+  public set animationTime(time: number) {
+    this._animationTime = time;
   }
 
   public async onLoad(): Promise<void> {
@@ -663,7 +674,7 @@ export class UiApplication {
     return this._pageFactories;
   }
 
-  public transit(state: HistoryState, layer: PageLayer = PageLayer.NORMAL): UiPageNode | null {
+  public transit(state: HistoryState, layer: PageLayer = PageLayers.NORMAL): UiPageNode | null {
     let factory: PageFactory | undefined = this._pageFactories[state.tag];
     if (factory == null) {
       Logs.error("page '%s' not found", state.tag);
@@ -675,7 +686,14 @@ export class UiApplication {
     return newPage;
   }
 
-  public popup(state: HistoryState, layer: PageLayer = PageLayer.NORMAL): UiPageNode | null {
+  /**
+   * 現在ページ上にPOPUPページを表示する。
+   *
+   * @param state 履歴情報（タグ、引数）
+   * @param layer 表示レイヤー（オプション）
+   * @returns 成功の場合、表示されたページオブジェクトを返却（失敗の場合、null）
+   */
+  public popup(state: HistoryState, layer: PageLayer = PageLayers.NORMAL): UiPageNode | null {
     let factory: PageFactory | undefined = this._pageFactories[state.tag];
     if (factory == null) {
       Logs.error("page '%s' not found", state.tag);
@@ -687,7 +705,7 @@ export class UiApplication {
   }
 
   private getHistoryStates(): HistoryState[] | null {
-    let layer = PageLayer.NORMAL;
+    let layer = PageLayers.NORMAL;
     let firstIndex = this._pageStack.findIndex((e) => e.layer == layer);
     if (firstIndex == -1) {
       return null;
@@ -732,7 +750,7 @@ export class UiApplication {
   public call(
     pageNode: UiPageNode,
     state: HistoryState,
-    layer: PageLayer = PageLayer.NORMAL
+    layer: PageLayer = PageLayers.NORMAL
   ): void {
     let page = new LivePage(pageNode, layer);
     let biggerIndex = this._pageStack.findIndex((e) => e.layer > layer);
@@ -746,7 +764,7 @@ export class UiApplication {
     }
     pageNode.onMount();
     pageNode.setHistoryState(state);
-    if (layer == PageLayer.NORMAL) {
+    if (layer == PageLayers.NORMAL) {
       if (page.focusNode == null || !this.isAppearedFocusable(page.focusNode)) {
         if (!this.resetFocus(pageNode)) {
           Logs.error('LOST FOCUS!');
@@ -793,12 +811,14 @@ export class UiApplication {
   public resetFocus(node: UiNode): boolean {
     let page = this.getLivePageOf(node);
     Asserts.require(page != null);
-    let list = node.getFocusableDescendantsIf((e) => this.isAppearedFocusable(e), 1);
-    let found = list.length > 0;
-    if (found) {
-      page.doFocus(list[0]);
+    let newFocus = Arrays.first(
+      node.getFocusableDescendantsIf((e) => this.isAppearedFocusable(e), 1)
+    );
+    if (newFocus != null) {
+      newFocus = newFocus.adjustFocus(newFocus);
+      page.doFocus(newFocus);
     }
-    return found;
+    return newFocus != null;
   }
 
   public setFocus(node: UiNode, axis: UiAxis = UiAxis.XY): UiResult {
@@ -836,7 +856,7 @@ export class UiApplication {
   }
 
   public getFocus(): UiNode | null {
-    let lastPage = this.getLastPage(PageLayer.NORMAL);
+    let lastPage = this.getLastPage(PageLayers.NORMAL);
     return lastPage != null ? lastPage.focusNode : null;
   }
 
@@ -878,7 +898,7 @@ export class UiApplication {
 
   private recoverFocus(): UiResult {
     let result = UiResult.IGNORED;
-    let lastPage = this.getLastPage(PageLayer.NORMAL);
+    let lastPage = this.getLastPage(PageLayers.NORMAL);
     if (lastPage != null) {
       if (lastPage.focusNode == null || !this.isAppearedFocusableAll(lastPage.focusNode)) {
         if (!this.resetFocus(lastPage.pageNode)) {
@@ -1078,7 +1098,7 @@ export class UiApplication {
           }
           node = node.parent;
         }
-        if (result & UiResult.CONSUMED || page.layer == PageLayer.NORMAL) {
+        if (result & UiResult.CONSUMED || page.layer == PageLayers.NORMAL) {
           break;
         }
       }
@@ -1119,7 +1139,7 @@ export class UiApplication {
           }
           node = node.parent;
         }
-        if (result & UiResult.CONSUMED || page.layer == PageLayer.NORMAL) {
+        if (result & UiResult.CONSUMED || page.layer == PageLayers.NORMAL) {
           break;
         }
       }
@@ -1160,7 +1180,7 @@ export class UiApplication {
           }
           node = node.parent;
         }
-        if (result & UiResult.CONSUMED || page.layer == PageLayer.NORMAL) {
+        if (result & UiResult.CONSUMED || page.layer == PageLayers.NORMAL) {
           break;
         }
       }
@@ -1439,19 +1459,39 @@ export class UiApplication {
     }
   }
 
+  /**
+   * 戻る（ブラウザの戻ると同じ）
+   */
   public back(): void {
     this._history.back();
   }
 
+  /**
+   * 進む（ブラウザの進むと同じ）
+   */
   public forward(): void {
     this._history.forward();
   }
 
+  /**
+   * 次ページに進む
+   *
+   * @param newTag ページハッシュ名
+   * @param args 引数
+   * @returns 結果（現状は常に正常終了）
+   */
   public forwardTo(newTag: string, args: Properties<string>): UiResult {
     this._history.forwardTo(newTag, args);
     return UiResult.AFFECTED;
   }
 
+  /**
+   * 先頭ページから指定ページをリロード
+   *
+   * @param newTag
+   * @param args
+   * @returns
+   */
   public restartTo(newTag: string, args: Properties<string>): UiResult {
     this._history.restartTo(newTag, args);
     return UiResult.AFFECTED;

@@ -2,7 +2,7 @@ import { UiNode, UiResult } from '~/lib/ui/UiNode';
 import { DataHolder } from '~/lib/ui/DataHolder';
 import { KeyCodes } from '~/lib/ui/KeyCodes';
 import { UiImageNode } from '~/lib/ui/UiImageNode';
-import { UiApplication } from '~/lib/ui/UiApplication';
+import type { UiApplication } from '~/lib/ui/UiApplication';
 
 export class UiCheckbox extends UiImageNode {
   private _dataHolder: DataHolder;
@@ -66,7 +66,7 @@ export class UiCheckbox extends UiImageNode {
     this._value = on;
     this.imageContent = on ? '/images/checkbox-on.png' : '/images/checkbox-off.png';
     this.imageWidth = '1rem';
-    this._dataHolder.setValue(this.name, this._value);
+    this._dataHolder.setValue(this.dataFieldName, this._value);
     this.onContentChanged();
   }
 

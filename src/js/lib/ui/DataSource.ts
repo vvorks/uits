@@ -1,5 +1,5 @@
 import { Properties, Value } from '~/lib/lang';
-import { UiApplication } from '~/lib/ui/UiApplication';
+import type { UiApplication } from '~/lib/ui/UiApplication';
 
 export type DataRecord = Properties<Value | DataRecord>;
 

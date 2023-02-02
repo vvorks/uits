@@ -1,5 +1,5 @@
 import { Properties } from '~/lib/lang';
-import { UiApplication } from '~/lib/ui/UiApplication';
+import type { UiApplication } from '~/lib/ui/UiApplication';
 import { UiNode } from '~/lib/ui/UiNode';
 
 export class UiDeckNode extends UiNode {

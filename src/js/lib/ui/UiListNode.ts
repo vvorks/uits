@@ -1,3 +1,4 @@
+import type { UiApplication } from '~/lib/ui/UiApplication';
 import { Asserts, Logs, Predicate, Value } from '~/lib/lang';
 import { Colors } from '~/lib/ui/Colors';
 import { DataHolder } from '~/lib/ui/DataHolder';
@@ -5,12 +6,12 @@ import { DataRecord, DataSource } from '~/lib/ui/DataSource';
 import { KeyCodes } from '~/lib/ui/KeyCodes';
 import { Rect } from '~/lib/ui/Rect';
 import { Scrollable } from '~/lib/ui/Scrollable';
-import { UiApplication, UiAxis } from '~/lib/ui/UiApplication';
 import { Flags, UiNode, UiResult } from '~/lib/ui/UiNode';
 import { UiPageNode } from '~/lib/ui/UiPageNode';
 import { UiStyle, UiStyleBuilder } from '~/lib/ui/UiStyle';
 import { HasSetter } from '~/lib/ui/UiBuilder';
 import { UiScrollNode, UiScrollNodeSetter } from '~/lib/ui/UiScrollNode';
+import { UiAxis } from './UiAxis';
 
 /**
  * レコードノード用スタイル
@@ -594,23 +595,20 @@ export class UiListNode extends UiScrollNode implements HasSetter<UiListNodeSett
     }
   }
 
-  protected getFocusableChildrenIf(
+  public getFocusableChildrenIf(
     filter: Predicate<UiNode>,
     limit: number,
     list: UiNode[]
   ): UiNode[] {
     if (!(this.hasFocus() || this.focusing)) {
-      Logs.debug('SKIP CHILDREN %s', this.getNodePath());
       return list;
     } else {
-      Logs.debug('TRIP CHILDREN %s', this.getNodePath());
       return super.getFocusableChildrenIf(filter, limit, list);
     }
   }
 
   public adjustFocus(prev: UiNode): UiNode {
     let app = this.application;
-    Logs.debug('adjustFocus %s', this.focusing);
     if (this.focusLock || prev == this) {
       let firstRec = this._children[MARGIN];
       let list = firstRec.getFocusableDescendantsIf((e) => app.isFocusable(e), 1);

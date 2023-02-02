@@ -2,7 +2,7 @@ import { CssLength } from '~/lib/ui/CssLength';
 import { Size, UiNode, UiNodeSetter } from '~/lib/ui/UiNode';
 import { TextAlign, VerticalAlign } from '~/lib/ui/UiStyle';
 import { Value } from '../lang';
-import { UiApplication } from '~/lib/ui/UiApplication';
+import type { UiApplication } from '~/lib/ui/UiApplication';
 import { HasSetter } from '~/lib/ui/UiBuilder';
 
 export class UiImageNodeSetter extends UiNodeSetter {

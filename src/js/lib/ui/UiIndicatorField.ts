@@ -1,6 +1,6 @@
 import { Logs, Types } from '~/lib/lang';
 import { DataHolder } from '~/lib/ui/DataHolder';
-import { UiApplication } from '~/lib/ui/UiApplication';
+import type { UiApplication } from '~/lib/ui/UiApplication';
 import { UiIndicatorNode } from '~/lib/ui/UiIndicatorNode';
 import { UiNode, UiResult } from '~/lib/ui/UiNode';
 

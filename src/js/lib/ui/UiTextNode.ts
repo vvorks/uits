@@ -1,7 +1,7 @@
 import { Types, Value } from '~/lib/lang';
 import { Color } from '~/lib/ui/Colors';
 import { UiNode, UiNodeSetter } from '~/lib/ui/UiNode';
-import { UiApplication } from '~/lib/ui/UiApplication';
+import type { UiApplication } from '~/lib/ui/UiApplication';
 import { HasSetter } from '~/lib/ui/UiBuilder';
 import { UiStyle } from '~/lib/ui/UiStyle';
 

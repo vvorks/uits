@@ -1,5 +1,5 @@
-import { UiApplication, UiNode, UiBuilder, UiPageNode, UiTextButton } from '~/lib/ui';
-import { DEFAULT_STYLE, GROUP_STYLE } from '~/app/TestApplication'; //TODO 掟破り！要修正
+import { UiNode, UiBuilder, UiPageNode, UiTextButton } from '~/lib/ui';
+import { FIELD_STYLE, GROUP_STYLE, UiApplication } from './UiApplication';
 
 export class UiLaunchPage extends UiPageNode {
   /**
@@ -53,7 +53,7 @@ export class UiLaunchPage extends UiPageNode {
           const [key, value] = entries[i];
           b.element(new UiTextButton(app, 'button' + i))
             .bounds(0, i * 3, 10, 3)
-            .style(DEFAULT_STYLE)
+            .style(FIELD_STYLE)
             .focusable(true)
             .textContent(key)
             .action((src, act) => this.application.forwardTo(key, {}));

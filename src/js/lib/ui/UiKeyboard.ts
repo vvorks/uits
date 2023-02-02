@@ -1,9 +1,8 @@
-import { DEFAULT_STYLE, GROUP_STYLE } from '~/app/TestApplication'; //TODO おきて破り！要修正
 import { Logs, Properties } from '~/lib/lang';
 import { Colors } from '~/lib/ui/Colors';
 import { KeyCodes } from '~/lib/ui/KeyCodes';
 import { Rect } from '~/lib/ui/Rect';
-import { UiApplication } from '~/lib/ui/UiApplication';
+import { FIELD_STYLE, GROUP_STYLE, UiApplication } from '~/lib/ui/UiApplication';
 import { UiDeckNode } from '~/lib/ui/UiDeckNode';
 import { UiNode, UiResult } from '~/lib/ui/UiNode';
 import { UiBuilder } from '~/lib/ui/UiBuilder';
@@ -744,7 +743,7 @@ export class UiKeyboard extends UiPageNode {
       //入力表示領域
       b.element(new UiEditArea(app, 'edit'))
         .position(KEYTOP_SPACING, KEYTOP_SPACING, KEYTOP_SPACING, null, null, EDITAREA_HEIGHT)
-        .style(DEFAULT_STYLE);
+        .style(FIELD_STYLE);
       //キーボード領域
       b.element(new UiDeckNode(app, 'deck')).inset(0, KEYTOP_SPACING + EDITAREA_HEIGHT, 0, 0);
       b.belongs((b) => {

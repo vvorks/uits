@@ -77,7 +77,6 @@ export class MenuTestPage extends UiPageNode {
       b.element(new UiMenu(app, 'menu'))
         .position(1, 1, null, 1, 2, null)
         .style(DEFAULT_STYLE)
-        .location('left')
         .extentionSizes(['256px', '0px', '0px', '256px'])
         .dataSource('menu')
         .spacing(1)

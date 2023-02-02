@@ -2,7 +2,7 @@ import { Properties, Types } from '~/lib/lang';
 import { DataHolder } from '~/lib/ui/DataHolder';
 import { UiImageNode, UiImageNodeSetter } from '~/lib/ui/UiImageNode';
 import { UiNode, UiResult } from '~/lib/ui/UiNode';
-import { UiApplication } from '~/lib/ui/UiApplication';
+import type { UiApplication } from '~/lib/ui/UiApplication';
 import { HasSetter } from '~/lib/ui/UiBuilder';
 
 export class UiImageLookupFieldSetter extends UiImageNodeSetter {

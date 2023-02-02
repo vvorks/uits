@@ -1,4 +1,4 @@
-import { UiApplication } from '~/lib/ui/UiApplication';
+import type { UiApplication } from '~/lib/ui/UiApplication';
 import { UiNode, UiResult } from '~/lib/ui/UiNode';
 
 /**

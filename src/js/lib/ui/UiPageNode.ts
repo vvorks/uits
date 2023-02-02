@@ -1,6 +1,6 @@
 import { Properties } from '~/lib/lang';
 import { Scrollable } from '~/lib/ui/Scrollable';
-import { UiApplication } from '~/lib/ui/UiApplication';
+import type { UiApplication } from '~/lib/ui/UiApplication';
 import { Changed, UiNode, UiNodeSetter } from '~/lib/ui/UiNode';
 import { UiStyle } from '~/lib/ui/UiStyle';
 import { HistoryState } from '~/lib/ui/HistoryManager';

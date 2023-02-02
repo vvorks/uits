@@ -1,9 +1,9 @@
+import type { UiApplication } from '~/lib/ui/UiApplication';
 import { Value } from '~/lib/lang';
 import { UiImageNode } from '~/lib/ui/UiImageNode';
 import { DataHolder } from '~/lib/ui/DataHolder';
 import { KeyCodes } from '~/lib/ui/KeyCodes';
 import { UiNode, UiResult } from '~/lib/ui/UiNode';
-import { UiApplication } from '~/lib/ui/UiApplication';
 
 export class UiRadio extends UiImageNode {
   private _dataHolder: DataHolder;
@@ -72,7 +72,7 @@ export class UiRadio extends UiImageNode {
       this._value = v;
       this.imageContent = this.matched ? '/images/radio-on.png' : '/images/radio-off.png';
       this.imageWidth = '1rem';
-      this._dataHolder.setValue(this.name, this._value);
+      this._dataHolder.setValue(this.dataFieldName, this._value);
       this.onContentChanged();
     }
   }

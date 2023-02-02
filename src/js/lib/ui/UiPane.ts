@@ -1,7 +1,7 @@
 import { Asserts } from '~/lib/lang';
 import { CssLength } from '~/lib/ui/CssLength';
 import { Inset } from '~/lib/ui/Inset';
-import { UiApplication } from '~/lib/ui/UiApplication';
+import type { UiApplication } from '~/lib/ui/UiApplication';
 import { Size, UiLocation, UiNode, UiNodeSetter, UiResult } from '~/lib/ui/UiNode';
 import { HasSetter } from '~/lib/ui/UiBuilder';
 

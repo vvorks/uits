@@ -1177,6 +1177,47 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
     return UiResult.IGNORED;
   }
 
+  public boundsTo(
+    left: number,
+    top: number,
+    width: number,
+    height: number,
+    animationTime: number
+  ): UiResult {
+    const rect = this.getRect();
+    if (left == rect.x && top != rect.y && width == rect.width && height == rect.height) {
+      return UiResult.IGNORED;
+    }
+    if (animationTime == 0) {
+      this.left = left;
+      this.top = top;
+      this.width = width;
+      this.height = height;
+    } else {
+      let app = this.application;
+      app.runAnimation(this, 1, animationTime, false, (step: number) => {
+        if (step >= 1.0) {
+          this.left = left;
+          this.top = top;
+          this.width = width;
+          this.height = height;
+        } else {
+          const dx = left - rect.x;
+          const dy = top - rect.y;
+          const dw = width - rect.width;
+          const dh = height - rect.height;
+          const ratio = Math.min(step, 1.0);
+          this.left = rect.x + dx * ratio;
+          this.top = rect.y + dy * ratio;
+          this.width = rect.width + dw * ratio;
+          this.height = rect.height + dh * ratio;
+        }
+        return step >= 1.0 ? UiResult.EXIT : UiResult.EATEN;
+      });
+    }
+    return UiResult.AFFECTED;
+  }
+
   public getWrappedRectOn(ans: UiNode): Rect {
     let result = this.getWrappedRect();
     return this.translateOn(result, ans);
@@ -1497,7 +1538,7 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
    * @param list 結果格納先リスト
    * @returns list
    */
-  protected getFocusableChildrenIf(
+  public getFocusableChildrenIf(
     filter: Predicate<UiNode>,
     limit: number,
     list: UiNode[]

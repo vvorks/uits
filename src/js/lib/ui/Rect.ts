@@ -220,6 +220,15 @@ export class Rect {
     }
   }
 
+  public equals(other: Rect): boolean {
+    return (
+      this.x == other.x &&
+      this.y == other.y &&
+      this.width == other.width &&
+      this.height == other.height
+    );
+  }
+
   public toJson() {
     return {
       x: this._x,

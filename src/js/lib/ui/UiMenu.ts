@@ -1,12 +1,13 @@
-import { Asserts, Logs, Predicate, UnsupportedError, Value } from '~/lib/lang';
-import { Flags, Size, UiLocation, UiNode, UiNodeSetter, UiResult } from '~/lib/ui/UiNode';
-import { UiApplication } from '~/lib/ui/UiApplication';
+import type { UiApplication } from '~/lib/ui/UiApplication';
+import { Arrays, Asserts, Logs, Predicate, Types, UnsupportedError, Value } from '~/lib/lang';
+import { Size, UiNode, UiNodeSetter, UiResult } from '~/lib/ui/UiNode';
 import { DataRecord, DataSource } from '~/lib/ui/DataSource';
 import { CssLength } from '~/lib/ui/CssLength';
 import { HasSetter, UiBuilder } from '~/lib/ui/UiBuilder';
 import { KeyCodes } from '~/lib/ui/KeyCodes';
 import { DataHolder } from '~/lib/ui/DataHolder';
 import { UiTextNode } from '~/lib/ui/UiTextNode';
+import { Rect } from './Rect';
 
 /** テンプレート名を保持するフィールドの名前 */
 const FIELD_TEMPLATE = 'template';
@@ -109,8 +110,12 @@ export class UiMenuItem extends UiNode implements DataHolder {
     return '' + this._index;
   }
 
+  private get block(): UiMenuBlock {
+    return this.parent as UiMenuBlock;
+  }
+
   private get owner(): UiMenu {
-    return (this.parent as UiNode).parent as UiMenu;
+    return this.block.parent as UiMenu;
   }
 
   public canMoveFocus(c: UiNode) {
@@ -119,64 +124,200 @@ export class UiMenuItem extends UiNode implements DataHolder {
 
   public onKeyDown(target: UiNode, key: number, ch: number, mod: number, at: number): UiResult {
     let result = UiResult.IGNORED;
-    let k = key | mod;
-    if (k == this.getTriggerKey() || k == KeyCodes.ENTER) {
-      if (this._record != null) {
-        let type: FieldType = this._record[FIELD_TYPE] as FieldType;
-        if (type == 'launch') {
-          if (this._record[FIELD_CONTENT] != null) {
-            result = this.owner.changeContent(this, this._record[FIELD_CONTENT] as string);
-          }
-        } else if (type == 'branch') {
-          if (this._record[FIELD_SUBMENU] != null) {
-            result = this.owner.forwardSubmenu(this, this._record[FIELD_SUBMENU] as string);
-          }
+    if (this._record == null) {
+      return result;
+    }
+    let modKey = mod | key;
+    let type: FieldType = this._record[FIELD_TYPE] as FieldType;
+    if (this.isTriggerKey(modKey)) {
+      if (type == 'launch') {
+        if (this._record[FIELD_CONTENT] != null) {
+          result = this.owner.changeContent(this, this._record[FIELD_CONTENT] as string);
+        }
+      } else if (type == 'branch') {
+        if (this._record[FIELD_SUBMENU] != null) {
+          result = this.owner.forwardSubmenu(this, this._record[FIELD_SUBMENU] as string);
         }
       }
-    } else if (k == this.getBackKey()) {
+    } else if (this.isBackKey(modKey)) {
       result = this.owner.backwardMenu();
     }
     return result;
   }
 
-  private getTriggerKey(): number {
-    switch (this.owner.location) {
-      case 'left':
-        return KeyCodes.RIGHT;
-      case 'right':
-        return KeyCodes.LEFT;
-      case 'top':
-        return KeyCodes.DOWN;
-      case 'bottom':
-        return KeyCodes.UP;
-      default:
-        return KeyCodes.UNUSED;
-    }
+  private isTriggerKey(modKey: number): boolean {
+    return modKey == KeyCodes.ENTER || modKey == KeyCodes.RIGHT;
   }
 
-  private getBackKey(): number {
-    switch (this.owner.location) {
-      case 'left':
-        return KeyCodes.LEFT;
-      case 'right':
-        return KeyCodes.RIGHT;
-      case 'top':
-        return KeyCodes.UP;
-      case 'bottom':
-        return KeyCodes.DOWN;
-      default:
-        return KeyCodes.UNUSED;
-    }
+  private isBackKey(modKey: number): boolean {
+    return modKey == KeyCodes.LEFT;
   }
 }
 
+/**
+ * メニューブロック
+ */
+class UiMenuBlock extends UiNode {
+  private _dataSource: DataSource | null;
+
+  /**
+   * クローンメソッド
+   *
+   * @returns 複製
+   */
+  public clone(): UiMenuBlock {
+    return new UiMenuBlock(this);
+  }
+
+  /**
+   * 通常コンストラクタ
+   *
+   * @param app アプリケーション
+   * @param name ノード名
+   */
+  public constructor(app: UiApplication, name?: string);
+
+  /**
+   * コピーコンストラクタ
+   *
+   * @param src 複製元
+   */
+  public constructor(src: UiMenuBlock);
+
+  /**
+   * コンストラクタ実装
+   *
+   * @param param 第一パラメータ
+   * @param name 第二パラメータ
+   */
+  public constructor(param: any, name?: string) {
+    if (param instanceof UiMenuBlock) {
+      super(param as UiMenuBlock);
+      let src = param as UiMenuBlock;
+      this._dataSource = src._dataSource;
+    } else {
+      super(param as UiApplication, name as string);
+      this._dataSource = null;
+    }
+  }
+
+  public count(): number {
+    return this._dataSource != null ? this._dataSource.count() : -1;
+  }
+
+  public getRecord(index: number): DataRecord | null {
+    return this._dataSource != null ? this._dataSource.getRecord(index) : null;
+  }
+
+  public onDataSourceChanged(tag: string, ds: DataSource, at: number): UiResult {
+    if (tag != this.dataSourceName) {
+      return UiResult.IGNORED;
+    }
+    this._dataSource = ds;
+    this.reloadRecs();
+    this.owner.updateBlock();
+    return UiResult.EATEN;
+  }
+
+  private reloadRecs(): UiResult {
+    let app = this.application;
+    let ds = this._dataSource as DataSource;
+    let criteria = ds.criteria();
+    let path = this.getPathAsArray(criteria.path as string);
+    let level = path.length + 1;
+    this.removeChildren();
+    let spacing = this.owner.getSpacingAsPixel();
+    let pos = 0;
+    let firstChild: UiNode | null = null;
+    for (let i = 0; i < ds.count(); i++) {
+      let rec = ds.getRecord(i) as DataRecord;
+      let template = rec[FIELD_TEMPLATE] as string;
+      let node = this.owner.getTemplateByName(template);
+      if (node != null) {
+        let item = (node as UiMenuItem).clone();
+        item.index = i;
+        let type = rec[FIELD_TYPE] as FieldType;
+        item.focusable = type != 'filler' ? true : false;
+        item.setReocord(rec);
+        this.appendChild(item);
+        if (firstChild == null) {
+          firstChild = item;
+        }
+        let rect = item.getRect();
+        item.top = pos;
+        pos += rect.height;
+        pos += spacing;
+      }
+    }
+    return UiResult.AFFECTED;
+  }
+
+  private getPathAsArray(path: string): string[] {
+    let result: string[] = [];
+    for (let p of path.split('/')) {
+      if (p.length > 0) {
+        result.push(p);
+      }
+    }
+    return result;
+  }
+
+  public onKeyDown(target: UiNode, key: number, ch: number, mod: number, at: number): UiResult {
+    let result = UiResult.IGNORED;
+    let app = this.application;
+    let modKey = mod | key;
+    let dir = this.getMoveKeyDirection(modKey);
+    if (dir != 0) {
+      let next = app.getNearestNode(target, this, (e) => this.canMove(e, target, dir));
+      if (next != null) {
+        app.setFocus(next);
+        result |= UiResult.AFFECTED;
+        Asserts.ensure(next instanceof UiMenuItem);
+        let rec = next.getRecord();
+        Asserts.ensure(rec != null);
+        let type: FieldType = rec[FIELD_TYPE] as FieldType;
+        if (type == 'branch' && rec[FIELD_SUBMENU] != null) {
+          result |= this.owner.showSubmenu(next, rec[FIELD_SUBMENU] as string);
+        } else {
+          result |= this.owner.hideSubmenu(next);
+        }
+      }
+      result |= UiResult.CONSUMED;
+    }
+    return result;
+  }
+
+  private canMove(next: UiNode, curr: UiNode, dir: number): boolean {
+    let parent = curr.parent as UiNode;
+    if (next == curr || next.parent != parent) {
+      return false;
+    }
+    let order1 = parent.getIndexOfChild(curr);
+    let order2 = parent.getIndexOfChild(next);
+    return (order2 - order1) * dir > 0;
+  }
+
+  private getMoveKeyDirection(modKey: number): number {
+    switch (modKey) {
+      case KeyCodes.UP:
+        return -1;
+      case KeyCodes.DOWN:
+        return +1;
+      default:
+        return 0;
+    }
+  }
+
+  private get owner(): UiMenu {
+    return this.parent as UiNode as UiMenu;
+  }
+}
+
+/**
+ * メニューセッタークラス
+ */
 export class UiMenuSetter extends UiNodeSetter {
   public static readonly INSTANCE = new UiMenuSetter();
-  public location(value: UiLocation): this {
-    let node = this.node as UiMenu;
-    node.location = value;
-    return this;
-  }
   public contentNode(path: string): this {
     let node = this.node as UiMenu;
     node.contentNodePath = path;
@@ -186,6 +327,12 @@ export class UiMenuSetter extends UiNodeSetter {
   public spacing(value: Size | null): this {
     let node = this.node as UiMenu;
     node.spacing = this.toValue(value);
+    return this;
+  }
+
+  public extentionDsNames(names: string[]): this {
+    let node = this.node as UiMenu;
+    node.extentionDsNames = names;
     return this;
   }
 
@@ -200,8 +347,7 @@ export class UiMenuSetter extends UiNodeSetter {
  * メニュークラス
  */
 export class UiMenu extends UiNode implements HasSetter<UiMenuSetter> {
-  /** 表示位置 */
-  private _location: UiLocation;
+  private _extentionDsNames: string[];
 
   private _extensionSizes: CssLength[];
 
@@ -209,13 +355,13 @@ export class UiMenu extends UiNode implements HasSetter<UiMenuSetter> {
 
   private _contentNodePath: string | null;
 
-  private _dataSource: DataSource | null;
-
   private _shrinkWidth: number;
 
   private _shrinkHeight: number;
 
   private _currentLevel: number;
+
+  private _showNextLevel: number;
 
   private _lastLevel: number;
 
@@ -259,28 +405,28 @@ export class UiMenu extends UiNode implements HasSetter<UiMenuSetter> {
     if (param instanceof UiMenu) {
       super(param as UiMenu);
       let src = param as UiMenu;
-      this._location = src._location;
       this._template = src._template;
       this._contentNodePath = src._contentNodePath;
-      this._dataSource = src._dataSource;
+      this._extentionDsNames = src._extentionDsNames;
       this._extensionSizes = src._extensionSizes;
       this._shrinkWidth = src._shrinkWidth;
       this._shrinkHeight = src._shrinkHeight;
       this._currentLevel = src._currentLevel;
+      this._showNextLevel = src._showNextLevel;
       this._lastLevel = src._lastLevel;
       this._focusItems = src._focusItems.slice(0, src._focusItems.length);
       this._spacing = src._spacing;
       this._commingNode = null;
     } else {
       super(param as UiApplication, name as string);
-      this._location = 'left';
       this._template = null;
       this._contentNodePath = null;
-      this._dataSource = null;
+      this._extentionDsNames = [];
       this._extensionSizes = [new CssLength(0)];
       this._shrinkWidth = 0;
       this._shrinkHeight = 0;
       this._currentLevel = 1;
+      this._showNextLevel = 0;
       this._lastLevel = 0;
       this._focusItems = [null];
       this._spacing = null;
@@ -292,12 +438,12 @@ export class UiMenu extends UiNode implements HasSetter<UiMenuSetter> {
     return UiMenuSetter.INSTANCE;
   }
 
-  public get location(): UiLocation {
-    return this._location;
+  public get extentionDsNames(): string[] {
+    return this._extentionDsNames;
   }
 
-  public set location(location: UiLocation) {
-    this._location = location;
+  public set extentionDsNames(names: string[]) {
+    this._extentionDsNames = names;
   }
 
   public get extentionSizes(): CssSource[] {
@@ -325,14 +471,6 @@ export class UiMenu extends UiNode implements HasSetter<UiMenuSetter> {
     return Math.floor(Math.sqrt(this._extensionSizes.length));
   }
 
-  public get focusable(): boolean {
-    return super.getFlag(Flags.FOCUSABLE) || this.count() <= 0;
-  }
-
-  public set focusable(on: boolean) {
-    this.setFlag(Flags.FOCUSABLE, on);
-  }
-
   public get contentNodePath(): string | null {
     return this._contentNodePath;
   }
@@ -355,13 +493,24 @@ export class UiMenu extends UiNode implements HasSetter<UiMenuSetter> {
 
   protected initialize(): void {
     this._template = this.makeTemplate();
-  }
-
-  protected beforeMount(): void {
     this._shrinkWidth = this.innerWidth;
     this._shrinkHeight = this.innerHeight;
     this.prepareBlocks();
-    this.relocateBlocks(0);
+  }
+
+  protected beforeMount(): void {
+    this.relocateBlocks(0, false);
+  }
+
+  protected afterMount(): void {
+    let app = this.application;
+    if (this._extentionDsNames.length > 0) {
+      let topName = this._extentionDsNames[0];
+      let ds = app.getDataSource(topName);
+      if (ds != null) {
+        ds.select({ path: '/' });
+      }
+    }
   }
 
   private makeTemplate(): UiNode {
@@ -381,34 +530,8 @@ export class UiMenu extends UiNode implements HasSetter<UiMenuSetter> {
     return template;
   }
 
-  public count(): number {
-    return this._dataSource != null ? this._dataSource.count() : -1;
-  }
-
-  public getRecord(index: number): DataRecord | null {
-    return this._dataSource != null ? this._dataSource.getRecord(index) : null;
-  }
-
-  public onDataSourceChanged(tag: string, ds: DataSource, at: number): UiResult {
-    if (tag != this.dataSourceName) {
-      return UiResult.IGNORED;
-    }
-    if (this.count() < 0) {
-      //最初の通知
-      let oldFocusable = this.focusable;
-      this._dataSource = ds;
-      this.reloadRecs(false);
-      let newFocusable = this.focusable;
-      if (oldFocusable && !newFocusable && this.application.getFocusOf(this) == this) {
-        this.application.resetFocus(this);
-      }
-    } else {
-      //２回目以降
-      this.reloadRecs(true);
-    }
-    this.fireHScroll();
-    this.fireVScroll();
-    return UiResult.EATEN;
+  public getTemplateByName(name: string): UiNode | null {
+    return (this._template as UiNode).getChildByName(name);
   }
 
   private prepareBlocks(): void {
@@ -418,104 +541,87 @@ export class UiMenu extends UiNode implements HasSetter<UiMenuSetter> {
     let ownerStyle = this.style;
     b.element(this);
     b.belongs((b) => {
-      switch (this._location) {
-        case 'left':
-          b.element(new UiNode(app, '1'))
-            .position(0, 0, null, 0, this._shrinkWidth, null)
-            .style(ownerStyle);
-          for (let i = 2; i <= this.levels; i++) {
-            b.element(new UiNode(app, `${i}`))
-              .position(this._shrinkWidth, 0, null, 0, 0, null)
-              .style(ownerStyle);
-          }
-          break;
-        case 'right':
-          b.element(new UiNode(app, '1'))
-            .position(null, 0, 0, 0, this._shrinkWidth, null)
-            .style(ownerStyle);
-          for (let i = 2; i <= this.levels; i++) {
-            b.element(new UiNode(app, `${i}`))
-              .position(null, 0, this._shrinkWidth, 0, 0, null)
-              .style(ownerStyle);
-          }
-          break;
-        case 'top':
-          b.element(new UiNode(app, '1'))
-            .position(0, 0, 0, null, null, this._shrinkHeight)
-            .style(ownerStyle);
-          for (let i = 2; i <= this.levels; i++) {
-            b.element(new UiNode(app, `${i}`))
-              .position(0, this._shrinkHeight, 0, null, null, 0)
-              .style(ownerStyle);
-          }
-          break;
-        case 'bottom':
-          b.element(new UiNode(app, '1')).position(0, null, 0, 0, null, this._shrinkHeight);
-          for (let i = 2; i <= this.levels; i++) {
-            b.element(new UiNode(app, `${i}`))
-              .position(0, null, 0, this._shrinkHeight, null, 0)
-              .style(ownerStyle);
-          }
-          break;
+      b.element(new UiMenuBlock(app, '1'))
+        .position(0, 0, null, 0, this._shrinkWidth, null)
+        .dataSource(this._extentionDsNames[0])
+        .style(ownerStyle);
+      for (let i = 2; i <= this.levels; i++) {
+        b.element(new UiMenuBlock(app, `${i}`))
+          .position(this._shrinkWidth, 0, null, 0, 0, null)
+          .dataSource(this._extentionDsNames[i - 1])
+          .style(ownerStyle);
       }
     });
   }
 
-  private relocateBlocks(level: number): void {
+  public updateBlock(level: number = this._currentLevel): boolean {
+    if (this._lastLevel != 0) {
+      this._currentLevel = level;
+      this.relocateBlocks(level, true);
+    }
+    return true;
+  }
+
+  private relocateBlocks(level: number, animation: boolean): void {
     Asserts.require(0 <= level && level <= this.levels);
-    Logs.debug('relocateBlocks %d', level);
+    let app = this.application;
+    let aniTime = animation ? app.animationTime : 0;
     if (level == 0) {
-      this.relocateBlocks0();
+      this.relocateCloseBlocks(aniTime);
     } else {
-      this.relocateBlocks1(level);
+      this.relocateOpenBlocks(level, aniTime);
     }
     this._lastLevel = level;
   }
 
-  private relocateBlocks0(): void {
+  private relocateCloseBlocks(aniTime: number): void {
     let firstBlock = this.getBlock(1);
-    firstBlock.visible = true;
-    switch (this._location) {
-      case 'left':
-        firstBlock.width = this._shrinkWidth;
-        for (let i = 2; i <= this.levels; i++) {
-          let block = this.getBlock(i);
-          block.left = this._shrinkWidth;
-          block.width = 0;
-          block.visible = false;
+    let firstRectOld = firstBlock.getRect();
+    let firstRectNew = new Rect(firstRectOld);
+    firstRectNew.width = this._shrinkWidth;
+    this.animateBounds(firstBlock, firstRectOld, firstRectNew, aniTime);
+    for (let i = 2; i <= this.levels; i++) {
+      let block = this.getBlock(i);
+      let blockRectOld = block.getRect();
+      let blockRectNew = new Rect(blockRectOld);
+      blockRectNew.x = this._shrinkWidth;
+      blockRectNew.width = 0;
+      this.animateBounds(block, blockRectOld, blockRectNew, aniTime);
+    }
+    this.animateInnerWidth(aniTime);
+  }
+
+  private animateBounds(node: UiNode, oldRect: Rect, newRect: Rect, aniTime: number): void {
+    if (oldRect.equals(newRect)) {
+      return;
+    }
+    if (aniTime > 0) {
+      let app = this.application;
+      node.boundsTo(newRect.x, newRect.y, newRect.width, newRect.height, aniTime);
+    } else {
+      node.left = newRect.x;
+      node.top = newRect.y;
+      node.width = newRect.width;
+      node.height = newRect.height;
+    }
+  }
+
+  private animateInnerWidth(aniTime: number) {
+    if (aniTime > 0) {
+      let ow = this.innerWidth;
+      let dw = this._shrinkWidth - this.innerWidth;
+      let app = this.application;
+      app.runAnimation(this, 1, aniTime, false, (step: number) => {
+        if (step >= 1.0) {
+          this.innerWidth = this._shrinkWidth;
+        } else {
+          const ratio = Math.min(step, 1.0);
+          this.innerWidth = ow + dw * ratio;
         }
-        this.innerWidth = this._shrinkWidth;
-        break;
-      case 'right':
-        firstBlock.width = this._shrinkWidth;
-        for (let i = 2; i <= this.levels; i++) {
-          let block = this.getBlock(i);
-          block.right = this._shrinkWidth;
-          block.width = 0;
-          block.visible = false;
-        }
-        this.innerWidth = this._shrinkWidth;
-        break;
-      case 'top':
-        firstBlock.height = this._shrinkHeight;
-        for (let i = 2; i <= this.levels; i++) {
-          let block = this.getBlock(i);
-          block.top = this._shrinkHeight;
-          block.height = 0;
-          block.visible = false;
-        }
-        this.innerHeight = this._shrinkHeight;
-        break;
-      case 'bottom':
-        firstBlock.height = this._shrinkHeight;
-        for (let i = 2; i <= this.levels; i++) {
-          let block = this.getBlock(i);
-          block.bottom = this._shrinkHeight;
-          block.height = 0;
-          block.visible = false;
-        }
-        this.innerHeight = this._shrinkHeight;
-        break;
+        return step >= 1.0 ? UiResult.EXIT : UiResult.EATEN;
+      });
+    } else {
+      this.innerWidth = this._shrinkWidth;
     }
   }
 
@@ -523,155 +629,47 @@ export class UiMenu extends UiNode implements HasSetter<UiMenuSetter> {
     return this.findNodeByPath(`${level}`) as UiNode;
   }
 
-  private relocateBlocks1(level: number): void {
-    let index = (level - 1) * level;
-    let totalSize = 0;
-    switch (this._location) {
-      case 'left':
-        for (let i = 1; i <= this.levels; i++) {
-          let block = this.getBlock(i);
-          let extSize = this._extensionSizes[index + i - 1];
-          let size = extSize.toPixel(() => this._shrinkWidth);
-          block.left = totalSize;
-          block.width = size;
-          block.visible = size > 0 ? true : false;
-          totalSize += size;
-        }
-        this.innerWidth = totalSize;
-        break;
-      case 'right':
-        for (let i = 1; i <= this.levels; i++) {
-          let block = this.getBlock(i);
-          let extSize = this._extensionSizes[index + i - 1];
-          let size = extSize.toPixel(() => this._shrinkWidth);
-          block.right = totalSize;
-          block.width = size;
-          block.visible = size > 0 ? true : false;
-          totalSize += size;
-        }
-        this.innerWidth = totalSize;
-        break;
-      case 'top':
-        for (let i = 1; i <= this.levels; i++) {
-          let block = this.getBlock(i);
-          let extSize = this._extensionSizes[index + i - 1];
-          let size = extSize.toPixel(() => this._shrinkHeight);
-          block.top = totalSize;
-          block.height = size;
-          block.visible = size > 0 ? true : false;
-          totalSize += size;
-        }
-        this.innerHeight = totalSize;
-        break;
-      case 'bottom':
-        for (let i = 1; i <= this.levels; i++) {
-          let block = this.getBlock(i);
-          let extSize = this._extensionSizes[index + i - 1];
-          let size = extSize.toPixel(() => this._shrinkHeight);
-          block.bottom = totalSize;
-          block.height = size;
-          block.visible = size > 0 ? true : false;
-          totalSize += size;
-        }
-        this.innerHeight = totalSize;
-        break;
-    }
+  private relocateOpenBlocks(level: number, aniTime: number): void {
     let app = this.application;
+    let index = (level - 1) * this.levels;
+    //relocate blocks
+    let totalSize = 0;
+    for (let i = 1; i <= this.levels; i++) {
+      let block = this.getBlock(i);
+      let extSize = this._extensionSizes[index + i - 1];
+      if (i == this._showNextLevel) {
+        let nextIndex = (i - 1) * this.levels;
+        extSize = this._extensionSizes[nextIndex + i - 1];
+      }
+      let newLeft = totalSize;
+      let newSize = extSize.toPixel(() => this._shrinkWidth);
+      let blockRectOld = block.getRect();
+      let blockRectNew = new Rect(blockRectOld);
+      blockRectNew.x = newLeft;
+      blockRectNew.width = newSize;
+      this.animateBounds(block, blockRectOld, blockRectNew, aniTime);
+      totalSize += newSize;
+    }
+    this.innerWidth = totalSize;
+    //set focus
     let focusItem = this._focusItems[level - 1];
     if (focusItem instanceof UiMenuItem) {
       app.setFocus(focusItem);
     }
   }
 
-  private reloadRecs(doRelocate: boolean): UiResult {
-    let app = this.application;
-    let ds = this._dataSource as DataSource;
-    let criteria = ds.criteria();
-    let path = this.getPathAsArray(criteria.path as string);
-    let level = path.length + 1;
-    let block = this.findNodeByPath(`${level}`) as UiNode;
-    block.removeChildren();
-    let spacing = this.getSpacing();
-    let pos = 0;
-    let firstChild: UiNode | null = null;
-    for (let i = 0; i < ds.count(); i++) {
-      let rec = ds.getRecord(i) as DataRecord;
-      let template = rec[FIELD_TEMPLATE] as string;
-      let node = (this._template as UiNode).getChildByName(template);
-      if (node != null) {
-        let item = (node as UiMenuItem).clone();
-        item.index = i;
-        let type = rec[FIELD_TYPE] as FieldType;
-        item.focusable = type != 'filler' ? true : false;
-        item.setReocord(rec);
-        block.appendChild(item);
-        if (firstChild == null) {
-          firstChild = item;
-        }
-        let rect = item.getRect();
-        switch (this._location) {
-          case 'left':
-          case 'right':
-            item.top = pos;
-            pos += rect.height;
-            pos += spacing;
-            break;
-          case 'top':
-          case 'bottom':
-            item.left = pos;
-            pos += rect.width;
-            pos += spacing;
-            break;
-        }
-      }
-    }
-    if (doRelocate) {
-      if (this._lastLevel != 0 && this._lastLevel != level) {
-        this._currentLevel = level;
-        this.relocateBlocks(level);
-        if (firstChild != null) {
-          app.setFocus(firstChild);
-        }
-      }
-    }
-    return UiResult.AFFECTED;
-  }
-
-  private getSpacing(): number {
+  public getSpacingAsPixel(): number {
     let spacing: number;
     if (this._spacing == null) {
       spacing = 0;
     } else {
       let ownerRect = this.getRect();
-      switch (this._location) {
-        case 'left':
-        case 'right':
-          spacing = this._spacing.toPixel(() => ownerRect.height);
-          break;
-        case 'top':
-        case 'bottom':
-          spacing = this._spacing.toPixel(() => ownerRect.width);
-          break;
-        default:
-          spacing = 0;
-          break;
-      }
+      spacing = this._spacing.toPixel(() => ownerRect.height);
     }
     return spacing;
   }
 
-  private getPathAsArray(path: string): string[] {
-    let result: string[] = [];
-    for (let p of path.split('/')) {
-      if (p.length > 0) {
-        result.push(p);
-      }
-    }
-    return result;
-  }
-
   public changeContent(caller: UiMenuItem, content: string): UiResult {
-    Logs.info('changeContent %s to %s', content, this._contentNodePath);
     let app = this.application;
     let result = UiResult.IGNORED;
     //save focus
@@ -694,15 +692,65 @@ export class UiMenu extends UiNode implements HasSetter<UiMenuSetter> {
   }
 
   public forwardSubmenu(caller: UiMenuItem, submenu: string): UiResult {
-    Logs.info('forwardSubmenu %s', submenu);
+    let app = this.application;
+    let result = UiResult.IGNORED;
+    if (this._currentLevel >= this.levels) {
+      return result;
+    }
+    //save focus
+    this._focusItems[this._currentLevel - 1] = caller;
+    //level next
+    this._currentLevel++;
+    if (this._showNextLevel != this._currentLevel) {
+      //change submenu
+      let nextName = this._extentionDsNames[this._currentLevel - 1 + 1];
+      let ds = app.getDataSource(nextName);
+      if (ds != null) {
+        ds.select({ path: submenu });
+        result = UiResult.EATEN;
+      }
+    } else {
+      this._showNextLevel = 0;
+      if (this._focusItems[this._currentLevel - 1] == null) {
+        let block = this.getBlock(this._currentLevel);
+        //let firstFocus = block.getChildAt(0); //Arrays.first(block.getFocusableChildrenIf((e) => true, 1, []));
+        let firstFocus = Arrays.first(block.getFocusableChildrenIf((e) => true, 1, []));
+        this._focusItems[this._currentLevel - 1] = firstFocus as UiMenuItem;
+      }
+      this.updateBlock();
+    }
+    return result;
+  }
+
+  public showSubmenu(caller: UiMenuItem, submenu: string): UiResult {
+    //init
     let app = this.application;
     let result = UiResult.IGNORED;
     //save focus
     this._focusItems[this._currentLevel - 1] = caller;
-    //change submenu
-    if (this._dataSource != null) {
-      this._dataSource.select({ path: submenu });
-      result = UiResult.EATEN;
+    this._focusItems[this._currentLevel - 1 + 1] = null;
+    //load submenu
+    let nextName = this._extentionDsNames[this._currentLevel - 1 + 1];
+    let ds = app.getDataSource(nextName);
+    if (ds != null) {
+      this._showNextLevel = this._currentLevel + 1;
+      ds.select({ path: submenu });
+      result = UiResult.CONSUMED;
+    }
+    return result;
+  }
+
+  public hideSubmenu(caller: UiMenuItem): UiResult {
+    let result = UiResult.IGNORED;
+    //save focus
+    this._focusItems[this._currentLevel - 1] = caller;
+    this._focusItems[this._currentLevel - 1 + 1] = null;
+    //hide submenu
+    if (this._showNextLevel > 0) {
+      this._focusItems[this._showNextLevel - 1] = null;
+      this._showNextLevel = 0;
+      this.relocateBlocks(this._currentLevel, true);
+      result = UiResult.AFFECTED;
     }
     return result;
   }
@@ -710,14 +758,15 @@ export class UiMenu extends UiNode implements HasSetter<UiMenuSetter> {
   public backwardMenu(): UiResult {
     let result = UiResult.IGNORED;
     if (this._currentLevel > 1) {
+      this._showNextLevel = this._currentLevel;
       this._currentLevel--;
-      this.relocateBlocks(this._currentLevel);
+      this.relocateBlocks(this._currentLevel, true);
       result = UiResult.EATEN;
     }
     return result;
   }
 
-  protected getFocusableChildrenIf(
+  public getFocusableChildrenIf(
     filter: Predicate<UiNode>,
     limit: number,
     list: UiNode[]
@@ -735,7 +784,8 @@ export class UiMenu extends UiNode implements HasSetter<UiMenuSetter> {
     let lastItem: UiNode | null = this._focusItems[level - 1];
     if (lastItem == null) {
       let block = this.getBlock(level);
-      lastItem = block.getChildAt(0);
+      //lastItem = block.getChildAt(0); //Arrays.first(block.getFocusableChildrenIf((e) => true, 1, []));
+      lastItem = Arrays.first(block.getFocusableChildrenIf((e) => true, 1, []));
     }
     return lastItem != null ? lastItem : this;
   }
@@ -743,11 +793,19 @@ export class UiMenu extends UiNode implements HasSetter<UiMenuSetter> {
   public onFocus(target: UiNode, gained: boolean, other: UiNode | null): UiResult {
     if (gained) {
       if (target == this || this.isAncestorOf(target)) {
-        this.relocateBlocks(this._currentLevel);
+        if (other == null || !this.isAncestorOf(other)) {
+          if (this._currentLevel > 1) {
+            this._showNextLevel = this._currentLevel;
+            this._currentLevel--;
+          }
+          this.relocateBlocks(this._currentLevel, true);
+        }
       }
     } else {
       if (target == this || this.isAncestorOf(target)) {
-        this.relocateBlocks(0);
+        if (other == null || !this.isAncestorOf(other)) {
+          this.relocateBlocks(0, true);
+        }
       }
     }
     return super.onFocus(target, gained, other);

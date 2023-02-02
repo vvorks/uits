@@ -5,7 +5,13 @@ import { UiNode, UiResult } from '~/lib/ui/UiNode';
 export { UiNode, UiResult };
 
 import { UiScrollNode } from '~/lib/ui/UiScrollNode';
-export { UiScrollNode as UiScrollNode };
+export { UiScrollNode };
+
+import { UiCompositeNode, UiCompositeNodeSetter } from '~/lib/ui/UiCompositeNode';
+export { UiCompositeNode, UiCompositeNodeSetter };
+
+import { UiCompositeNodeParam } from '~/lib/ui/UiCompositeNode';
+export type { UiCompositeNodeParam };
 
 import { UiBuilder } from '~/lib/ui/UiBuilder';
 export { UiBuilder };
@@ -55,17 +61,14 @@ export { UiIndicatorField };
 import { UiScrollbar } from '~/lib/ui/UiScrollbar';
 export { UiScrollbar };
 
-import { COMPONENT_THUMB as RAW_COMPONNT_THUMB } from '~/lib/ui/UiScrollbar';
-export const COMPONENT_THUMB = RAW_COMPONNT_THUMB;
-
 import { UiPane, UiDock } from '~/lib/ui/UiPane';
 export { UiPane, UiDock };
 
 import { UiMenu, UiMenuItem } from '~/lib/ui/UiMenu';
 export { UiMenu, UiMenuItem };
 
-import { UiApplication, UiAxis, PageLayer } from '~/lib/ui/UiApplication';
-export { UiApplication, UiAxis, PageLayer };
+import { UiVideo } from '~/lib/ui/UiVideo';
+export { UiVideo };
 
 import { UiLaunchPage } from '~/lib/ui/UiLaunchPage';
 export { UiLaunchPage };
@@ -78,6 +81,15 @@ export { Colors };
 
 import { Color as RawColor } from '~/lib/ui/Colors';
 export type Color = RawColor;
+
+import { UiAxis } from './ui/UiAxis';
+export { UiAxis };
+
+import { PageLayers } from '~/lib/ui/PageLayer';
+export { PageLayers };
+
+import { PageLayer as RawPageLayer } from '~/lib/ui/PageLayer';
+export type PageLayer = RawPageLayer;
 
 import { UiStyle, UiStyleBuilder } from '~/lib/ui/UiStyle';
 export { UiStyle, UiStyleBuilder };

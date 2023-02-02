@@ -1,10 +1,9 @@
 import { Dates, Types, Value } from '~/lib/lang';
-import { DEFAULT_STYLE, GROUP_STYLE, SMALL_STYLE } from '~/app/TestApplication'; //TODO おきて破り！要修正
 import { Colors } from '~/lib/ui/Colors';
 import { DataHolder } from '~/lib/ui/DataHolder';
 import { KeyCodes } from '~/lib/ui/KeyCodes';
 import { Rect } from '~/lib/ui/Rect';
-import { UiApplication } from '~/lib/ui/UiApplication';
+import { FIELD_STYLE, GROUP_STYLE, UiApplication } from '~/lib/ui/UiApplication';
 import { UiNode, UiResult } from '~/lib/ui/UiNode';
 import { UiBuilder } from '~/lib/ui/UiBuilder';
 import { UiPageNode } from '~/lib/ui/UiPageNode';
@@ -245,14 +244,14 @@ class UiDatePopup extends UiPageNode {
       b.belongs((b) => {
         b.element(new UiMonthNode(app, 'month'))
           .position(0, 0, 0, null, null, 1 * UNIT)
-          .style(DEFAULT_STYLE)
+          .style(FIELD_STYLE)
           .focusable(true)
           .action((src, act, arg) => this.watchMonth(src, act, arg));
         //曜日行
         for (let c = 0; c < WEEKS.length; c++) {
           b.element(new UiTextNode(app, 'week'))
             .bounds(c * UNIT, 1 * UNIT, 1 * UNIT, 1 * UNIT)
-            .style(DEFAULT_STYLE)
+            .style(FIELD_STYLE)
             .textContent(WEEKS[c]);
         }
         //日付ブロック
@@ -264,7 +263,7 @@ class UiDatePopup extends UiPageNode {
             const day = Dates.addDay(top, i);
             b.element(new UiDateNode(app, 'day'))
               .bounds(Math.floor(i % 7) * UNIT, Math.floor(i / 7) * UNIT, 1 * UNIT, 1 * UNIT)
-              .style(SMALL_STYLE)
+              .style(FIELD_STYLE)
               .focusable(true)
               .action((src, act, arg) => this.watchDate(src, act, arg));
           }
