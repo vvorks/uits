@@ -1,6 +1,5 @@
 import { Dates, Formatter, Logs, Properties, Value } from '~/lib/lang';
 import {
-  UiApplication,
   UiNode,
   UiResult,
   UiStyle,
@@ -9,10 +8,9 @@ import {
   Colors,
   KeyCodes,
   DataRecord,
-  COMPONENT_THUMB,
   UiLaunchPage,
   HistoryState,
-  PageLayer,
+  PageLayers,
 } from '~/lib/ui';
 import { GridPage } from '~/app/GridPage';
 import { HorizontalListPage } from '~/app/HorizontalListPage';
@@ -23,6 +21,7 @@ import { PaneTestPage } from '~/app/PaneTestPage';
 import { MenuTestPage } from '~/app/MenuTestPage';
 import { MenuDataSource } from '~/app/MenuDataSource';
 import { VolumeToast } from '~/app/VolumeToast';
+import { UiApplication } from '~/lib/ui/UiApplication';
 
 export const DEFAULT_STYLE: UiStyle = new UiStyleBuilder()
   .textColor(Colors.BLACK)
@@ -71,7 +70,7 @@ export const SB_STYLE: UiStyle = new UiStyleBuilder()
 
 export const THUMB_STYLE: UiStyle = new UiStyleBuilder()
   .basedOn(SB_STYLE)
-  .condition('NAMED', COMPONENT_THUMB)
+  .condition('NAMED', 'thumb')
   .backgroundColor(Colors.WHITE)
   .build();
 
@@ -271,7 +270,7 @@ export class TestApplication extends UiApplication {
       case KeyCodes.PAGEDOWN:
         //TODO 仮
         result =
-          this.popup(new HistoryState('volume', {}), PageLayer.HIGH) != null
+          this.popup(new HistoryState('volume', {}), PageLayers.HIGH) != null
             ? UiResult.EATEN
             : UiResult.IGNORED;
         break;

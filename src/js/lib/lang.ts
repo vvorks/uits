@@ -35,3 +35,16 @@ export interface Clonable<T extends Clonable<T>> {
 
 export type Predicate<T> = (arg: T) => boolean;
 export type Function<T, U> = (arg: T) => U;
+
+export function singleton<T>(func: () => T): () => T {
+  return new (class {
+    private obj: T | null = null;
+    private realFunc: () => T = func;
+    public doit: () => T = () => {
+      if (this.obj == null) {
+        this.obj = this.realFunc();
+      }
+      return this.obj;
+    };
+  })().doit;
+}

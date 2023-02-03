@@ -4,6 +4,29 @@ import { KeyCodes } from '~/lib/ui/KeyCodes';
 import { UiImageNode } from '~/lib/ui/UiImageNode';
 import type { UiApplication } from '~/lib/ui/UiApplication';
 
+//
+//取得元 https://fonts.google.com/icons?utm_source=developers.google.com&utm_medium=referral
+//
+const CHECKBOX_ON_DATA =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAAAXNSR0IArs4c6QAAAYhJ' +
+  'REFUaEPtmV1RxjAQRc+nABwADpAATsABDgAHOAAJOEACSAAF4ADmzpCZTkmT5q9Jmc1LH5qk9+zdJNvJgZ23w871Yw' +
+  'C9HTQHRnfgFrgBjjsJ/QIegPul74dS6A4QwAhNANLzp4UAPjtGfi70HThLBfieDOi12KMaQsKigzfIragGA2jsgjng' +
+  'AmyLOJBqOiQvgGdPn+FTSOJfgHPgGniaQQwNMBXvdOuw0qHl2rAAPvG7cWCteLkwnAMp4psDuBJbJe+aliq+KYATo4' +
+  '9cAjGIHPFNAV5/tz595C0CkSu+KcAV8DjJmyWIEvFNATR5DKJUfHOAEITeuRPWGeXb52OLf5Nt1OeEhKk8KBG/iQNO' +
+  '4BxiGtmcyHcpJXwQJeI3dcDnRKn4LgBuYes5L41jC9b3fpNFnCNs7RgDcJGyf+K1OTPrZylkKZSZOlVOYv2kHBUKqD' +
+  'X8Azj1TfavLzgErFsR1TgntUKZOI8irxPdezujuXrt74kcy90NoFooMycyBzIDV23Y7h34AUCpeTFLKmKAAAAAAElF' +
+  'TkSuQmCC';
+
+//
+//取得元 https://fonts.google.com/icons?utm_source=developers.google.com&utm_medium=referral
+//
+const CHECKBOX_OFF_DATA =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAAAXNSR0IArs4c6QAAAO9J' +
+  'REFUaEPtmdENwjAMRF8ngA2AzRiBDYANGIHR6ASwAchCFQhIraQFN+jy27r1nV/ipmmofDSV548ERFdQFZh6BbbABp' +
+  'gHJXoBDsA+9f4+hHaACZjCMAGWz9voE3AOdP410ROwyhVwfQqImuxuDn2JucE/YMvNQQK+XAVVoDNYk7gQNSEkhArR' +
+  '6cKEkBASQg8HPvYifQsNRMQL1yqkVchjxLkuhISQEFIjuzugLWXhXNAyqmW0EB1tKc0BO1yYDXRwrPAWWOb+Xq/+gM' +
+  'MEm4g1sBjLysznmPPH1OlMZIPK1JG+ParDSkB0g1IF/qYCN8VySjHeyclUAAAAAElFTkSuQmCC';
+
 export class UiCheckbox extends UiImageNode {
   private _dataHolder: DataHolder;
 
@@ -64,7 +87,7 @@ export class UiCheckbox extends UiImageNode {
 
   public set value(on: boolean) {
     this._value = on;
-    this.imageContent = on ? '/images/checkbox-on.png' : '/images/checkbox-off.png';
+    this.imageContent = on ? CHECKBOX_ON_DATA : CHECKBOX_OFF_DATA;
     this.imageWidth = '1rem';
     this._dataHolder.setValue(this.dataFieldName, this._value);
     this.onContentChanged();
