@@ -155,8 +155,8 @@ class UiRecord extends UiNode implements DataHolder {
     this.owner.setRecord(this._record);
   }
 
-  protected get owner(): UiListNode {
-    return this.parent as UiListNode;
+  protected get owner(): UiGridNode {
+    return this.parent as UiGridNode;
   }
 
   public getPathSegment(): string {
@@ -178,22 +178,22 @@ class UiRecord extends UiNode implements DataHolder {
 /**
  * UiListNodeのセッター
  */
-export class UiListNodeSetter extends UiScrollNodeSetter {
-  public static readonly INSTANCE = new UiListNodeSetter();
+export class UiGridNodeSetter extends UiScrollNodeSetter {
+  public static readonly INSTANCE = new UiGridNodeSetter();
   public loop(value: boolean): this {
-    let node = this.node as UiListNode;
+    let node = this.node as UiGridNode;
     node.loop = value;
     return this;
   }
 
   public vertical(value: boolean): this {
-    let node = this.node as UiListNode;
+    let node = this.node as UiGridNode;
     node.vertical = value;
     return this;
   }
 
   public outerMargin(value: boolean): this {
-    let node = this.node as UiListNode;
+    let node = this.node as UiGridNode;
     node.outerMargin = value;
     return this;
   }
@@ -202,7 +202,7 @@ export class UiListNodeSetter extends UiScrollNodeSetter {
 /**
  * 垂直及び水平の仮想データリストノード
  */
-export class UiListNode extends UiScrollNode implements HasSetter<UiListNodeSetter> {
+export class UiGridNode extends UiScrollNode implements HasSetter<UiGridNodeSetter> {
   private _template: UiRecord | null;
 
   private _templateRect: Rect | null;
@@ -228,8 +228,8 @@ export class UiListNode extends UiScrollNode implements HasSetter<UiListNodeSett
    *
    * @returns 複製
    */
-  public clone(): UiListNode {
-    return new UiListNode(this);
+  public clone(): UiGridNode {
+    return new UiGridNode(this);
   }
 
   /**
@@ -245,7 +245,7 @@ export class UiListNode extends UiScrollNode implements HasSetter<UiListNodeSett
    *
    * @param src 複製元
    */
-  constructor(src: UiListNode);
+  constructor(src: UiGridNode);
 
   /**
    * コンストラクタ実装
@@ -254,9 +254,9 @@ export class UiListNode extends UiScrollNode implements HasSetter<UiListNodeSett
    * @param name 第二パラメータ
    */
   public constructor(param: any, name?: string) {
-    if (param instanceof UiListNode) {
-      super(param as UiListNode);
-      let src = param as UiListNode;
+    if (param instanceof UiGridNode) {
+      super(param as UiGridNode);
+      let src = param as UiGridNode;
       this._template = src._template;
       this._templateRect = src._templateRect;
       this._templateBottom = src._templateBottom;
@@ -284,8 +284,8 @@ export class UiListNode extends UiScrollNode implements HasSetter<UiListNodeSett
     }
   }
 
-  public getSetter(): UiListNodeSetter {
-    return UiListNodeSetter.INSTANCE;
+  public getSetter(): UiGridNodeSetter {
+    return UiGridNodeSetter.INSTANCE;
   }
 
   public get focusable(): boolean {
@@ -434,29 +434,33 @@ export class UiListNode extends UiScrollNode implements HasSetter<UiListNodeSett
     }
     this._templateRect = rTemplate;
     let template = new UiRecord(this.application, 'template');
-    if (this.vertical) {
+    if (maxRight == 0 && maxBottom == 0) {
+      this._templateRight = null;
+      this._templateBottom = null;
+      template.left = `${rTemplate.left}px`;
+      template.top = `${rTemplate.top}px`;
+      template.width = `${rTemplate.width}px`;
+      template.height = `${rTemplate.height}px`;
+    } else if (this.vertical) {
       this._templateBottom = rTemplate.bottom == maxBottom ? this.innerHeight - maxBottom : null;
       template.left = '0px';
       template.right = '0px';
       template.top = `${rTemplate.top}px`;
       template.height = `${rTemplate.height}px`;
-      for (let c of this._children) {
-        let rChild = c.getRect();
-        if (c.top != null) {
-          c.top = `${rChild.top - rTemplate.top}px`;
-        }
-      }
     } else {
       this._templateRight = rTemplate.right == maxRight ? this.innerWidth - maxRight : null;
       template.left = `${rTemplate.left}px`;
       template.width = `${rTemplate.width}px`;
       template.top = '0px';
       template.bottom = '0px';
-      for (let c of this._children) {
-        let rChild = c.getRect();
-        if (c.left != null) {
-          c.left = `${rChild.left - rTemplate.left}px`;
-        }
+    }
+    for (let c of this._children) {
+      let rChild = c.getRect();
+      if (c.left != null) {
+        c.left = `${rChild.left - rTemplate.left}px`;
+      }
+      if (c.top != null) {
+        c.top = `${rChild.top - rTemplate.top}px`;
       }
     }
     template.adoptChildren(this);
@@ -474,9 +478,21 @@ export class UiListNode extends UiScrollNode implements HasSetter<UiListNodeSett
     if (this.vertical) {
       this._lineSize = rTemplate.top + rTemplate.height;
       this._pageSize = this.innerHeight;
+      if (this._templateRight != null || this._templateBottom != null) {
+        this._columnCount = 1;
+      } else {
+        let tempColSize = rTemplate.left + rTemplate.width;
+        this._columnCount = Math.max(1, Math.floor(this.innerWidth / tempColSize));
+      }
     } else {
       this._lineSize = rTemplate.left + rTemplate.width;
       this._pageSize = this.innerWidth;
+      if (this.bottom != null) {
+        this._columnCount = 1;
+      } else {
+        let tempColSize = rTemplate.top + rTemplate.height;
+        this._columnCount = Math.max(1, Math.floor(this.innerHeight / tempColSize));
+      }
     }
     this._linesPerPage = Math.ceil(this._pageSize / this._lineSize);
   }
@@ -522,18 +538,30 @@ export class UiListNode extends UiScrollNode implements HasSetter<UiListNodeSett
     if (this.vertical) {
       for (let i = 0; i < n; i++) {
         let rec = this._children[i] as UiRecord;
-        let y = r.top + i * (r.top + r.height);
+        let rIndex = Math.floor(i / this._columnCount);
+        let cIndex = Math.floor(i % this._columnCount);
+        let x = r.left + cIndex * (r.left + r.width);
+        let y = r.top + rIndex * (r.top + r.height);
+        rec.left = `${x}px`;
         rec.top = `${y}px`;
+        rec.right = null;
         rec.bottom = null;
+        rec.width = `${r.width}px`;
         rec.height = `${r.height}px`;
       }
     } else {
       for (let i = 0; i < n; i++) {
         let rec = this._children[i] as UiRecord;
-        let x = r.left + i * (r.left + r.width);
+        let rIndex = Math.floor(i / this._columnCount);
+        let cIndex = Math.floor(i % this._columnCount);
+        let x = r.left + rIndex * (r.left + r.width);
+        let y = r.top + cIndex * (r.top + r.height);
         rec.left = `${x}px`;
+        rec.top = `${y}px`;
         rec.right = null;
+        rec.bottom = null;
         rec.width = `${r.width}px`;
+        rec.height = `${r.height}px`;
       }
     }
   }

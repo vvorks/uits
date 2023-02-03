@@ -40,6 +40,18 @@ export const FIELD_STYLE: UiStyle = new UiStyleBuilder()
   .verticalAlign('middle')
   .build();
 
+export const FIELD_STYLE_IN_FOCUS: UiStyle = new UiStyleBuilder()
+  .basedOn(FIELD_STYLE)
+  .condition('FOCUS')
+  .borderColor(Colors.RED)
+  .build();
+
+export const FIELD_STYLE_IN_CLICKING: UiStyle = new UiStyleBuilder()
+  .basedOn(FIELD_STYLE_IN_FOCUS)
+  .condition('CLICKING')
+  .backgroundColor(Colors.LEMON_CHIFFON)
+  .build();
+
 type RunFinallyTask = () => void;
 
 type RunAfterTask = () => UiResult;
@@ -585,6 +597,19 @@ export class UiApplication {
     delete this._pageFactories[tag];
   }
 
+  public getPageFactory(tag: string): PageFactory | undefined {
+    return this._pageFactories[tag];
+  }
+
+  /**
+   * 全ファクトリを取得する（UiLaunchPage用）
+   *
+   * @returns ページファクトリーリスト
+   */
+  public getPageFactries(): Properties<PageFactory> {
+    return this._pageFactories;
+  }
+
   public addDataSource(tag: string, ds: DataSource): void {
     let entry = this._dataSources[tag];
     if (entry === undefined) {
@@ -668,10 +693,6 @@ export class UiApplication {
       return defaultValue;
     }
     return result as Value;
-  }
-
-  public getPageFactries(): Properties<PageFactory> {
-    return this._pageFactories;
   }
 
   public transit(state: HistoryState, layer: PageLayer = PageLayers.NORMAL): UiPageNode | null {
