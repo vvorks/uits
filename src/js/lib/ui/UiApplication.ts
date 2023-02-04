@@ -12,6 +12,7 @@ import { PageLayer, PageLayers } from '~/lib/ui/PageLayer';
 import { UiAxis } from '~/lib/ui/UiAxis';
 import { UiStyle, UiStyleBuilder } from './UiStyle';
 import { Colors } from './Colors';
+import { KeyLogger } from './KeyLogger';
 
 /** システムWheel調整比の既定値  */
 const DEFAULT_WHEEL_SCALE = 0.5;
@@ -21,6 +22,9 @@ const DEFAULT_INTERVAL_PRECISION = 500;
 
 /** アニメーション時間の既定値 */
 const DEFAULT_ANIMATION_TIME = 100;
+
+/** キー長押し判定閾値の既定値 */
+const DEFAULT_LONG_PRESS_TIME = 1000;
 
 /** リソース読み込み時のセパレータ */
 const RESOURCE_NAME_SEPARATOR = '.';
@@ -58,6 +62,13 @@ type RunAfterTask = () => UiResult;
 
 type AnimationTask = (step: number) => UiResult;
 
+type PageFactory = (tag: string) => UiPageNode;
+
+type Resource = Properties<Value | Resource>;
+
+/**
+ * 表示中ページ情報
+ */
 class LivePage {
   private _pageNode: UiPageNode;
   private _layer: PageLayer;
@@ -191,6 +202,9 @@ class LivePage {
   }
 }
 
+/**
+ * データソース管理項目
+ */
 class DataSourceEntry {
   private _tag: string;
 
@@ -231,12 +245,18 @@ class DataSourceEntry {
   }
 }
 
+/**
+ * 実行状態
+ */
 enum RunFlags {
   NONE = 0,
   EXIT = 1,
   REPEAT = 2,
 }
 
+/**
+ * 実行タスク管理項目
+ */
 class RunEntry<T> {
   private _node: UiNode;
 
@@ -263,6 +283,9 @@ class RunEntry<T> {
   }
 }
 
+/**
+ * 後処理実行タスク管理項目
+ */
 class RunAfterEntry extends RunEntry<RunAfterTask> {
   private _timeoutId: number;
 
@@ -280,6 +303,9 @@ class RunAfterEntry extends RunEntry<RunAfterTask> {
   }
 }
 
+/**
+ * 周期実行タスク管理項目
+ */
 class RunIntervalEntry extends RunEntry<RunAfterTask> {
   private _cycle: number;
 
@@ -312,6 +338,9 @@ class RunIntervalEntry extends RunEntry<RunAfterTask> {
   }
 }
 
+/**
+ * アニメーション実行タスク管理項目
+ */
 class RunAnimationEntry extends RunEntry<AnimationTask> {
   private _limit: number;
 
@@ -354,10 +383,11 @@ class RunAnimationEntry extends RunEntry<AnimationTask> {
   }
 }
 
-type PageFactory = (tag: string) => UiPageNode;
-
-type Resource = Properties<Value | Resource>;
-
+/**
+ * UiApplication
+ *
+ * 実アプリケーションの基底クラス
+ */
 export class UiApplication {
   /** 描画対象要素を検索するためのセレクタ（通常はBODY） */
   private _selector: string;
@@ -401,6 +431,9 @@ export class UiApplication {
   /** アニメーション時間（単位：ミリ秒） */
   private _animationTime: number;
 
+  /** キー長押し判定閾値（単位：ミリ秒） */
+  private _longPressTime: number;
+
   /** イベント処理終了後に実行するタスクのリスト */
   private _finallyTasks: RunFinallyTask[];
 
@@ -422,6 +455,9 @@ export class UiApplication {
   /** ページ履歴 */
   private _history: HistoryManager;
 
+  /** キー履歴 */
+  private _keyLogger: KeyLogger;
+
   private static _launchCounter: number = 0;
   public constructor(selector: string) {
     Logs.info('UiApplication start');
@@ -439,6 +475,7 @@ export class UiApplication {
     this._wheelScale = DEFAULT_WHEEL_SCALE;
     this._intervalPrecision = DEFAULT_INTERVAL_PRECISION;
     this._animationTime = DEFAULT_ANIMATION_TIME;
+    this._longPressTime = DEFAULT_LONG_PRESS_TIME;
     this._finallyTasks = [];
     this._afterTasks = [];
     this._intervalTasks = [];
@@ -446,6 +483,7 @@ export class UiApplication {
     this._textResourceUrl = null;
     this._textResource = {};
     this._history = new HistoryManager();
+    this._keyLogger = new KeyLogger();
     if (UiApplication._launchCounter > 0) {
       return;
     }
@@ -1105,6 +1143,10 @@ export class UiApplication {
       let mod = this.getKeyModifier(evt);
       let at = evt.timeStamp;
       Logs.info('keyDown key=0x%x ch=0x%x mod=0x%x', key, ch, mod);
+      this._keyLogger.logKeyDown(key, at);
+      if (at - this._keyLogger.getLastDownAt(key) > this._longPressTime) {
+        mod |= KeyCodes.MOD_LONG_PRESS;
+      }
       //UINodeへのキーディスパッチ
       let result: UiResult = UiResult.IGNORED;
       let depth = this._pageStack.length;
@@ -1187,6 +1229,7 @@ export class UiApplication {
       let mod = this.getKeyModifier(evt);
       let at = evt.timeStamp;
       Logs.info('keyUp key=0x%x ch=0x%x mod=0x%x', key, ch, mod);
+      this._keyLogger.logKeyUp(key, at);
       //UINodeへのキーディスパッチ
       let result: UiResult = UiResult.IGNORED;
       let depth = this._pageStack.length;
@@ -1455,7 +1498,7 @@ export class UiApplication {
       Logs.info('resize width=%d height=%d at %d', w, h, at);
       this._clientWidth = w;
       this._clientHeight = h;
-      let result = this.rootNode.onResize();
+      let result = this.rootNode.onResize(at);
       //後処理
       this.postProcessEvent(evt, result);
     } finally {
@@ -1559,7 +1602,7 @@ export class UiApplication {
     let axis = UiAxis.NONE;
     let page = this.getLivePageOf(curr) as LivePage;
     let from = page.pageNode;
-    switch (key | (mod & KeyCodes.MOD_ACS)) {
+    switch (key | (mod & KeyCodes.MOD_MACS)) {
       case KeyCodes.LEFT:
         next = this.getNearestNode(curr, from, (c) => c.getRectOnRoot().right <= tRect.left);
         axis = UiAxis.X;
@@ -1647,7 +1690,7 @@ export class UiApplication {
 
   protected onKeyUp(target: UiNode, key: number, ch: number, mod: number, at: number): UiResult {
     let result = UiResult.IGNORED;
-    switch (key | (mod & KeyCodes.MOD_ACS)) {
+    switch (key | (mod & KeyCodes.MOD_MACS)) {
       case KeyCodes.ENTER:
         result |= (this.getLivePageOf(target) as LivePage).click(null);
         break;

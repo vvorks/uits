@@ -78,7 +78,7 @@ export class MenuTestPage extends UiPageNode {
         .position(1, 1, null, 1, 2, null)
         .style(DEFAULT_STYLE)
         .extentionSizes(['256px', '0px', '0px', '256px'])
-        .dataSource('menu')
+        .extentionDsNames(['menu', 'menuNext'])
         .spacing(1)
         .focusable(true)
         .contentNode('/content');
@@ -103,7 +103,6 @@ export class MenuTestPage extends UiPageNode {
   protected afterMount(): void {
     let app = this.application;
     //set datasource
-    (app.getDataSource('menu') as DataSource).select({ path: '/' });
     (app.getDataSource('hiroshige') as DataSource).select({});
   }
 }

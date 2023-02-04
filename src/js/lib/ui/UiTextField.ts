@@ -67,7 +67,7 @@ export class UiTextField extends UiTextNode {
 
   public onKeyDown(target: UiNode, key: number, ch: number, mod: number, at: number): UiResult {
     let result = UiResult.IGNORED;
-    switch (key | (mod & KeyCodes.MOD_ACS)) {
+    switch (key | (mod & KeyCodes.MOD_MACS)) {
       case KeyCodes.ENTER:
         result |= this.showPopup();
         break;

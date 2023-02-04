@@ -1,3 +1,6 @@
+/**
+ * キーコード及びキー修飾フラグ定義クラス
+ */
 export class KeyCodes {
   public static readonly WIN_KEY_FF_LINUX = 0x00;
   public static readonly MAC_ENTER = 0x03;
@@ -130,21 +133,39 @@ export class KeyCodes {
 
   public static readonly MAX_KEY_CODE = 0x100;
 
+  /** マウス左ボタン押下時の同時打鍵（未対応） */
   public static readonly MOD_LBUTTON = 0x0001;
+
+  /** マウス右ボタン押下時の同時打鍵（未対応） */
   public static readonly MOD_RBUTTON = 0x0002;
+
+  /** マウス中ボタン押下時の同時打鍵（未対応） */
   public static readonly MOD_MBUTTON = 0x0004;
+
+  /** マウスダブルクリック時の同時打鍵（未対応） */
   public static readonly MOD_DOUBLECLICK = 0x0008;
 
+  /** Shiftキーとの同時打鍵 */
   public static readonly MOD_SHIFT = 0x0100;
+
+  /** Ctrlキーとの同時打鍵 */
   public static readonly MOD_CTRL = 0x0200;
+
+  /** Altキーとの同時打鍵 */
   public static readonly MOD_ALT = 0x0400;
+
+  /** Metaキーとの同時打鍵 */
   public static readonly MOD_META = 0x0800;
+
+  /** キーリピートフラグ */
   public static readonly MOD_REPEAT = 0x1000;
 
+  /** （デフォルトで１秒以上の）長押しフラグ */
+  public static readonly MOD_LONG_PRESS = 0x2000;
+
   public static readonly MOD_CS = KeyCodes.MOD_CTRL | KeyCodes.MOD_SHIFT;
-  public static readonly MOD_AC = KeyCodes.MOD_META | KeyCodes.MOD_ALT | KeyCodes.MOD_CTRL;
-  public static readonly MOD_ACS =
-    KeyCodes.MOD_META | KeyCodes.MOD_ALT | KeyCodes.MOD_CTRL | KeyCodes.MOD_SHIFT;
+  public static readonly MOD_MAC = KeyCodes.MOD_META | KeyCodes.MOD_ALT | KeyCodes.MOD_CTRL;
+  public static readonly MOD_MACS = KeyCodes.MOD_MAC | KeyCodes.MOD_SHIFT;
   public static readonly MOD_BUTTONS =
     KeyCodes.MOD_LBUTTON | KeyCodes.MOD_MBUTTON | KeyCodes.MOD_RBUTTON;
 }

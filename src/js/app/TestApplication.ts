@@ -256,13 +256,14 @@ export class TestApplication extends UiApplication {
     );
 
     this.addDataSource('menu', new MenuDataSource());
+    this.addDataSource('menuNext', new MenuDataSource());
 
     //this.testFormatter();
   }
 
   protected onKeyDown(target: UiNode, key: number, ch: number, mod: number, at: number): UiResult {
     let result: UiResult = UiResult.IGNORED;
-    switch (key | (mod & KeyCodes.MOD_ACS)) {
+    switch (key | (mod & KeyCodes.MOD_MACS)) {
       case KeyCodes.KEY_Q | KeyCodes.MOD_CTRL:
         (this.getDataSource('sample') as DataSource).select({});
         break;

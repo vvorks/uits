@@ -142,7 +142,7 @@ class UiKeytop extends UiTextNode {
 
   public onKeyDown(target: UiNode, key: number, ch: number, mod: number, at: number): UiResult {
     let result = UiResult.IGNORED;
-    switch (key | (mod & KeyCodes.MOD_ACS)) {
+    switch (key | (mod & KeyCodes.MOD_MACS)) {
       case KeyCodes.ENTER:
         result |= this.fireAction();
         break;
@@ -844,7 +844,7 @@ export class UiKeyboard extends UiPageNode {
 
   public onKeyDown(target: UiNode, key: number, ch: number, mod: number, at: number): UiResult {
     let result = UiResult.IGNORED;
-    switch (key | (mod & KeyCodes.MOD_ACS)) {
+    switch (key | (mod & KeyCodes.MOD_MACS)) {
       case KeyCodes.ESCAPE:
         this.application.dispose(this);
         result |= UiResult.EATEN;

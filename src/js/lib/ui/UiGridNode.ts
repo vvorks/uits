@@ -328,8 +328,8 @@ export class UiGridNode extends UiScrollNode implements HasSetter<UiGridNodeSett
     this.setRecsVisiblity();
   }
 
-  public onResize(): UiResult {
-    super.onResize();
+  public onResize(at: number): UiResult {
+    super.onResize(at);
     Asserts.assume(this._templateRect != null);
     if (this._templateRight != null) {
       this._templateRect.width = this.innerWidth - this._templateRight - this._templateRect.x;

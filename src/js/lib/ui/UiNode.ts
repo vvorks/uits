@@ -1666,34 +1666,114 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
     return this == target ? UiResult.AFFECTED : UiResult.IGNORED;
   }
 
+  /**
+   * 打鍵イベント
+   *
+   * @param target 発生ノード
+   * @param key キーコード（KeyCodes参照）
+   * @param ch 文字コード
+   * @param mod キー修飾（KeyCodes.MOD_xx参照）
+   * @param at イベント発生時刻
+   * @returns 処理結果フラグ
+   */
   public onKeyDown(target: UiNode, key: number, ch: number, mod: number, at: number): UiResult {
     return UiResult.IGNORED;
   }
 
+  /**
+   * 文字イベント
+   *
+   * @param target 発生ノード
+   * @param key キーコード（KeyCodes参照）
+   * @param ch 文字コード
+   * @param mod キー修飾（KeyCodes.MOD_xx参照）
+   * @param at イベント発生時刻
+   * @returns 処理結果フラグ
+   */
   public onKeyPress(target: UiNode, key: number, ch: number, mod: number, at: number): UiResult {
     return UiResult.IGNORED;
   }
 
+  /**
+   * 離鍵イベント
+   *
+   * @param target 発生ノード
+   * @param key キーコード（KeyCodes参照）
+   * @param ch 文字コード
+   * @param mod キー修飾（KeyCodes.MOD_xx参照）
+   * @param at イベント発生時刻
+   * @returns 処理結果フラグ
+   */
   public onKeyUp(target: UiNode, key: number, ch: number, mod: number, at: number): UiResult {
     return UiResult.IGNORED;
   }
 
+  /**
+   * マウス移動イベント
+   *
+   * @param target 発生ノード
+   * @param x 発生時X座標（送信先座標系）
+   * @param y 発生時Y座標（送信先座標系）
+   * @param mod キー修飾（KeyCodes.MOD_xx参照）
+   * @param at イベント発生時刻
+   * @returns 処理結果フラグ
+   */
   public onMouseMove(target: UiNode, x: number, y: number, mod: number, at: number): UiResult {
     return UiResult.IGNORED;
   }
 
+  /**
+   * マウス打鍵イベント
+   *
+   * @param target 発生ノード
+   * @param x 発生時X座標（送信先座標系）
+   * @param y 発生時Y座標（送信先座標系）
+   * @param mod キー修飾（KeyCodes.MOD_xx参照）
+   * @param at イベント発生時刻
+   * @returns 処理結果フラグ
+   */
   public onMouseDown(target: UiNode, x: number, y: number, mod: number, at: number): UiResult {
     return UiResult.IGNORED;
   }
 
+  /**
+   * マウス離鍵イベント
+   *
+   * @param target 発生ノード
+   * @param x 発生時X座標（送信先座標系）
+   * @param y 発生時Y座標（送信先座標系）
+   * @param mod キー修飾（KeyCodes.MOD_xx参照）
+   * @param at イベント発生時刻
+   * @returns 処理結果フラグ
+   */
   public onMouseUp(target: UiNode, x: number, y: number, mod: number, at: number): UiResult {
     return UiResult.IGNORED;
   }
 
+  /**
+   * マウスクリックイベント
+   *
+   * @param target 発生ノード
+   * @param x 発生時X座標（送信先座標系）
+   * @param y 発生時Y座標（送信先座標系）
+   * @param mod キー修飾（KeyCodes.MOD_xx参照）
+   * @param at イベント発生時刻
+   * @returns 処理結果フラグ
+   */
   public onMouseClick(target: UiNode, x: number, y: number, mod: number, at: number): UiResult {
     return UiResult.IGNORED;
   }
 
+  /**
+   * マウスダブルクリックイベント
+   *
+   * @param target 発生ノード
+   * @param x 発生時X座標（送信先座標系）
+   * @param y 発生時Y座標（送信先座標系）
+   * @param mod キー修飾（KeyCodes.MOD_xx参照）
+   * @param at イベント発生時刻
+   * @returns 処理結果フラグ
+   */
   public onMouseDoubleClick(
     target: UiNode,
     x: number,
@@ -1704,6 +1784,16 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
     return UiResult.IGNORED;
   }
 
+  /**
+   * マウスホイールイベント
+   *
+   * @param target 発生ノード
+   * @param x 発生時X座標（送信先座標系）
+   * @param y 発生時Y座標（送信先座標系）
+   * @param mod キー修飾（KeyCodes.MOD_xx参照）
+   * @param at イベント発生時刻
+   * @returns 処理結果フラグ
+   */
   public onMouseWheel(
     target: UiNode,
     x: number,
@@ -1741,17 +1831,31 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
     return result;
   }
 
-  public onResize(): UiResult {
+  /**
+   * Windowリサイズイベント
+   *
+   * @param at イベント発生時刻
+   * @returns 処理結果フラグ
+   */
+  public onResize(at: number): UiResult {
     this.onLocationChanged();
     this.onScrollChanged();
     this.onStyleChanged();
     let result = UiResult.AFFECTED;
     for (let c of this._children) {
-      result |= c.onResize();
+      result |= c.onResize(at);
     }
     return result;
   }
 
+  /**
+   * データソース更新イベント
+   *
+   * @param tag データソース登録名
+   * @param ds データソース
+   * @param at イベント発生時刻
+   * @returns 処理結果フラグ
+   */
   public onDataSourceChanged(tag: string, ds: DataSource, at: number): UiResult {
     return UiResult.IGNORED;
   }

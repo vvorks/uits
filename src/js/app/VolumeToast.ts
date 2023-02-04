@@ -20,7 +20,7 @@ export class VolumeToast extends UiPageNode {
 
   public onKeyDown(target: UiNode, key: number, ch: number, mod: number, at: number): UiResult {
     let result: UiResult = UiResult.IGNORED;
-    switch (key | (mod & KeyCodes.MOD_ACS)) {
+    switch (key | (mod & KeyCodes.MOD_MACS)) {
       case KeyCodes.PAGEUP:
         (this.findNodeByPath('test') as UiTextNode).textContent = ++this._value;
         result = UiResult.EATEN;
