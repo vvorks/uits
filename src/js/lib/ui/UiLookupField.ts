@@ -1,5 +1,5 @@
 import { Properties } from '~/lib/lang';
-import { DataHolder } from '~/lib/ui/DataHolder';
+import { RecordHolder } from '~/lib/ui/RecordHolder';
 import { DataRecord, DataSource } from '~/lib/ui/DataSource';
 import { KeyCodes } from '~/lib/ui/KeyCodes';
 import { Rect } from '~/lib/ui/Rect';
@@ -18,7 +18,7 @@ const DEFAULT_ITEMS_PER_PAGE = 8;
 class UiLookupItem extends UiTextNode {
   private _owner: UiLookupField;
 
-  private _dataHolder: DataHolder;
+  private _recordHolder: RecordHolder;
 
   /**
    * クローンメソッド
@@ -55,19 +55,19 @@ class UiLookupItem extends UiTextNode {
       super(param as UiLookupItem);
       let src = param as UiLookupItem;
       this._owner = src._owner;
-      this._dataHolder = src._dataHolder;
+      this._recordHolder = src._recordHolder;
     } else {
       super(param as UiApplication, name as string);
       this._owner = owner as UiLookupField;
-      this._dataHolder = UiNode.VOID_DATA_HOLDER;
+      this._recordHolder = UiNode.VOID_REcORD_HOLDER;
       this.focusable = true;
     }
   }
 
-  public onDataHolderChanged(holder: DataHolder): UiResult {
+  public onDataHolderChanged(holder: RecordHolder): UiResult {
     let result = UiResult.IGNORED;
-    this._dataHolder = holder;
-    let rec = this._dataHolder.getRecord();
+    this._recordHolder = holder;
+    let rec = this._recordHolder.getRecord();
     if (rec != null) {
       this.textContent = rec[SUBNAME_TITLE] as string;
       result |= UiResult.AFFECTED;
@@ -98,7 +98,7 @@ class UiLookupItem extends UiTextNode {
   }
 
   private updateValue(): void {
-    let rec = this._dataHolder.getRecord() as DataRecord;
+    let rec = this._recordHolder.getRecord() as DataRecord;
     this._owner.updateValue(rec);
   }
 }
@@ -200,7 +200,7 @@ export class UiLookupPopup extends UiPageNode {
 }
 
 export class UiLookupField extends UiTextNode {
-  private _dataHolder: DataHolder;
+  private _dataHolder: RecordHolder;
 
   /**
    * クローンメソッド
@@ -239,11 +239,11 @@ export class UiLookupField extends UiTextNode {
       this._dataHolder = src._dataHolder;
     } else {
       super(param as UiApplication, name as string);
-      this._dataHolder = UiNode.VOID_DATA_HOLDER;
+      this._dataHolder = UiNode.VOID_REcORD_HOLDER;
     }
   }
 
-  public onDataHolderChanged(holder: DataHolder): UiResult {
+  public onDataHolderChanged(holder: RecordHolder): UiResult {
     this._dataHolder = holder;
     let value = this._dataHolder.getValue(this.dataFieldName) as DataRecord;
     if (value != null) {

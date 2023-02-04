@@ -5,7 +5,7 @@ import { DataRecord, DataSource } from '~/lib/ui/DataSource';
 import { CssLength } from '~/lib/ui/CssLength';
 import { HasSetter, UiBuilder } from '~/lib/ui/UiBuilder';
 import { KeyCodes } from '~/lib/ui/KeyCodes';
-import { DataHolder } from '~/lib/ui/DataHolder';
+import { RecordHolder } from '~/lib/ui/RecordHolder';
 import { UiTextNode } from '~/lib/ui/UiTextNode';
 import { Rect } from './Rect';
 
@@ -29,7 +29,7 @@ type FieldType = 'launch' | 'branch' | 'filler';
 /**
  * メニュー項目クラス
  */
-export class UiMenuItem extends UiNode implements DataHolder {
+export class UiMenuItem extends UiNode implements RecordHolder {
   /** 表示対象レコード */
   private _record: DataRecord | null;
 
@@ -91,7 +91,7 @@ export class UiMenuItem extends UiNode implements DataHolder {
     return this._record;
   }
 
-  public setReocord(rec: DataRecord): void {
+  public setRecord(rec: DataRecord): void {
     this._record = rec;
     for (let c of this.getDescendants()) {
       c.onDataHolderChanged(this);
@@ -238,7 +238,7 @@ class UiMenuBlock extends UiNode {
         item.index = i;
         let type = rec[FIELD_TYPE] as FieldType;
         item.focusable = type != 'filler' ? true : false;
-        item.setReocord(rec);
+        item.setRecord(rec);
         this.appendChild(item);
         if (firstChild == null) {
           firstChild = item;

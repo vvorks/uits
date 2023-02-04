@@ -1,5 +1,5 @@
 import { Properties, Types } from '~/lib/lang';
-import { DataHolder } from '~/lib/ui/DataHolder';
+import { RecordHolder } from '~/lib/ui/RecordHolder';
 import { UiImageNode, UiImageNodeSetter } from '~/lib/ui/UiImageNode';
 import { UiNode, UiResult } from '~/lib/ui/UiNode';
 import type { UiApplication } from '~/lib/ui/UiApplication';
@@ -15,7 +15,7 @@ export class UiImageLookupFieldSetter extends UiImageNodeSetter {
 }
 
 export class UiImageLookupField extends UiImageNode implements HasSetter<UiImageLookupFieldSetter> {
-  private _dataHolder: DataHolder;
+  private _recordHolder: RecordHolder;
 
   private _lookupTable: Properties<any>;
 
@@ -53,11 +53,11 @@ export class UiImageLookupField extends UiImageNode implements HasSetter<UiImage
     if (param instanceof UiImageLookupField) {
       super(param as UiImageLookupField);
       let src = param as UiImageLookupField;
-      this._dataHolder = src._dataHolder;
+      this._recordHolder = src._recordHolder;
       this._lookupTable = src._lookupTable;
     } else {
       super(param as UiApplication, name as string);
-      this._dataHolder = UiNode.VOID_DATA_HOLDER;
+      this._recordHolder = UiNode.VOID_REcORD_HOLDER;
       this._lookupTable = {};
     }
   }
@@ -74,10 +74,10 @@ export class UiImageLookupField extends UiImageNode implements HasSetter<UiImage
     this._lookupTable = table;
   }
 
-  public onDataHolderChanged(holder: DataHolder): UiResult {
+  public onDataHolderChanged(holder: RecordHolder): UiResult {
     let result = UiResult.IGNORED;
-    this._dataHolder = holder;
-    let value = this._dataHolder.getValue(this.dataFieldName);
+    this._recordHolder = holder;
+    let value = this._recordHolder.getValue(this.dataFieldName);
     if (value != null && Types.isString(value)) {
       let image = this._lookupTable[value as string];
       if (image !== undefined) {

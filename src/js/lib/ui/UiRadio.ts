@@ -1,7 +1,7 @@
 import type { UiApplication } from '~/lib/ui/UiApplication';
 import { Value } from '~/lib/lang';
 import { UiImageNode } from '~/lib/ui/UiImageNode';
-import { DataHolder } from '~/lib/ui/DataHolder';
+import { RecordHolder } from '~/lib/ui/RecordHolder';
 import { KeyCodes } from '~/lib/ui/KeyCodes';
 import { UiNode, UiResult } from '~/lib/ui/UiNode';
 
@@ -46,7 +46,7 @@ const RADIO_OFF_DATA =
   'eWAa/jOrgYJZ/5kVM7kQn1kjkt7rnjU1sFdGa4dfAugidnfpX3zXuDEwPejGAAAAAElFTkSuQmCC';
 
 export class UiRadio extends UiImageNode {
-  private _dataHolder: DataHolder;
+  private _recordHolder: RecordHolder;
 
   private _value: Value | null;
 
@@ -86,20 +86,20 @@ export class UiRadio extends UiImageNode {
     if (param instanceof UiRadio) {
       super(param as UiRadio);
       let src = param as UiRadio;
-      this._dataHolder = src._dataHolder;
+      this._recordHolder = src._recordHolder;
       this._value = src._value;
       this._specValue = src._specValue;
     } else {
       super(param as UiApplication, name as string);
-      this._dataHolder = UiNode.VOID_DATA_HOLDER;
+      this._recordHolder = UiNode.VOID_REcORD_HOLDER;
       this._value = null;
       this._specValue = spec as Value;
     }
   }
 
-  public onDataHolderChanged(holder: DataHolder): UiResult {
-    this._dataHolder = holder;
-    this.value = this._dataHolder.getValue(this.dataFieldName) as Value;
+  public onDataHolderChanged(holder: RecordHolder): UiResult {
+    this._recordHolder = holder;
+    this.value = this._recordHolder.getValue(this.dataFieldName) as Value;
     return UiResult.AFFECTED;
   }
 
@@ -112,7 +112,7 @@ export class UiRadio extends UiImageNode {
       this._value = v;
       this.imageContent = this.matched ? RADIO_ON_DATA : RADIO_OFF_DATA;
       this.imageWidth = '1rem';
-      this._dataHolder.setValue(this.dataFieldName, this._value);
+      this._recordHolder.setValue(this.dataFieldName, this._value);
       this.onContentChanged();
     }
   }

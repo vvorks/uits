@@ -1,5 +1,5 @@
 import { Logs, Types } from '~/lib/lang';
-import { DataHolder } from '~/lib/ui/DataHolder';
+import { RecordHolder } from '~/lib/ui/RecordHolder';
 import type { UiApplication } from '~/lib/ui/UiApplication';
 import { UiIndicatorNode } from '~/lib/ui/UiIndicatorNode';
 import { UiNode, UiResult } from '~/lib/ui/UiNode';
@@ -11,7 +11,7 @@ export class UiIndicatorField extends UiIndicatorNode {
   /**
    * データホルダー
    */
-  private _dataHolder: DataHolder;
+  private _recordHolder: RecordHolder;
 
   /**
    * クローンメソッド
@@ -48,12 +48,12 @@ export class UiIndicatorField extends UiIndicatorNode {
       //複製コンストラクタ
       super(param as UiIndicatorField);
       let src = param as UiIndicatorField;
-      this._dataHolder = src._dataHolder;
+      this._recordHolder = src._recordHolder;
     } else {
       //新規コンストラクタ
       super(param as UiApplication, name as string);
       let app = param as UiApplication;
-      this._dataHolder = UiNode.VOID_DATA_HOLDER;
+      this._recordHolder = UiNode.VOID_REcORD_HOLDER;
     }
   }
 
@@ -63,10 +63,10 @@ export class UiIndicatorField extends UiIndicatorNode {
    * @param holder データホルダー（実態は例えばUiListNode中のUiRecordオブジェクト）
    * @returns データを受け取り、表示を更新する場合、UiResult.AFFECTEDを返す
    */
-  public onDataHolderChanged(holder: DataHolder): UiResult {
+  public onDataHolderChanged(holder: RecordHolder): UiResult {
     let result = UiResult.IGNORED;
-    this._dataHolder = holder;
-    let value = this._dataHolder.getValue(this.dataFieldName);
+    this._recordHolder = holder;
+    let value = this._recordHolder.getValue(this.dataFieldName);
     if (Types.isNumber(value)) {
       this.indicatorValue = value as number;
       result |= UiResult.AFFECTED;

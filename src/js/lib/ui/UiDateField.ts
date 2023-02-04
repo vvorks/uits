@@ -1,6 +1,6 @@
 import { Dates, Types, Value } from '~/lib/lang';
 import { Colors } from '~/lib/ui/Colors';
-import { DataHolder } from '~/lib/ui/DataHolder';
+import { RecordHolder } from '~/lib/ui/RecordHolder';
 import { KeyCodes } from '~/lib/ui/KeyCodes';
 import { Rect } from '~/lib/ui/Rect';
 import { FIELD_STYLE, GROUP_STYLE, UiApplication } from '~/lib/ui/UiApplication';
@@ -352,7 +352,7 @@ class UiDatePopup extends UiPageNode {
 }
 
 export class UiDateField extends UiTextNode {
-  private _dataHolder: DataHolder;
+  private _recordHolder: RecordHolder;
 
   /**
    * クローンメソッド
@@ -388,17 +388,17 @@ export class UiDateField extends UiTextNode {
     if (param instanceof UiDateField) {
       super(param as UiDateField);
       let src = param as UiDateField;
-      this._dataHolder = src._dataHolder;
+      this._recordHolder = src._recordHolder;
     } else {
       super(param as UiApplication, name as string);
-      this._dataHolder = UiNode.VOID_DATA_HOLDER;
+      this._recordHolder = UiNode.VOID_REcORD_HOLDER;
     }
   }
 
-  public onDataHolderChanged(holder: DataHolder): UiResult {
+  public onDataHolderChanged(holder: RecordHolder): UiResult {
     let result = UiResult.IGNORED;
-    this._dataHolder = holder;
-    let value = this._dataHolder.getValue(this.dataFieldName);
+    this._recordHolder = holder;
+    let value = this._recordHolder.getValue(this.dataFieldName);
     if (value != null && Types.isValueType(value)) {
       this.textContent = this.formatDate(this.toDate(value as Value));
       result |= UiResult.AFFECTED;
@@ -440,7 +440,7 @@ export class UiDateField extends UiTextNode {
 
   public getValue(): Value {
     let result: Value;
-    let value = this._dataHolder.getValue(this.name);
+    let value = this._recordHolder.getValue(this.name);
     if (value != null && Types.isValueType(value)) {
       result = value as Value;
     } else {
@@ -450,6 +450,6 @@ export class UiDateField extends UiTextNode {
   }
 
   public setValue(value: Value): void {
-    this._dataHolder.setValue(this.name, value);
+    this._recordHolder.setValue(this.name, value);
   }
 }

@@ -4,7 +4,7 @@ import { CssLength } from '~/lib/ui/CssLength';
 import { UiStyle } from '~/lib/ui/UiStyle';
 import type { UiApplication } from '~/lib/ui/UiApplication';
 import { DataRecord, DataSource } from '~/lib/ui/DataSource';
-import { DataHolder } from '~/lib/ui/DataHolder';
+import { RecordHolder } from '~/lib/ui/RecordHolder';
 import { Scrollable } from '~/lib/ui/Scrollable';
 import { UiPageNode } from '~/lib/ui/UiPageNode';
 import { KeyCodes } from '~/lib/ui/KeyCodes';
@@ -125,20 +125,20 @@ export enum UiResult {
   EXIT = 4,
 }
 
-class VoidDataHolder implements DataHolder {
-  getValue(name: string): Value {
+class VoidRecordHolder implements RecordHolder {
+  public getValue(name: string): Value {
     throw new UnsupportedError();
   }
 
-  setValue(name: string, value: Value): void {
+  public setValue(name: string, value: Value): void {
     throw new UnsupportedError();
   }
 
-  getRecord(): DataRecord | null {
+  public getRecord(): DataRecord | null {
     throw new UnsupportedError();
   }
 
-  setReocord(rec: DataRecord): void {
+  public setRecord(rec: DataRecord): void {
     throw new UnsupportedError();
   }
 }
@@ -282,7 +282,7 @@ export class UiNodeSetter extends UiSetter {
  * UiNode
  */
 export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSetter> {
-  public static readonly VOID_DATA_HOLDER: DataHolder = new VoidDataHolder();
+  public static readonly VOID_REcORD_HOLDER: RecordHolder = new VoidRecordHolder();
 
   private _application: UiApplication;
 
@@ -1866,7 +1866,7 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
     return UiResult.IGNORED;
   }
 
-  public onDataHolderChanged(holder: DataHolder): UiResult {
+  public onDataHolderChanged(holder: RecordHolder): UiResult {
     return UiResult.IGNORED;
   }
 

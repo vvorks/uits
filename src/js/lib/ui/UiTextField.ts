@@ -1,5 +1,5 @@
 import { Types, Value } from '~/lib/lang';
-import { DataHolder } from '~/lib/ui/DataHolder';
+import { RecordHolder } from '~/lib/ui/RecordHolder';
 import { KeyCodes } from '~/lib/ui/KeyCodes';
 import { UiKeyboard } from '~/lib/ui/UiKeyboard';
 import { UiNode, UiResult } from '~/lib/ui/UiNode';
@@ -11,7 +11,7 @@ import type { UiApplication } from '~/lib/ui/UiApplication';
  * テキスト入出力フィールド
  */
 export class UiTextField extends UiTextNode {
-  private _dataHolder: DataHolder;
+  private _dataHolder: RecordHolder;
 
   /**
    * クローンメソッド
@@ -50,11 +50,11 @@ export class UiTextField extends UiTextNode {
       this._dataHolder = src._dataHolder;
     } else {
       super(param as UiApplication, name as string);
-      this._dataHolder = UiNode.VOID_DATA_HOLDER;
+      this._dataHolder = UiNode.VOID_REcORD_HOLDER;
     }
   }
 
-  public onDataHolderChanged(holder: DataHolder): UiResult {
+  public onDataHolderChanged(holder: RecordHolder): UiResult {
     let result = UiResult.IGNORED;
     this._dataHolder = holder;
     let value = this._dataHolder.getValue(this.dataFieldName);

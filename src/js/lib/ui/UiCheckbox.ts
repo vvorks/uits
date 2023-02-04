@@ -1,5 +1,5 @@
 import { UiNode, UiResult } from '~/lib/ui/UiNode';
-import { DataHolder } from '~/lib/ui/DataHolder';
+import { RecordHolder } from '~/lib/ui/RecordHolder';
 import { KeyCodes } from '~/lib/ui/KeyCodes';
 import { UiImageNode } from '~/lib/ui/UiImageNode';
 import type { UiApplication } from '~/lib/ui/UiApplication';
@@ -28,7 +28,7 @@ const CHECKBOX_OFF_DATA =
   'MEm4g1sBjLysznmPPH1OlMZIPK1JG+ParDSkB0g1IF/qYCN8VySjHeyclUAAAAAElFTkSuQmCC';
 
 export class UiCheckbox extends UiImageNode {
-  private _dataHolder: DataHolder;
+  private _recordHolder: RecordHolder;
 
   private _value: boolean;
 
@@ -66,18 +66,18 @@ export class UiCheckbox extends UiImageNode {
     if (param instanceof UiCheckbox) {
       super(param as UiCheckbox);
       let src = param as UiCheckbox;
-      this._dataHolder = UiNode.VOID_DATA_HOLDER;
+      this._recordHolder = UiNode.VOID_REcORD_HOLDER;
       this._value = src._value;
     } else {
       super(param as UiApplication, name as string);
-      this._dataHolder = UiNode.VOID_DATA_HOLDER;
+      this._recordHolder = UiNode.VOID_REcORD_HOLDER;
       this._value = false;
     }
   }
 
-  public onDataHolderChanged(holder: DataHolder): UiResult {
-    this._dataHolder = holder;
-    this.value = !!this._dataHolder.getValue(this.dataFieldName);
+  public onDataHolderChanged(holder: RecordHolder): UiResult {
+    this._recordHolder = holder;
+    this.value = !!this._recordHolder.getValue(this.dataFieldName);
     return UiResult.AFFECTED;
   }
 
@@ -89,7 +89,7 @@ export class UiCheckbox extends UiImageNode {
     this._value = on;
     this.imageContent = on ? CHECKBOX_ON_DATA : CHECKBOX_OFF_DATA;
     this.imageWidth = '1rem';
-    this._dataHolder.setValue(this.dataFieldName, this._value);
+    this._recordHolder.setValue(this.dataFieldName, this._value);
     this.onContentChanged();
   }
 

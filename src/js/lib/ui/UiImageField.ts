@@ -1,11 +1,11 @@
 import { Types } from '~/lib/lang';
-import { DataHolder } from '~/lib/ui/DataHolder';
+import { RecordHolder } from '~/lib/ui/RecordHolder';
 import { UiImageNode } from '~/lib/ui/UiImageNode';
 import { UiNode, UiResult } from '~/lib/ui/UiNode';
 import type { UiApplication } from '~/lib/ui/UiApplication';
 
 export class UiImageField extends UiImageNode {
-  private _dataHolder: DataHolder;
+  private _recordHolder: RecordHolder;
 
   /**
    * クローンメソッド
@@ -40,17 +40,17 @@ export class UiImageField extends UiImageNode {
   public constructor(param: any, name?: string) {
     if (param instanceof UiImageField) {
       super(param as UiImageField);
-      this._dataHolder = UiNode.VOID_DATA_HOLDER;
+      this._recordHolder = UiNode.VOID_REcORD_HOLDER;
     } else {
       super(param as UiApplication, name as string);
-      this._dataHolder = UiNode.VOID_DATA_HOLDER;
+      this._recordHolder = UiNode.VOID_REcORD_HOLDER;
     }
   }
 
-  public onDataHolderChanged(holder: DataHolder): UiResult {
+  public onDataHolderChanged(holder: RecordHolder): UiResult {
     let result = UiResult.IGNORED;
-    this._dataHolder = holder;
-    let value = this._dataHolder.getValue(this.dataFieldName);
+    this._recordHolder = holder;
+    let value = this._recordHolder.getValue(this.dataFieldName);
     if (value != null && Types.isValueType(value)) {
       this.imageContent = value;
       result |= UiResult.AFFECTED;

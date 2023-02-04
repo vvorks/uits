@@ -1,7 +1,7 @@
 import type { UiApplication } from '~/lib/ui/UiApplication';
 import { Asserts, Logs, Predicate, Value } from '~/lib/lang';
 import { Colors } from '~/lib/ui/Colors';
-import { DataHolder } from '~/lib/ui/DataHolder';
+import { RecordHolder } from '~/lib/ui/RecordHolder';
 import { DataRecord, DataSource } from '~/lib/ui/DataSource';
 import { KeyCodes } from '~/lib/ui/KeyCodes';
 import { Rect } from '~/lib/ui/Rect';
@@ -39,7 +39,7 @@ class FocusInfo {
 /**
  * レコードノード
  */
-class UiRecord extends UiButton implements DataHolder {
+class UiRecord extends UiButton implements RecordHolder {
   private _index: number;
 
   private _record: DataRecord | null;
@@ -151,7 +151,7 @@ class UiRecord extends UiButton implements DataHolder {
     return this._record;
   }
 
-  public setReocord(rec: DataRecord): void {
+  public setRecord(rec: DataRecord): void {
     this._record = rec;
     this.owner.setRecord(this._record);
   }
