@@ -1,9 +1,16 @@
 import { Strings } from '~/lib/lang/Strings';
+import { ConsoleLogger } from './ConsoleLogger';
+import { LogLevel } from './Logger';
 
+/**
+ * ログ出力ユーティリティ（Facade）
+ */
 export class Logs {
   private static readonly NAME = 'Function.getCaller';
 
   private static readonly DEPTH = 2; //message, error|info|warn|debug|verbose
+
+  private static readonly LOGGERS = [new ConsoleLogger()];
 
   private static getCaller(): string {
     let frame = new Error().stack as string;
@@ -29,7 +36,7 @@ export class Logs {
     return result;
   }
 
-  public static message(type: string, format: string, args: any[]): string {
+  private static message(type: string, format: string, args: any[]): string {
     let now = new Date();
     let message = Strings.sprintf(
       '%02d/%02d %02d:%02d:%02d.%03d %s %s',
@@ -48,26 +55,37 @@ export class Logs {
   }
 
   public static error(format: string, ...args: any[]): void {
-    console.error(Logs.message('E', format, args));
+    const msg = Logs.message('E', format, args);
+    for (const logger of Logs.LOGGERS) {
+      logger.log(LogLevel.ERROR, msg);
+    }
   }
 
   public static warn(format: string, ...args: any[]): void {
-    console.warn(Logs.message('W', format, args));
+    const msg = Logs.message('W', format, args);
+    for (const logger of Logs.LOGGERS) {
+      logger.log(LogLevel.WARN, msg);
+    }
   }
 
   public static info(format: string, ...args: any[]): void {
-    console.info(Logs.message('I', format, args));
+    const msg = Logs.message('I', format, args);
+    for (const logger of Logs.LOGGERS) {
+      logger.log(LogLevel.INFO, msg);
+    }
   }
 
   public static debug(format: string, ...args: any[]): void {
-    console.log(Logs.message('D', format, args));
+    const msg = Logs.message('D', format, args);
+    for (const logger of Logs.LOGGERS) {
+      logger.log(LogLevel.DEBUG, msg);
+    }
   }
 
   public static verbose(format: string, ...args: any[]): void {
-    console.log(Logs.message('V', format, args));
-  }
-
-  public static dump(obj: Object): void {
-    console.log(obj);
+    const msg = Logs.message('V', format, args);
+    for (const logger of Logs.LOGGERS) {
+      logger.log(LogLevel.VERBOSE, msg);
+    }
   }
 }
