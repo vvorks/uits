@@ -9,8 +9,11 @@ import {
   UiListNode,
   UiNode,
   UiScrollNode,
+  UiResult,
+  DataRecord,
 } from '~/lib/ui';
 import { GROUP_STYLE, DEFAULT_STYLE, LIST_STYLE } from '~/app/TestApplication';
+import { Asserts, Logs } from '~/lib/lang';
 
 export class MenuTestPage extends UiPageNode {
   protected initialize(): void {
@@ -37,6 +40,8 @@ export class MenuTestPage extends UiPageNode {
           .dataSource('hiroshige')
           .vertical(false)
           .focusLock(true)
+          .focusable(true)
+          .action((src, tag, arg) => this.check(src, 1, tag, arg))
           .loop(false);
         b.belongs((b) => {
           b.element(new UiNode(app, 'card')).position(0, 0, null, 0, 4, null);
@@ -51,11 +56,12 @@ export class MenuTestPage extends UiPageNode {
           .dataSource('hiroshige')
           .vertical(false)
           .focusLock(true)
+          .action((src, tag, arg) => this.check(src, 2, tag, arg))
           .loop(false);
         b.belongs((b) => {
           b.element(new UiNode(app, 'card')).position(0, 0, null, 0, 4, null);
           b.belongs((b) => {
-            b.element(new UiTextField(app, 'title')).inset(0).style(DEFAULT_STYLE).focusable(true);
+            b.element(new UiTextField(app, 'title')).inset(0).style(DEFAULT_STYLE).focusable(false);
           });
         });
         //list3
@@ -65,11 +71,13 @@ export class MenuTestPage extends UiPageNode {
           .dataSource('hiroshige')
           .vertical(false)
           .focusLock(true)
+          .focusable(true)
+          .action((src, tag, arg) => this.check(src, 3, tag, arg))
           .loop(false);
         b.belongs((b) => {
           b.element(new UiNode(app, 'card')).position(0, 0, null, 0, 4, null);
           b.belongs((b) => {
-            b.element(new UiTextField(app, 'title')).inset(0).style(DEFAULT_STYLE).focusable(true);
+            b.element(new UiTextField(app, 'title')).inset(0).style(DEFAULT_STYLE).focusable(false);
           });
         });
       });
@@ -98,6 +106,18 @@ export class MenuTestPage extends UiPageNode {
         b.element(new UiMenuItem(app, 'void')).position(0, 0, 0, null, null, 6).style(GROUP_STYLE);
       });
     });
+  }
+
+  private check(src: UiNode, no: number, tag: string, arg?: any): UiResult {
+    let result = UiResult.IGNORED;
+    switch (tag) {
+      case 'click':
+        let rec = arg as DataRecord;
+        Logs.debug('src %s list %d rec %s', src.getNodePath(), no, JSON.stringify(rec));
+        result = UiResult.CONSUMED;
+        break;
+    }
+    return result;
   }
 
   protected afterMount(): void {

@@ -12,6 +12,7 @@ import { UiStyle, UiStyleBuilder } from '~/lib/ui/UiStyle';
 import { HasSetter } from '~/lib/ui/UiBuilder';
 import { UiScrollNode, UiScrollNodeSetter } from '~/lib/ui/UiScrollNode';
 import { UiAxis } from './UiAxis';
+import { UiButton } from './UiButton';
 
 /**
  * レコードノード用スタイル
@@ -38,7 +39,7 @@ class FocusInfo {
 /**
  * レコードノード
  */
-class UiRecord extends UiNode implements DataHolder {
+class UiRecord extends UiButton implements DataHolder {
   private _index: number;
 
   private _record: DataRecord | null;
@@ -173,6 +174,14 @@ class UiRecord extends UiNode implements DataHolder {
     }
     return new Rect(this.getRect());
   }
+
+  protected doAction(): UiResult {
+    if (this._record != null) {
+      return this.owner.onRecordClicked(this._record);
+    } else {
+      return UiResult.IGNORED;
+    }
+  }
 }
 
 /**
@@ -288,10 +297,6 @@ export class UiListNode extends UiScrollNode implements HasSetter<UiListNodeSett
     return UiListNodeSetter.INSTANCE;
   }
 
-  public get focusable(): boolean {
-    return super.getFlag(Flags.FOCUSABLE) || this.itemFocusable();
-  }
-
   private itemFocusable(): boolean {
     if (this._template != null) {
       let app = this.application;
@@ -317,6 +322,7 @@ export class UiListNode extends UiScrollNode implements HasSetter<UiListNodeSett
 
   protected initialize(): void {
     this._template = this.makeTemplate();
+    this._template.focusable = !this.itemFocusable();
   }
 
   public beforeMount(): void {
@@ -862,5 +868,9 @@ export class UiListNode extends UiScrollNode implements HasSetter<UiListNodeSett
       dy = 0;
     }
     return this.scrollInside(dx, dy);
+  }
+
+  public onRecordClicked(rec: DataRecord): UiResult {
+    return this.fireActionEvent('click', rec);
   }
 }

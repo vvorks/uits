@@ -174,7 +174,7 @@ class UiDateNode extends UiTextButton {
     }
   }
 
-  public doAction(): UiResult {
+  protected doAction(): UiResult {
     if (!Dates.isSameMonth(this._month, this._date)) {
       this.fireActionEvent('changeTo', this._date);
     } else {

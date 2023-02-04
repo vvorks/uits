@@ -1,19 +1,15 @@
-import { KeyCodes } from '~/lib/ui/KeyCodes';
-import { UiNode, UiResult } from '~/lib/ui/UiNode';
-import { UiTextNode } from '~/lib/ui/UiTextNode';
-import type { UiApplication } from '~/lib/ui/UiApplication';
+import { KeyCodes } from './KeyCodes';
+import type { UiApplication } from './UiApplication';
+import { UiNode, UiResult } from './UiNode';
 
-/**
- * テキストボタン
- */
-export class UiTextButton extends UiTextNode {
+export class UiButton extends UiNode {
   /**
    * クローンメソッド
    *
    * @returns 複製
    */
-  public clone(): UiTextButton {
-    return new UiTextButton(this);
+  public clone(): UiButton {
+    return new UiButton(this);
   }
 
   /**
@@ -29,7 +25,7 @@ export class UiTextButton extends UiTextNode {
    *
    * @param src 複製元
    */
-  constructor(src: UiTextButton);
+  constructor(src: UiButton);
 
   /**
    * コンストラクタ実装
@@ -38,8 +34,8 @@ export class UiTextButton extends UiTextNode {
    * @param name 第二パラメータ
    */
   public constructor(param: any, name?: string) {
-    if (param instanceof UiTextButton) {
-      super(param as UiTextButton);
+    if (param instanceof UiButton) {
+      super(param as UiButton);
     } else {
       super(param as UiApplication, name as string);
     }
