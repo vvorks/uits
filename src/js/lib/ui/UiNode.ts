@@ -1,4 +1,4 @@
-import { Asserts, Clonable, Predicate, UnsupportedError, Value } from '~/lib/lang';
+import { Asserts, Clonable, Logs, Predicate, UnsupportedError, Value } from '~/lib/lang';
 import { Rect } from '~/lib/ui/Rect';
 import { CssLength } from '~/lib/ui/CssLength';
 import { UiStyle } from '~/lib/ui/UiStyle';
@@ -840,9 +840,15 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
     }
   }
 
+  public checkActionListener() {
+    Logs.debug('actionListeer count %d', this._actionListeners.length);
+  }
+
   protected fireActionEvent(action: string, param?: any): UiResult {
     let result = UiResult.IGNORED;
+    Logs.debug('kata1?');
     for (let func of this._actionListeners) {
+      Logs.debug('kata2?');
       result |= func(this, action, param);
     }
     return result;

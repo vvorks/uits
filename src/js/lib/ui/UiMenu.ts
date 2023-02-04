@@ -131,9 +131,8 @@ export class UiMenuItem extends UiNode implements DataHolder {
     let type: FieldType = this._record[FIELD_TYPE] as FieldType;
     if (this.isTriggerKey(modKey)) {
       if (type == 'launch') {
-        if (this._record[FIELD_CONTENT] != null) {
-          result = this.owner.changeContent(this, this._record[FIELD_CONTENT] as string);
-        }
+        result |= this.fireActionEvent('select', this._record);
+        result |= this.owner.selectMenuItem(this, this._record);
       } else if (type == 'branch') {
         if (this._record[FIELD_SUBMENU] != null) {
           result = this.owner.forwardSubmenu(this, this._record[FIELD_SUBMENU] as string);
@@ -235,6 +234,7 @@ class UiMenuBlock extends UiNode {
       let node = this.owner.getTemplateByName(template);
       if (node != null) {
         let item = (node as UiMenuItem).clone();
+        item.checkActionListener();
         item.index = i;
         let type = rec[FIELD_TYPE] as FieldType;
         item.focusable = type != 'filler' ? true : false;
@@ -318,11 +318,6 @@ class UiMenuBlock extends UiNode {
  */
 export class UiMenuSetter extends UiNodeSetter {
   public static readonly INSTANCE = new UiMenuSetter();
-  public contentNode(path: string): this {
-    let node = this.node as UiMenu;
-    node.contentNodePath = path;
-    return this;
-  }
 
   public spacing(value: Size | null): this {
     let node = this.node as UiMenu;
@@ -352,8 +347,6 @@ export class UiMenu extends UiNode implements HasSetter<UiMenuSetter> {
   private _extensionSizes: CssLength[];
 
   private _template: UiNode | null;
-
-  private _contentNodePath: string | null;
 
   private _shrinkWidth: number;
 
@@ -406,7 +399,6 @@ export class UiMenu extends UiNode implements HasSetter<UiMenuSetter> {
       super(param as UiMenu);
       let src = param as UiMenu;
       this._template = src._template;
-      this._contentNodePath = src._contentNodePath;
       this._extentionDsNames = src._extentionDsNames;
       this._extensionSizes = src._extensionSizes;
       this._shrinkWidth = src._shrinkWidth;
@@ -420,7 +412,6 @@ export class UiMenu extends UiNode implements HasSetter<UiMenuSetter> {
     } else {
       super(param as UiApplication, name as string);
       this._template = null;
-      this._contentNodePath = null;
       this._extentionDsNames = [];
       this._extensionSizes = [new CssLength(0)];
       this._shrinkWidth = 0;
@@ -469,14 +460,6 @@ export class UiMenu extends UiNode implements HasSetter<UiMenuSetter> {
 
   public get levels(): number {
     return Math.floor(Math.sqrt(this._extensionSizes.length));
-  }
-
-  public get contentNodePath(): string | null {
-    return this._contentNodePath;
-  }
-
-  public set contentNodePath(path: string | null) {
-    this._contentNodePath = path;
   }
 
   public get spacing(): string | null {
@@ -669,24 +652,15 @@ export class UiMenu extends UiNode implements HasSetter<UiMenuSetter> {
     return spacing;
   }
 
-  public changeContent(caller: UiMenuItem, content: string): UiResult {
+  public selectMenuItem(caller: UiMenuItem, item: DataRecord): UiResult {
     let app = this.application;
     let result = UiResult.IGNORED;
     //save focus
     this._focusItems[this._currentLevel - 1] = caller;
-    //invoke content
-    if (this._contentNodePath != null) {
-      let contentNode = this.findNodeByPath(this._contentNodePath);
-      if (contentNode != null) {
-        (contentNode as UiTextNode).textContent = content; //TODO kari
-        this.application.setFocus(contentNode);
-        result = UiResult.EATEN;
-      }
-    }
-    //TODO 仮
+    //resume focus
     if (this._commingNode != null) {
       app.setFocus(this._commingNode);
-      result = UiResult.EATEN;
+      result |= UiResult.EATEN;
     }
     return result;
   }
@@ -713,7 +687,6 @@ export class UiMenu extends UiNode implements HasSetter<UiMenuSetter> {
       this._showNextLevel = 0;
       if (this._focusItems[this._currentLevel - 1] == null) {
         let block = this.getBlock(this._currentLevel);
-        //let firstFocus = block.getChildAt(0); //Arrays.first(block.getFocusableChildrenIf((e) => true, 1, []));
         let firstFocus = Arrays.first(block.getFocusableChildrenIf((e) => true, 1, []));
         this._focusItems[this._currentLevel - 1] = firstFocus as UiMenuItem;
       }

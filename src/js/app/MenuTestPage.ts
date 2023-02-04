@@ -41,7 +41,7 @@ export class MenuTestPage extends UiPageNode {
           .vertical(false)
           .focusLock(true)
           .focusable(true)
-          .action((src, tag, arg) => this.check(src, 1, tag, arg))
+          .action((src, tag, arg) => this.onListClicked(1, tag, arg))
           .loop(false);
         b.belongs((b) => {
           b.element(new UiNode(app, 'card')).position(0, 0, null, 0, 4, null);
@@ -56,7 +56,8 @@ export class MenuTestPage extends UiPageNode {
           .dataSource('hiroshige')
           .vertical(false)
           .focusLock(true)
-          .action((src, tag, arg) => this.check(src, 2, tag, arg))
+          .focusable(true)
+          .action((src, tag, arg) => this.onListClicked(2, tag, arg))
           .loop(false);
         b.belongs((b) => {
           b.element(new UiNode(app, 'card')).position(0, 0, null, 0, 4, null);
@@ -72,7 +73,7 @@ export class MenuTestPage extends UiPageNode {
           .vertical(false)
           .focusLock(true)
           .focusable(true)
-          .action((src, tag, arg) => this.check(src, 3, tag, arg))
+          .action((src, tag, arg) => this.onListClicked(3, tag, arg))
           .loop(false);
         b.belongs((b) => {
           b.element(new UiNode(app, 'card')).position(0, 0, null, 0, 4, null);
@@ -88,8 +89,7 @@ export class MenuTestPage extends UiPageNode {
         .extentionSizes(['256px', '0px', '0px', '256px'])
         .extentionDsNames(['menu', 'menuNext'])
         .spacing(1)
-        .focusable(true)
-        .contentNode('/content');
+        .focusable(true);
       b.belongs((b) => {
         b.element(new UiMenuItem(app, 'node'))
           .position(0, 0, 0, null, null, 2)
@@ -99,7 +99,8 @@ export class MenuTestPage extends UiPageNode {
         });
         b.element(new UiMenuItem(app, 'leaf'))
           .position(0, 0, 0, null, null, 2)
-          .style(DEFAULT_STYLE);
+          .style(DEFAULT_STYLE)
+          .action((src, tag, param) => this.onMenuClicked(1, tag, param));
         b.belongs((b) => {
           b.element(new UiTextField(app, 'title')).inset(0).style(DEFAULT_STYLE);
         });
@@ -108,12 +109,26 @@ export class MenuTestPage extends UiPageNode {
     });
   }
 
-  private check(src: UiNode, no: number, tag: string, arg?: any): UiResult {
+  private onListClicked(no: number, tag: string, arg?: any): UiResult {
     let result = UiResult.IGNORED;
     switch (tag) {
       case 'click':
         let rec = arg as DataRecord;
-        Logs.debug('src %s list %d rec %s', src.getNodePath(), no, JSON.stringify(rec));
+        Logs.debug('list %d rec %s', no, JSON.stringify(rec));
+        result = UiResult.CONSUMED;
+        break;
+    }
+    return result;
+  }
+
+  private onMenuClicked(no: number, tag: string, arg?: any): UiResult {
+    let result = UiResult.IGNORED;
+    switch (tag) {
+      case 'select':
+        let rec = arg as DataRecord;
+        Logs.debug('menu %d rec %s', no, JSON.stringify(rec));
+        let contentNode = this.findNodeByPath('content') as UiTextNode;
+        contentNode.textContent = rec['content'] as string;
         result = UiResult.CONSUMED;
         break;
     }
