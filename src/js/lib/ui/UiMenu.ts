@@ -94,7 +94,7 @@ export class UiMenuItem extends UiNode implements RecordHolder {
   public setRecord(rec: DataRecord): void {
     this._record = rec;
     for (let c of this.getDescendants()) {
-      c.onDataHolderChanged(this);
+      c.onRecordHolderChanged(this);
     }
   }
 

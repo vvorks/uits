@@ -63,7 +63,7 @@ export class UiIndicatorField extends UiIndicatorNode {
    * @param holder データホルダー（実態は例えばUiListNode中のUiRecordオブジェクト）
    * @returns データを受け取り、表示を更新する場合、UiResult.AFFECTEDを返す
    */
-  public onDataHolderChanged(holder: RecordHolder): UiResult {
+  public onRecordHolderChanged(holder: RecordHolder): UiResult {
     let result = UiResult.IGNORED;
     this._recordHolder = holder;
     let value = this._recordHolder.getValue(this.dataFieldName);

@@ -54,7 +54,7 @@ export class UiTextField extends UiTextNode {
     }
   }
 
-  public onDataHolderChanged(holder: RecordHolder): UiResult {
+  public onRecordHolderChanged(holder: RecordHolder): UiResult {
     let result = UiResult.IGNORED;
     this._dataHolder = holder;
     let value = this._dataHolder.getValue(this.dataFieldName);

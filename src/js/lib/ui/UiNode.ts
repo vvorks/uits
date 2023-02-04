@@ -1866,7 +1866,7 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
     return UiResult.IGNORED;
   }
 
-  public onDataHolderChanged(holder: RecordHolder): UiResult {
+  public onRecordHolderChanged(holder: RecordHolder): UiResult {
     return UiResult.IGNORED;
   }
 

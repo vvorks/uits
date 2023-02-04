@@ -74,7 +74,7 @@ export class UiImageLookupField extends UiImageNode implements HasSetter<UiImage
     this._lookupTable = table;
   }
 
-  public onDataHolderChanged(holder: RecordHolder): UiResult {
+  public onRecordHolderChanged(holder: RecordHolder): UiResult {
     let result = UiResult.IGNORED;
     this._recordHolder = holder;
     let value = this._recordHolder.getValue(this.dataFieldName);

@@ -97,7 +97,7 @@ export class UiRadio extends UiImageNode {
     }
   }
 
-  public onDataHolderChanged(holder: RecordHolder): UiResult {
+  public onRecordHolderChanged(holder: RecordHolder): UiResult {
     this._recordHolder = holder;
     this.value = this._recordHolder.getValue(this.dataFieldName) as Value;
     return UiResult.AFFECTED;

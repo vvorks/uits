@@ -120,7 +120,7 @@ class UiRecord extends UiButton implements RecordHolder {
     this._index = newIndex;
     this._record = newIndex < 0 ? null : this.owner.getRecord(newIndex);
     for (let c of this.getDescendants()) {
-      c.onDataHolderChanged(this);
+      c.onRecordHolderChanged(this);
     }
   }
 
@@ -140,7 +140,7 @@ class UiRecord extends UiButton implements RecordHolder {
       this._record[name] = value;
       if (this._sharedNames.has(name)) {
         for (let c of this.getDescendantsIf((e) => e.dataFieldName == name)) {
-          c.onDataHolderChanged(this);
+          c.onRecordHolderChanged(this);
         }
       }
       this.owner.setRecord(this._record);

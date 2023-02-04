@@ -395,7 +395,7 @@ export class UiDateField extends UiTextNode {
     }
   }
 
-  public onDataHolderChanged(holder: RecordHolder): UiResult {
+  public onRecordHolderChanged(holder: RecordHolder): UiResult {
     let result = UiResult.IGNORED;
     this._recordHolder = holder;
     let value = this._recordHolder.getValue(this.dataFieldName);

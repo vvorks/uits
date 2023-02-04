@@ -64,7 +64,7 @@ class UiLookupItem extends UiTextNode {
     }
   }
 
-  public onDataHolderChanged(holder: RecordHolder): UiResult {
+  public onRecordHolderChanged(holder: RecordHolder): UiResult {
     let result = UiResult.IGNORED;
     this._recordHolder = holder;
     let rec = this._recordHolder.getRecord();
@@ -243,7 +243,7 @@ export class UiLookupField extends UiTextNode {
     }
   }
 
-  public onDataHolderChanged(holder: RecordHolder): UiResult {
+  public onRecordHolderChanged(holder: RecordHolder): UiResult {
     this._dataHolder = holder;
     let value = this._dataHolder.getValue(this.dataFieldName) as DataRecord;
     if (value != null) {
