@@ -1,19 +1,18 @@
-import { Logs, Properties } from '~/lib/lang';
 import { Colors } from '~/lib/ui/Colors';
 import { KeyCodes } from '~/lib/ui/KeyCodes';
 import { Rect } from '~/lib/ui/Rect';
-import { FIELD_STYLE, GROUP_STYLE, UiApplication } from '~/lib/ui/UiApplication';
+import { GROUP_STYLE, UiApplication } from '~/lib/ui/UiApplication';
 import { UiDeckNode } from '~/lib/ui/UiDeckNode';
 import { UiNode, UiResult } from '~/lib/ui/UiNode';
 import { UiBuilder } from '~/lib/ui/UiBuilder';
 import { UiPageNode } from '~/lib/ui/UiPageNode';
 import { UiStyle, UiStyleBuilder } from '~/lib/ui/UiStyle';
-import { UiTextField } from '~/lib/ui/UiTextField';
 import { UiTextNode } from '~/lib/ui/UiTextNode';
+import { UiEditNode } from './UiEditNode';
 
 const KEYTOP_SIZE = 24;
 const KEYTOP_SPACING = 4;
-const EDITAREA_HEIGHT = 30;
+const KKC = false;
 
 const KEYTOP_STYLE: UiStyle = new UiStyleBuilder()
   .textColor(Colors.BLACK)
@@ -30,8 +29,6 @@ const KEYTOP_FOCUS: UiStyle = new UiStyleBuilder()
   .textColor(Colors.WHITE)
   .backgroundColor(Colors.BLUE)
   .build();
-
-const NBSP = '\u00A0';
 
 const YEN = '\u00A5';
 
@@ -158,406 +155,6 @@ class UiKeytop extends UiTextNode {
     let kbd = this.getPageNode() as UiKeyboard;
     this._info.action(kbd);
     return UiResult.EATEN;
-  }
-}
-
-class UiEditArea extends UiNode {
-  private static readonly VIRTUAL_WIDTH = 16384;
-
-  /** 濁音、半濁音、小文字変換テーブル */
-  private static readonly VOICE_MAP: Properties<string> = {
-    あ: 'ぁ',
-    い: 'ぃ',
-    う: 'ぅ',
-    え: 'ぇ',
-    お: 'ぉ',
-    ぁ: 'あ',
-    ぃ: 'い',
-    ぅ: 'う',
-    ぇ: 'え',
-    ぉ: 'お',
-
-    か: 'が',
-    き: 'ぎ',
-    く: 'ぐ',
-    け: 'げ',
-    こ: 'ご',
-    が: 'か',
-    ぎ: 'き',
-    ぐ: 'く',
-    げ: 'け',
-    ご: 'こ',
-
-    さ: 'ざ',
-    し: 'じ',
-    す: 'ず',
-    せ: 'ぜ',
-    そ: 'ぞ',
-    ざ: 'さ',
-    じ: 'し',
-    ず: 'す',
-    ぜ: 'せ',
-    ぞ: 'そ',
-
-    た: 'だ',
-    ち: 'ぢ',
-    て: 'で',
-    と: 'ど',
-    だ: 'た',
-    ぢ: 'ち',
-    で: 'て',
-    ど: 'と',
-    つ: 'っ',
-    っ: 'づ',
-    づ: 'つ',
-
-    は: 'ば',
-    ひ: 'び',
-    ふ: 'ぶ',
-    へ: 'べ',
-    ほ: 'ぼ',
-    ば: 'ぱ',
-    び: 'ぴ',
-    ぶ: 'ぷ',
-    べ: 'ぺ',
-    ぼ: 'ぽ',
-    ぱ: 'は',
-    ぴ: 'ひ',
-    ぷ: 'ふ',
-    ぺ: 'へ',
-    ぽ: 'ほ',
-
-    や: 'ゃ',
-    ゆ: 'ゅ',
-    よ: 'ょ',
-    ゃ: 'や',
-    ゅ: 'ゆ',
-    ょ: 'よ',
-
-    わ: 'ゎ',
-    ゎ: 'わ',
-
-    ア: 'ァ',
-    イ: 'ィ',
-    エ: 'ェ',
-    オ: 'ォ',
-    ァ: 'ア',
-    ィ: 'イ',
-    ェ: 'エ',
-    ォ: 'オ',
-    キ: 'ギ',
-    ク: 'グ',
-    コ: 'ゴ',
-    ギ: 'キ',
-    グ: 'ク',
-    ゴ: 'コ',
-
-    ウ: 'ヴ',
-    ヴ: 'ゥ',
-    ゥ: 'ウ',
-    カ: 'ガ',
-    ガ: 'ヵ',
-    ヵ: 'カ',
-    ケ: 'ゲ',
-    ゲ: 'ヶ',
-    ヶ: 'ケ',
-
-    サ: 'ザ',
-    シ: 'ジ',
-    ス: 'ズ',
-    セ: 'ゼ',
-    ソ: 'ゾ',
-    ザ: 'サ',
-    ジ: 'シ',
-    ズ: 'ス',
-    ゼ: 'セ',
-    ゾ: 'ソ',
-
-    タ: 'ダ',
-    チ: 'ヂ',
-    テ: 'デ',
-    ト: 'ド',
-    ダ: 'タ',
-    ヂ: 'チ',
-    デ: 'テ',
-    ド: 'ト',
-    ツ: 'ッ',
-    ッ: 'ヅ',
-    ヅ: 'ツ',
-
-    ハ: 'バ',
-    ヒ: 'ビ',
-    フ: 'ブ',
-    ヘ: 'ベ',
-    ホ: 'ボ',
-    バ: 'パ',
-    ビ: 'ピ',
-    ブ: 'プ',
-    ベ: 'ペ',
-    ボ: 'ポ',
-    パ: 'ハ',
-    ピ: 'ヒ',
-    プ: 'フ',
-    ペ: 'ヘ',
-    ポ: 'ホ',
-
-    ヤ: 'ャ',
-    ユ: 'ュ',
-    ヨ: 'ョ',
-    ャ: 'ヤ',
-    ュ: 'ユ',
-    ョ: 'ヨ',
-
-    ワ: 'ヮ',
-    ヮ: 'ワ',
-  };
-
-  private _textContent: string;
-  private _editStart: number;
-  private _editEnd: number;
-  private _cursorPos: number;
-
-  private _divLeft: number;
-
-  /**
-   * クローンメソッド
-   *
-   * @returns 複製
-   */
-  public clone(): UiEditArea {
-    return new UiEditArea(this);
-  }
-
-  /**
-   * 通常コンストラクタ
-   *
-   * @param app アプリケーション
-   * @param name ノード名
-   */
-  constructor(app: UiApplication, name: string);
-
-  /**
-   * コピーコンストラクタ
-   *
-   * @param src 複製元
-   */
-  constructor(src: UiEditArea);
-
-  /**
-   * コンストラクタ実装
-   *
-   * @param param 第一パラメータ
-   * @param name 第二パラメータ
-   */
-  public constructor(param: any, name?: string) {
-    if (param instanceof UiEditArea) {
-      super(param as UiEditArea);
-      let src = param as UiEditArea;
-      this._textContent = src._textContent;
-      this._editStart = src._editStart;
-      this._editEnd = src._editEnd;
-      this._cursorPos = src._cursorPos;
-      this._divLeft = src._divLeft;
-    } else {
-      super(param as UiApplication, name as string);
-      this._textContent = '';
-      this._editStart = 0;
-      this._editEnd = 0;
-      this._cursorPos = 0;
-      this._divLeft = 0;
-    }
-  }
-
-  protected createDomElement(target: UiNode, tag: string): HTMLElement {
-    let border = this.getBorderSize();
-    let dom = super.createDomElement(target, tag);
-    let div = document.createElement('div');
-    let style = div.style;
-    style.position = 'absolute';
-    style.left = `${border.left - this._divLeft}px`;
-    style.width = `${UiEditArea.VIRTUAL_WIDTH}px`;
-    style.top = `${border.top}px`;
-    style.bottom = `${border.bottom}px`;
-    dom.appendChild(div);
-    return dom;
-  }
-
-  protected renderContent(): void {
-    //スタイル取得
-    let defaultStyle = this.style.getEffectiveStyle(this);
-    let editingStyle = defaultStyle.getConditionalStyle('FOCUS');
-    let editingFore;
-    let editingBack;
-    if (editingStyle == null) {
-      editingFore = Colors.BLUE;
-      editingBack = defaultStyle.backgroundColor;
-    } else {
-      editingFore = editingStyle.textColor;
-      editingBack = editingStyle.backgroundColor;
-    }
-    //文字列追加処理初期処理
-    let text = this._textContent;
-    let sb = '';
-    let cursorId = this.id + '-cursor';
-    //編集領域前文字列
-    if (0 < this._editStart) {
-      sb += text.substring(0, this._editStart);
-    }
-    //編集領域SPAN
-    if (this._editStart < this._editEnd) {
-      //編集領域SPAN開始
-      sb += `<span style="color:${editingFore};background-color:${editingBack}">`;
-      //編集領域～カーソル位置までのテキスト追加
-      if (this._editStart < this._cursorPos) {
-        sb += text.substring(this._editStart, this._cursorPos);
-      }
-      //編集領域中のカーソル先頭文字をカーソル色反転で追加
-      if (this._cursorPos < this._editEnd) {
-        sb += `<span id="${cursorId}" style="color:${editingBack};background-color:${editingFore}">`;
-        sb += text.substring(this._cursorPos, this._cursorPos + 1);
-        sb += '</span>';
-        //編集領域中のカーソル以降を追加
-        if (this._cursorPos + 1 < this._editEnd) {
-          sb += text.substring(this._cursorPos + 1, this._editEnd);
-        }
-      }
-      //編集領域終了タグ追加
-      sb += '</span>';
-    }
-    if (this._cursorPos < this._editEnd) {
-      //カーソルが編集領域内にある場合
-      if (this._editEnd < text.length) {
-        //編集領域以降の文字列を追加
-        sb += text.substring(this._editEnd);
-      }
-    } else if (this._cursorPos < text.length) {
-      //カーソルがデータ末尾でない場合
-      sb += `<span id="${cursorId}" style="color:${editingBack};background-color:${editingFore}">`;
-      sb += text.substring(this._cursorPos, this._cursorPos + 1);
-      sb += '</span>';
-      if (this._cursorPos + 1 < text.length) {
-        sb += text.substring(this._cursorPos + 1);
-      }
-    } else {
-      //カーソルがデータ末尾なので、ダミー文字を追加挿入
-      sb += text.substring(this._editEnd);
-      sb += `<span id="${cursorId}" style="color:${editingFore};background-color:${editingFore}">`;
-      sb += NBSP;
-    }
-    //DOMノード更新
-    let dom = this.domElement as HTMLElement;
-    let div = dom.firstChild as HTMLDivElement;
-    let cssStyle = div.style;
-    cssStyle.textAlign = 'left';
-    cssStyle.bottom = defaultStyle.borderBottom;
-    div.innerHTML = sb;
-    //スクロール処理
-    this.application.runFinally(() => {
-      let cursorSpan = document.getElementById(cursorId) as HTMLSpanElement;
-      this.ensureCursorVisible(cursorSpan.offsetLeft, cursorSpan.offsetWidth);
-    });
-  }
-
-  private ensureCursorVisible(cursorLeft: number, cursorWidth: number): void {
-    let border = this.getBorderSize();
-    let dom = this.domElement as HTMLElement;
-    let div = dom.firstChild as HTMLDivElement;
-    let style = div.style;
-    let width = this.innerWidth;
-    let left = this._divLeft;
-    if (left > cursorLeft) {
-      left = cursorLeft;
-    } else if (left + width < cursorLeft + cursorWidth + border.right) {
-      left = cursorLeft + cursorWidth + border.right - width;
-    }
-    left = Math.min(Math.max(0, left), UiEditArea.VIRTUAL_WIDTH - width);
-    if (this._divLeft != left) {
-      this._divLeft = left;
-      style.left = `${border.left - this._divLeft}px`;
-    }
-  }
-
-  public reset(text: string): void {
-    this._textContent = text;
-    this._cursorPos = text.length;
-    this._editStart = text.length;
-    this._editEnd = text.length;
-    this.onContentChanged();
-  }
-
-  public append(text: string): void {
-    if (this._cursorPos < this._textContent.length) {
-      this._textContent =
-        this._textContent.substring(0, this._cursorPos) +
-        text +
-        this._textContent.substring(this._cursorPos);
-    } else {
-      this._textContent += text;
-    }
-    this._cursorPos += text.length;
-    this._editEnd += text.length;
-    this.onContentChanged();
-  }
-
-  public modifyLastChar(): void {
-    if (this._cursorPos > 0) {
-      let lastChar = this._textContent.substring(this._cursorPos - 1, this._cursorPos);
-      let modified = UiEditArea.VOICE_MAP[lastChar];
-      if (modified !== undefined) {
-        this._textContent =
-          this._textContent.substring(0, this._cursorPos - 1) +
-          modified +
-          this._textContent.substring(this._cursorPos);
-        this.onContentChanged();
-      }
-    }
-  }
-
-  public backspace(): void {
-    if (this._cursorPos > 0) {
-      this._textContent =
-        this._textContent.substring(0, this._cursorPos - 1) +
-        this._textContent.substring(this._cursorPos);
-      this._editEnd--;
-      this._cursorPos--;
-      this._editStart = Math.min(this._editStart, this._cursorPos);
-      this.onContentChanged();
-    }
-  }
-
-  public moveCursor(dir: number): void {
-    if (this._editStart < this._editEnd) {
-      let delta =
-        Math.min(Math.max(this._editStart, this._cursorPos + dir), this._editEnd) - this._cursorPos;
-      if (delta != 0) {
-        this._cursorPos += delta;
-        this.onContentChanged();
-      }
-    } else {
-      let delta =
-        Math.min(Math.max(0, this._cursorPos + dir), this._textContent.length) - this._cursorPos;
-      if (delta != 0) {
-        this._cursorPos += delta;
-        this._editStart += delta;
-        this._editEnd += delta;
-        this.onContentChanged();
-      }
-    }
-  }
-
-  public confirm(): UiResult {
-    if (this._editStart == this._editEnd) {
-      return UiResult.IGNORED;
-    } else {
-      this._editStart = this._editEnd;
-      this._cursorPos = this._editEnd;
-      this.onContentChanged();
-      return UiResult.AFFECTED;
-    }
-  }
-
-  public get textContent(): string {
-    return this._textContent;
   }
 }
 
@@ -701,13 +298,13 @@ export class UiKeyboard extends UiPageNode {
     new KeyInfo('▶', null, 4, 12, 1, 1, (kb, ki) => kb.doMove(+1)),
   ];
 
-  private _owner: UiTextField;
+  private _owner: UiEditNode;
 
   private _shift: boolean;
 
-  constructor(app: UiApplication, name: string, owner: UiTextField);
+  constructor(app: UiApplication, name: string, owner: UiEditNode);
   constructor(src: UiKeyboard);
-  public constructor(param: any, name?: string, owner?: UiTextField) {
+  public constructor(param: any, name?: string, owner?: UiEditNode) {
     if (param instanceof UiKeyboard) {
       super(param as UiKeyboard);
       let src = param as UiKeyboard;
@@ -715,7 +312,7 @@ export class UiKeyboard extends UiPageNode {
       this._shift = src._shift;
     } else {
       super(param as UiApplication, name as string);
-      this._owner = owner as UiTextField;
+      this._owner = owner as UiEditNode;
       this._shift = false;
     }
   }
@@ -735,17 +332,13 @@ export class UiKeyboard extends UiPageNode {
       maxWidth = Math.max(maxWidth, r.right + KEYTOP_SPACING);
       maxHeight = Math.max(maxHeight, r.bottom + KEYTOP_SPACING);
     }
-    maxHeight += EDITAREA_HEIGHT + KEYTOP_SPACING; //for input area
+    maxHeight += KEYTOP_SPACING;
     //キーボード作成
     let b = new UiBuilder('1px');
     b.element(this).style(GROUP_STYLE);
     b.belongs((b) => {
-      //入力表示領域
-      b.element(new UiEditArea(app, 'edit'))
-        .position(KEYTOP_SPACING, KEYTOP_SPACING, KEYTOP_SPACING, null, null, EDITAREA_HEIGHT)
-        .style(FIELD_STYLE);
       //キーボード領域
-      b.element(new UiDeckNode(app, 'deck')).inset(0, KEYTOP_SPACING + EDITAREA_HEIGHT, 0, 0);
+      b.element(new UiDeckNode(app, 'deck')).inset(0, KEYTOP_SPACING, 0, 0);
       b.belongs((b) => {
         //日本語キーボード領域
         b.element(new UiNode(app, 'ja')).inset(0).style(GROUP_STYLE);
@@ -779,40 +372,30 @@ export class UiKeyboard extends UiPageNode {
     this.height = `${maxHeight}px`;
   }
 
-  protected afterMount(): void {
-    //初期データ設定
-    let value = this._owner.getValue();
-    Logs.debug('initial value is %s', value);
-    let editArea = this.findNodeByPath('edit') as UiEditArea;
-    editArea.reset(this.escapeString(value));
-  }
-
-  private escapeString(s: string): string {
-    return s.replace(new RegExp(' ', 'g'), NBSP);
-  }
-
-  private unescapeString(s: string): string {
-    return s.replace(new RegExp(NBSP, 'g'), ' ');
-  }
-
   private doInput(info: KeyInfo): void {
-    let editArea = this.findNodeByPath('edit') as UiEditArea;
-    editArea.append(this._shift && info.caps != null ? info.caps : info.text);
+    let editArea = this._owner;
+    editArea.editAppend(this._shift && info.caps != null ? info.caps : info.text);
+    if (!KKC) {
+      editArea.editConfirm();
+    }
   }
 
   private doModify(): void {
-    let editArea = this.findNodeByPath('edit') as UiEditArea;
-    editArea.modifyLastChar();
+    let editArea = this._owner;
+    editArea.editModifyLastChar();
   }
 
   private doSpace(): void {
-    let editArea = this.findNodeByPath('edit') as UiEditArea;
-    editArea.append(NBSP);
+    let editArea = this._owner;
+    editArea.editAppend(' ');
+    if (!KKC) {
+      editArea.editConfirm();
+    }
   }
 
   private doBackspace(): void {
-    let editArea = this.findNodeByPath('edit') as UiEditArea;
-    editArea.backspace();
+    let editArea = this._owner;
+    editArea.editBackspace();
   }
 
   private doSelect(locale: string): void {
@@ -821,12 +404,10 @@ export class UiKeyboard extends UiPageNode {
   }
 
   private doEnter(): void {
-    let editArea = this.findNodeByPath('edit') as UiEditArea;
-    let result = editArea.confirm();
+    let editArea = this._owner;
+    let result = editArea.editConfirm();
     if (result == UiResult.IGNORED) {
-      let value = editArea.textContent;
-      this._owner.setValue(this.unescapeString(value));
-      this.application.dispose(this);
+      this.closeKeyboard(true);
     }
   }
 
@@ -838,15 +419,21 @@ export class UiKeyboard extends UiPageNode {
   }
 
   private doMove(dir: number): void {
-    let editArea = this.findNodeByPath('edit') as UiEditArea;
-    editArea.moveCursor(dir);
+    let editArea = this._owner;
+    editArea.editMoveCursor(dir);
+  }
+
+  private closeKeyboard(commit: boolean) {
+    let editArea = this._owner;
+    this.application.dispose(this);
+    editArea.editDone(commit);
   }
 
   public onKeyDown(target: UiNode, key: number, ch: number, mod: number, at: number): UiResult {
     let result = UiResult.IGNORED;
     switch (key | (mod & KeyCodes.MOD_MACS)) {
       case KeyCodes.ESCAPE:
-        this.application.dispose(this);
+        this.closeKeyboard(false);
         result |= UiResult.EATEN;
         break;
       default:

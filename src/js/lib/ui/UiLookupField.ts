@@ -59,7 +59,7 @@ class UiLookupItem extends UiTextNode {
     } else {
       super(param as UiApplication, name as string);
       this._owner = owner as UiLookupField;
-      this._recordHolder = UiNode.VOID_REcORD_HOLDER;
+      this._recordHolder = UiNode.VOID_RECORD_HOLDER;
       this.focusable = true;
     }
   }
@@ -200,7 +200,7 @@ export class UiLookupPopup extends UiPageNode {
 }
 
 export class UiLookupField extends UiTextNode {
-  private _dataHolder: RecordHolder;
+  private _recordHolder: RecordHolder;
 
   /**
    * クローンメソッド
@@ -236,16 +236,16 @@ export class UiLookupField extends UiTextNode {
     if (param instanceof UiLookupField) {
       super(param as UiLookupField);
       let src = param as UiLookupField;
-      this._dataHolder = src._dataHolder;
+      this._recordHolder = src._recordHolder;
     } else {
       super(param as UiApplication, name as string);
-      this._dataHolder = UiNode.VOID_REcORD_HOLDER;
+      this._recordHolder = UiNode.VOID_RECORD_HOLDER;
     }
   }
 
   public onRecordHolderChanged(holder: RecordHolder): UiResult {
-    this._dataHolder = holder;
-    let value = this._dataHolder.getValue(this.dataFieldName) as DataRecord;
+    this._recordHolder = holder;
+    let value = this._recordHolder.getValue(this.dataFieldName) as DataRecord;
     if (value != null) {
       let title = value[SUBNAME_TITLE] as string;
       this.textContent = title;
@@ -275,6 +275,6 @@ export class UiLookupField extends UiTextNode {
   }
 
   public updateValue(subRecord: DataRecord): void {
-    this._dataHolder.setValue(this.name, subRecord);
+    this._recordHolder.setValue(this.name, subRecord);
   }
 }

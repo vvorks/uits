@@ -57,7 +57,7 @@ export class UiImageLookupField extends UiImageNode implements HasSetter<UiImage
       this._lookupTable = src._lookupTable;
     } else {
       super(param as UiApplication, name as string);
-      this._recordHolder = UiNode.VOID_REcORD_HOLDER;
+      this._recordHolder = UiNode.VOID_RECORD_HOLDER;
       this._lookupTable = {};
     }
   }

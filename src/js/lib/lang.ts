@@ -22,8 +22,11 @@ export { Dates };
 import { Logs } from '~/lib/lang/Logs';
 export { Logs };
 
-//TODO Date(とBigIntも？)をValue型の一部として認めるべき？
-export type Value = string | number | boolean | null;
+import { Value as RawValue } from '~/lib/lang/Values';
+export type Value = RawValue;
+
+import { Values } from '~/lib/lang/Values';
+export { Values };
 
 export interface Properties<T> {
   [prop: string]: T | undefined;

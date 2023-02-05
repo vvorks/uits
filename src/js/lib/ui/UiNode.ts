@@ -21,57 +21,26 @@ export type Size = string | number;
  *
  * 派生クラス用の定義もここに集約する
  */
+// prettier-ignore
 export enum Flags {
-  /** フォーカス可能フラグ */
-  FOCUSABLE = 0x00000001,
-
-  /** 有効フラグ */
-  ENABLE = 0x00000002,
-
-  /** 表示フラグ */
-  VISIBLE = 0x00000004,
-
-  /** 編集可能フラグ */
-  EDITABLE = 0x00000008,
-
-  /** クリック中フラグ */
-  CLICKING = 0x00000010,
-
-  /** フォーカス移動中フラグ */
-  FOCUSING = 0x00000020,
-
-  /** 削除済みフラグ */
-  DELETED = 0x00000040,
-
-  /** マウント済みフラグ */
-  MOUNTED = 0x00000080,
-
-  /** DOM接続済みフラグ */
-  BINDED = 0x00000100,
-
-  /** 初期化済みフラグ */
-  INITIALIZED = 0x00000200,
-
-  /** フォーカスロックフラグ */
-  FOCUS_LOCK = 0x00000400,
-
-  /** 縦スクロールフラグ */
-  VERTICAL = 0x00000800,
-
-  /** スープスクロールフラグ */
-  LOOP = 0x00001000,
-
-  /** リスト両端のマージンの要否フラグ */
-  OUTER_MARGIN = 0x00002000,
-
-  /** 初期フラグ値 */
-  INITIAL = ENABLE | VISIBLE,
-
-  /** クローン時に落とすフラグ */
-  NOT_CLONABLE_FLAGS = CLICKING | DELETED | MOUNTED,
-
-  /** UiListNodeで使用 */
-  LIST_INITIAL = VERTICAL | LOOP | OUTER_MARGIN,
+  /** フォーカス可能フラグ */   FOCUSABLE           = 0x00000001,
+  /** 有効フラグ */             ENABLE              = 0x00000002,
+  /** 表示フラグ */             VISIBLE             = 0x00000004,
+  /** 編集可能フラグ */         EDITABLE            = 0x00000008,
+  /** 縦スクロールフラグ */     VERTICAL            = 0x00000010,
+  /** ループスクロールフラグ */ LOOP                = 0x00000020,
+  /** 両端マージン要否フラグ */ OUTER_MARGIN        = 0x00000040,
+  /** フォーカスロックフラグ */ FOCUS_LOCK          = 0x00000080,
+  /** 初期化済みフラグ */       INITIALIZED         = 0x00000100,
+  /** マウント済みフラグ */     MOUNTED             = 0x00000200,
+  /** DOM接続済みフラグ */      BINDED              = 0x00000400,
+  /** 削除済みフラグ */         DELETED             = 0x00000800,
+  /** クリック中フラグ */       CLICKING            = 0x00001000,
+  /** フォーカス移動中フラグ */ FOCUSING            = 0x00002000,
+  /** 編集中フラグ */           EDITING             = 0x00004000,
+  /** 初期フラグ値 */           INITIAL             = ENABLE | VISIBLE,
+  /** クローン不要なフラグ */   NOT_CLONABLE_FLAGS  = CLICKING | DELETED | MOUNTED,
+  /** UiListNode で使用 */      LIST_INITIAL        = VERTICAL | LOOP | OUTER_MARGIN,
 }
 
 /**
@@ -282,7 +251,7 @@ export class UiNodeSetter extends UiSetter {
  * UiNode
  */
 export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSetter> {
-  public static readonly VOID_REcORD_HOLDER: RecordHolder = new VoidRecordHolder();
+  public static readonly VOID_RECORD_HOLDER: RecordHolder = new VoidRecordHolder();
 
   private _application: UiApplication;
 
@@ -1275,6 +1244,14 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
 
   public set focusing(on: boolean) {
     this.setFlag(Flags.FOCUSING, on);
+  }
+
+  public get editing(): boolean {
+    return this.getFlag(Flags.EDITING);
+  }
+
+  public set editing(on: boolean) {
+    this.setFlag(Flags.EDITING, on);
   }
 
   public get deleted(): boolean {

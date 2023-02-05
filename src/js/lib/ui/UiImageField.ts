@@ -40,10 +40,10 @@ export class UiImageField extends UiImageNode {
   public constructor(param: any, name?: string) {
     if (param instanceof UiImageField) {
       super(param as UiImageField);
-      this._recordHolder = UiNode.VOID_REcORD_HOLDER;
+      this._recordHolder = UiNode.VOID_RECORD_HOLDER;
     } else {
       super(param as UiApplication, name as string);
-      this._recordHolder = UiNode.VOID_REcORD_HOLDER;
+      this._recordHolder = UiNode.VOID_RECORD_HOLDER;
     }
   }
 

@@ -53,7 +53,7 @@ export class UiIndicatorField extends UiIndicatorNode {
       //新規コンストラクタ
       super(param as UiApplication, name as string);
       let app = param as UiApplication;
-      this._recordHolder = UiNode.VOID_REcORD_HOLDER;
+      this._recordHolder = UiNode.VOID_RECORD_HOLDER;
     }
   }
 

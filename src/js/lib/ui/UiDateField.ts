@@ -391,7 +391,7 @@ export class UiDateField extends UiTextNode {
       this._recordHolder = src._recordHolder;
     } else {
       super(param as UiApplication, name as string);
-      this._recordHolder = UiNode.VOID_REcORD_HOLDER;
+      this._recordHolder = UiNode.VOID_RECORD_HOLDER;
     }
   }
 

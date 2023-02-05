@@ -91,7 +91,7 @@ export class UiRadio extends UiImageNode {
       this._specValue = src._specValue;
     } else {
       super(param as UiApplication, name as string);
-      this._recordHolder = UiNode.VOID_REcORD_HOLDER;
+      this._recordHolder = UiNode.VOID_RECORD_HOLDER;
       this._value = null;
       this._specValue = spec as Value;
     }

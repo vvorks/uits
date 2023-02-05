@@ -1,4 +1,4 @@
-import { Types, Value } from '~/lib/lang';
+import { Value, Values } from '~/lib/lang';
 import { Color } from '~/lib/ui/Colors';
 import { UiNode, UiNodeSetter } from '~/lib/ui/UiNode';
 import type { UiApplication } from '~/lib/ui/UiApplication';
@@ -144,7 +144,7 @@ export class UiTextNode extends UiNode implements HasSetter<UiTextNodeSetter> {
         divStyle.removeProperty('color');
       }
       this.addPaddingForRadius(divStyle, uiStyle);
-      div.innerText = this.asString(this.textContent);
+      div.innerText = this.retrieveTextResource(Values.asString(this.textContent));
     } else {
       let tb = dom.firstChild as HTMLTableElement;
       let td = tb.firstChild as HTMLTableCellElement;
@@ -163,7 +163,7 @@ export class UiTextNode extends UiNode implements HasSetter<UiTextNodeSetter> {
         tdStyle.removeProperty('color');
       }
       this.addPaddingForRadius(tdStyle, uiStyle);
-      td.innerText = this.asString(this.textContent);
+      td.innerText = this.retrieveTextResource(Values.asString(this.textContent));
     }
   }
 
@@ -197,20 +197,6 @@ export class UiTextNode extends UiNode implements HasSetter<UiTextNodeSetter> {
       style.paddingTop = `${Math.max(topLeftH, topRightH) * ratio}px`;
       style.paddingBottom = `${Math.max(bottomLeftH, bottomRightH) * ratio}px`;
     }
-  }
-
-  protected asString(value: Value): string {
-    let result: string;
-    if (Types.isString(value)) {
-      result = this.retrieveTextResource(value as string);
-    } else if (Types.isNumber(value)) {
-      result = '' + value;
-    } else if (Types.isBoolean(value)) {
-      result = (value as boolean) ? 'true' : 'false';
-    } else {
-      result = '';
-    }
-    return result;
   }
 
   protected retrieveTextResource(raw: string): string {

@@ -66,11 +66,11 @@ export class UiCheckbox extends UiImageNode {
     if (param instanceof UiCheckbox) {
       super(param as UiCheckbox);
       let src = param as UiCheckbox;
-      this._recordHolder = UiNode.VOID_REcORD_HOLDER;
+      this._recordHolder = UiNode.VOID_RECORD_HOLDER;
       this._value = src._value;
     } else {
       super(param as UiApplication, name as string);
-      this._recordHolder = UiNode.VOID_REcORD_HOLDER;
+      this._recordHolder = UiNode.VOID_RECORD_HOLDER;
       this._value = false;
     }
   }

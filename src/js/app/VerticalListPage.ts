@@ -14,6 +14,7 @@ import {
   UiImageLookupField,
 } from '~/lib/ui';
 import { GROUP_STYLE, DEFAULT_STYLE, LIST_STYLE, SB_STYLE } from '~/app/TestApplication';
+import { UiEditField } from '~/lib/ui/UiEditField';
 
 export class VerticalListPage extends UiPageNode {
   protected initialize(): void {
@@ -36,6 +37,7 @@ export class VerticalListPage extends UiPageNode {
         .style(LIST_STYLE)
         .dataSource('sample')
         .vscroll('v')
+        .focusable(true)
         .loop(true)
         .outerMargin(false);
       b.belongs((b) => {
@@ -61,7 +63,7 @@ export class VerticalListPage extends UiPageNode {
             b: 'hokusai2.jpg',
             c: 'hokusai3.jpg',
           });
-        b.element(new UiTextField(app, 'd'))
+        b.element(new UiEditField(app, 'd'))
           .position(26, 1, 5, null, null, 4)
           .style(DEFAULT_STYLE)
           .focusable(true);
