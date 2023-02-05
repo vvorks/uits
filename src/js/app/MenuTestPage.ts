@@ -11,6 +11,7 @@ import {
   UiScrollNode,
   UiResult,
   DataRecord,
+  UiDeckNode,
 } from '~/lib/ui';
 import { GROUP_STYLE, DEFAULT_STYLE, LIST_STYLE } from '~/app/TestApplication';
 import { Asserts, Logs } from '~/lib/lang';
@@ -21,11 +22,6 @@ export class MenuTestPage extends UiPageNode {
     let b = new UiBuilder('1rem');
     b.element(this).inset(1).style(GROUP_STYLE);
     b.belongs((b) => {
-      //content
-      b.element(new UiTextNode(app, 'content'))
-        .position(4, 1, 1, 15, null, null)
-        .style(DEFAULT_STYLE)
-        .textContent('content');
       //lists
       b.element(new UiScrollNode(app, 'lists'))
         .style(DEFAULT_STYLE)
@@ -80,6 +76,33 @@ export class MenuTestPage extends UiPageNode {
           b.belongs((b) => {
             b.element(new UiTextField(app, 'title')).inset(0).style(DEFAULT_STYLE).focusable(false);
           });
+        });
+      });
+      //content
+      b.element(new UiDeckNode(app, 'content'))
+        .position(4, 1, 1, 15, null, null)
+        .style(DEFAULT_STYLE)
+        .focusable(true);
+      b.belongs((b) => {
+        b.element(new UiNode(app, 'ura')).inset(0).style(DEFAULT_STYLE);
+        b.belongs((b) => {
+          for (let r = 0; r < 2; r++) {
+            for (let c = 0; c < 2; c++) {
+              b.element(new UiTextNode(app, 'test' + r + '_' + c))
+                .bounds(2 + c * 22, 2 + r * 6, 20, 4)
+                .style(DEFAULT_STYLE)
+                .focusable(true)
+                .textContent('test' + r + '_' + c);
+            }
+          }
+        });
+        b.element(new UiNode(app, 'omote')).inset(0).style(DEFAULT_STYLE);
+        b.belongs((b) => {
+          b.element(new UiTextNode(app, 'title'))
+            .inset(2)
+            .style(DEFAULT_STYLE)
+            .focusable(false)
+            .textContent('omote');
         });
       });
       //menu

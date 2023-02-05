@@ -1,10 +1,10 @@
-import { Properties } from '~/lib/lang';
+import { Arrays, Asserts, Logs, Properties } from '~/lib/lang';
 import type { UiApplication } from '~/lib/ui/UiApplication';
-import { UiNode } from '~/lib/ui/UiNode';
+import { UiNode, UiResult } from '~/lib/ui/UiNode';
 
 export class UiDeckNode extends UiNode {
   private _selected: string | null;
-
+  private _selectedBefore: string | null;
   private _savedFocusNodes: Properties<UiNode>;
 
   /**
@@ -42,10 +42,12 @@ export class UiDeckNode extends UiNode {
       super(param as UiDeckNode);
       let src = param as UiDeckNode;
       this._selected = src._selected;
+      this._selectedBefore = src._selectedBefore;
       this._savedFocusNodes = {};
     } else {
       super(param as UiApplication, name as string);
       this._selected = null;
+      this._selectedBefore = null;
       this._savedFocusNodes = {};
     }
   }
@@ -53,43 +55,106 @@ export class UiDeckNode extends UiNode {
   protected afterMount(): void {
     this.initSavedFocusNodes();
     if (this._selected == null && this._children.length > 0) {
-      this.select(this._children[0].name);
+      let piece = this._children[0];
+      this.select(piece.name);
     }
   }
 
   private initSavedFocusNodes(): void {
     let app = this.application;
-    for (let c of this._children) {
-      let list = c.getDescendantsIf((e) => app.isAppearedFocusable(e), 1);
+    for (let piece of this._children) {
+      let list = piece.getDescendantsIf((e) => app.isAppearedFocusable(e), 1);
       if (list.length > 0) {
-        this._savedFocusNodes[c.name] = list[0];
+        this._savedFocusNodes[piece.name] = list[0];
       }
     }
   }
 
+  /**
+   * piece切り替え
+   *
+   * @param name piece名
+   */
   public select(name: string): void {
-    if (this._selected != name) {
-      let app = this.application;
-      let focusNode = app.getFocusOf(this);
-      let focusLost = false;
-      for (let c of this._children) {
-        if (c.name == name) {
-          c.visible = true;
-        } else if (c.visible) {
-          if (focusNode != null && c.isAncestorOf(focusNode)) {
-            this._savedFocusNodes[c.name] = focusNode;
-            focusLost = true;
-          }
-          c.visible = false;
+    if (this._selected == name) {
+      return;
+    }
+    let app = this.application;
+    let focusNode = app.getFocusOf(this);
+    let focusLost = false;
+    for (let piece of this._children) {
+      if (piece.name == name) {
+        piece.visible = true;
+      } else if (piece.visible) {
+        if (focusNode != null && piece.isAncestorOf(focusNode)) {
+          this._savedFocusNodes[piece.name] = focusNode;
+          focusLost = true;
         }
+        piece.visible = false;
       }
-      if (focusLost) {
-        let saved = this._savedFocusNodes[name];
-        if (saved !== undefined) {
-          app.setFocus(saved);
-        }
+    }
+    if (focusLost) {
+      let saved = this._savedFocusNodes[name];
+      if (saved !== undefined) {
+        app.setFocus(saved);
       }
-      this._selected = name;
+    }
+    this._selected = name;
+  }
+
+  /**
+   * このDeckNodeにFocusが当たる場合の処理
+   *
+   * @param prev 以前のfocus node
+   * @returns 補正されたフォーカス候補ノード
+   */
+  public adjustFocus(prev: UiNode): UiNode {
+    Logs.debug('adjustFocus');
+    Asserts.assume(this._selected != null);
+    {
+      let saved = this._savedFocusNodes[this._selected];
+      if (saved !== undefined) {
+        this._selectedBefore = null;
+        return saved;
+      }
+    }
+    for (let piece of this._children) {
+      let saved = this._savedFocusNodes[piece.name];
+      if (saved !== undefined) {
+        this._selectedBefore = this._selected;
+        this.select(piece.name);
+        return saved;
+      }
+    }
+    return this;
+  }
+
+  public onFocus(target: UiNode, gained: boolean, other: UiNode | null): UiResult {
+    let result = UiResult.IGNORED;
+    if (gained) {
+      let piece = Arrays.first(target.getAncestorsIf((e) => e.parent == this, 1));
+      if (piece != null && piece.name != this._selected) {
+        this._selectedBefore = this._selected;
+        this.select(piece.name);
+        result |= UiResult.AFFECTED;
+      }
+    } else {
+      this.saveFocusInSelected();
+      if (this._selectedBefore != null) {
+        this.select(this._selectedBefore);
+        this._selectedBefore = null;
+        result |= UiResult.AFFECTED;
+      }
+    }
+    return result | super.onFocus(target, gained, other);
+  }
+
+  private saveFocusInSelected(): void {
+    Asserts.assume(this._selected != null);
+    let app = this.application;
+    let focusNode = app.getFocusOf(this);
+    if (focusNode != null) {
+      this._savedFocusNodes[this._selected] = focusNode;
     }
   }
 }

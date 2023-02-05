@@ -19,6 +19,9 @@ export { UiBuilder };
 import { UiPageNode } from '~/lib/ui/UiPageNode';
 export { UiPageNode };
 
+import { UiDeckNode } from '~/lib/ui/UiDeckNode';
+export { UiDeckNode };
+
 import { UiListNode } from '~/lib/ui/UiListNode';
 export { UiListNode };
 
