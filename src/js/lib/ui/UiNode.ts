@@ -815,9 +815,7 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
 
   protected fireActionEvent(action: string, param?: any): UiResult {
     let result = UiResult.IGNORED;
-    Logs.debug('kata1?');
     for (let func of this._actionListeners) {
-      Logs.debug('kata2?');
       result |= func(this, action, param);
     }
     return result;

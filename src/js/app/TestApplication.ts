@@ -22,6 +22,7 @@ import { MenuTestPage } from '~/app/MenuTestPage';
 import { MenuDataSource } from '~/app/MenuDataSource';
 import { VolumeToast } from '~/app/VolumeToast';
 import { UiApplication } from '~/lib/ui/UiApplication';
+import { VerticalGridPage } from './VerticalGridPage';
 
 export const DEFAULT_STYLE: UiStyle = new UiStyleBuilder()
   .textColor(Colors.BLACK)
@@ -161,7 +162,7 @@ const CITIES = [
 ];
 
 export class TestApplication extends UiApplication {
-  private _datas: number[] = [40, 4, 14, 2, 30];
+  private _datas: number[] = [400, 40, 140, 20, 300];
 
   private _pos: number = 0;
 
@@ -169,6 +170,7 @@ export class TestApplication extends UiApplication {
     this.addPageFactory('', (tag) => new UiLaunchPage(this, tag));
     this.addPageFactory('vlist', (tag) => new VerticalListPage(this, tag));
     this.addPageFactory('hlist', (tag) => new HorizontalListPage(this, tag));
+    this.addPageFactory('vgrid', (tag) => new VerticalGridPage(this, tag));
     this.addPageFactory('grid', (tag) => new GridPage(this, tag));
     this.addPageFactory('slide', (tag) => new SlidePage(this, tag));
     this.addPageFactory('pane', (tag) => new PaneTestPage(this, tag));
