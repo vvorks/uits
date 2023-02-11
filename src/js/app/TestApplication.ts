@@ -22,6 +22,7 @@ import { MenuTestPage } from '~/app/MenuTestPage';
 import { MenuDataSource } from '~/app/MenuDataSource';
 import { VolumeToast } from '~/app/VolumeToast';
 import { UiApplication } from '~/lib/ui/UiApplication';
+import { LottieTestPage } from './LottieTestPage';
 
 export const DEFAULT_STYLE: UiStyle = new UiStyleBuilder()
   .textColor(Colors.BLACK)
@@ -167,6 +168,7 @@ export class TestApplication extends UiApplication {
 
   protected initialize(at: number): void {
     this.addPageFactory('', (tag) => new UiLaunchPage(this, tag));
+    this.addPageFactory('lottie', (tag) => new LottieTestPage(this, tag));
     this.addPageFactory('vlist', (tag) => new VerticalListPage(this, tag));
     this.addPageFactory('hlist', (tag) => new HorizontalListPage(this, tag));
     this.addPageFactory('grid', (tag) => new GridPage(this, tag));

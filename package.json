@@ -5,11 +5,13 @@
 		"start": "webpack-dev-server"
 	},
 	"dependencies": {
-		"help": "^3.0.2"
+		"help": "^3.0.2",
+		"lottie-web": "^5.10.2"
 	},
 	"devDependencies": {
 		"@types/sprintf-js": "^1.1.2",
 		"html-webpack-plugin": "^5.5.0",
+		"lottie-web-webpack-loader": "^0.0.6",
 		"path-browserify": "^1.0.1",
 		"process": "^0.11.10",
 		"source-map-support": "^0.5.21",
