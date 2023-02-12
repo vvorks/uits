@@ -2039,9 +2039,11 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
       let index = parent.getIndexOfChild(this);
       let ref: HTMLElement | null = null;
       if (index >= 0) {
-        for (let i = index + 1; i < parent._children.length; i++) {
-          if (parent._children[i]._domElement != null) {
-            ref = parent._children[i]._domElement;
+        let siblings = parent._children;
+        for (let i = index + 1; i < siblings.length; i++) {
+          let younger = siblings[i]._domElement;
+          if (younger != null && younger.parentNode != null) {
+            ref = younger;
             break;
           }
         }

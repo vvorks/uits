@@ -7,7 +7,8 @@ export class LottieTestPage extends UiPageNode {
     let b = new UiBuilder('1rem');
     b.element(this).inset(1);
     b.belongs((b) => {
-      b.element(new UiLottieNode(app, 'lottie')).inset(0);
+      b.element(new UiLottieNode(app, 'svgLottie')).bounds(0, 0, 10, 15);
+      b.element(new UiLottieNode(app, 'canvasLottie')).bounds(11, 0, 10, 15);
     });
   }
 }

@@ -1106,14 +1106,15 @@ export class UiApplication {
 
   private processAnimationFrame(at: number): void {
     let result: UiResult = UiResult.AFFECTED;
+    let hadAnimation = this.hasOneshotAnimation();
     let hasAnimation = false;
     try {
       for (let e of this._animationTasks) {
         result |= e.run(at);
       }
       this.cancelAnimationTasksIfExit();
-      hasAnimation = this.hasOneshotAnimation();
-      if (!hasAnimation) {
+      let hasAnimation = this.hasOneshotAnimation();
+      if (hadAnimation && !hasAnimation) {
         result |= this.recoverFocus();
       }
       //後処理

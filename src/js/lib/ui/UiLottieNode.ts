@@ -1,13 +1,9 @@
-import Lottie from 'lottie-web';
+import Lottie, { RendererType } from 'lottie-web';
 import type { UiApplication } from './UiApplication';
 import { UiNode, UiNodeSetter } from './UiNode';
 
 export class UiLottieNodeSetter extends UiNodeSetter {
   public static readonly INSTANCE = new UiLottieNodeSetter();
-  public focusLock(on: boolean): this {
-    let node = this.node as UiLottieNode;
-    return this;
-  }
 }
 
 export class UiLottieNode extends UiNode {
@@ -56,9 +52,10 @@ export class UiLottieNode extends UiNode {
 
   protected afterMount(): void {
     let dom = this.ensureDomElement() as HTMLElement;
+    let type: RendererType = this.name.startsWith('svg') ? 'svg' : 'canvas'; //仮
     Lottie.loadAnimation({
       container: dom, // the dom element that will contain the animation
-      renderer: 'canvas',
+      renderer: type,
       loop: true,
       autoplay: true,
       path: 'data.json', // the path to the animation json
