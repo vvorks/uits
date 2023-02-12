@@ -12,12 +12,15 @@ export class TestDataSource extends DataSource {
 
   private _criteria: Properties<Value>;
 
+  private _key: string;
+
   public constructor(loader: (criteria: Properties<Value>) => DataRecord[]) {
     super();
     this._lastUpdateAt = new Date();
     this._records = [];
     this._loader = loader;
     this._loaded = false;
+    this._key = '';
     this._criteria = {};
   }
 
@@ -34,6 +37,33 @@ export class TestDataSource extends DataSource {
       return -1;
     }
     return this._records.length;
+  }
+
+  public offset(): number {
+    if (!this._loaded) {
+      return -1;
+    }
+    return 0;
+  }
+
+  public limit(): number {
+    if (!this._loaded) {
+      return -1;
+    }
+    return this._records.length;
+  }
+
+  public attention(): number {
+    if (!this._loaded) {
+      return -1;
+    }
+    for (let i = 0; i < this._records.length; i++) {
+      let rec = this._records[i];
+      if (rec['key'] == this._key) {
+        return i;
+      }
+    }
+    return 0;
   }
 
   public getRecord(index: number): DataRecord | null {
@@ -75,6 +105,7 @@ export class TestDataSource extends DataSource {
   private simulateLoad2(criteria: Properties<Value>): void {
     this._records = this._loader(criteria);
     this._criteria = criteria;
+    this._key = criteria['key'] as string;
     this._loaded = true;
     super.fireDataChanged();
   }

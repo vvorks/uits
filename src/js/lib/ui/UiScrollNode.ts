@@ -1,6 +1,6 @@
 import { Asserts } from '../lang';
 import type { UiApplication } from '~/lib/ui/UiApplication';
-import { UiNode, UiNodeSetter, UiResult } from '~/lib/ui/UiNode';
+import { Flags, UiNode, UiNodeSetter, UiResult } from '~/lib/ui/UiNode';
 import { HasSetter } from '~/lib/ui/UiBuilder';
 
 export class UiScrollNodeSetter extends UiNodeSetter {
@@ -62,6 +62,14 @@ export class UiScrollNode extends UiNode implements HasSetter<UiScrollNodeSetter
 
   public getSetter(): UiScrollNodeSetter {
     return UiScrollNodeSetter.INSTANCE;
+  }
+
+  public get focusLock(): boolean {
+    return this.getFlag(Flags.FOCUS_LOCK);
+  }
+
+  public set focusLock(on: boolean) {
+    this.setFlag(Flags.FOCUS_LOCK, on);
   }
 
   protected afterMount(): void {

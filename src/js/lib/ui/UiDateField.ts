@@ -10,8 +10,21 @@ import { UiPageNode } from '~/lib/ui/UiPageNode';
 import { UiTextButton } from '~/lib/ui/UiTextButton';
 import { UiTextNode } from '~/lib/ui/UiTextNode';
 import { HistoryState } from '~/lib/ui/HistoryManager';
+import { UiImageNode } from './UiImageNode';
+import { UiStyleBuilder } from './UiStyle';
 
-/* 曜日データ（暫定：本当はI18nライブラリから取らないと・・・） */
+//
+//取得元 https://fonts.google.com/icons?utm_source=developers.google.com&utm_medium=referral
+//
+const DOWN_ARROW_DATA =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAAAXNSR0IArs4c6QAAAT1J' +
+  'REFUaEPtln0NwkAUwzsFIAEJoIAgBQdIQgIOQAISkIAE8pJdsoyvXdsLWXj31wi8rr923K3DzFc3c/9IgF83mA1kA2' +
+  'IC+QiJAcrj2YAcoSiQDYgByuPZgByhKPC3DSwBrABcxQDLeGjdGC2mgTB/7gF2Boh1r3cCsK+FYAAuALb9je4AFIhi' +
+  'PkKJdayFYADipgGxECHG5kMuGgiIyYsBCHEVwmI+jLAACoTNvArAQFjNOwBqIOzmXQBTIJqYdwK8g9gAKOdG2Sqp3e' +
+  'bdtqT8iV9pjnenOKnjlG1i3t1AARpDDEGr9/lvB4K7gU8QdvOtGhhDxOdD7Qn7LfnyfasGhhBx7XprfeJqDTA1SPp3' +
+  'CUBHZxrMBkxB0jLZAB2daTAbMAVJy2QDdHSmwWzAFCQtkw3Q0ZkGswFTkLTMAzC4NzFxR1ZQAAAAAElFTkSuQmCC';
+
+/* 曜日データ（TODO 暫定：本当はI18nライブラリから取らないと・・・） */
 const WEEKS = ['日', '月', '火', '水', '木', '金', '土'];
 
 class UiMonthNode extends UiTextNode {
@@ -351,7 +364,7 @@ class UiDatePopup extends UiPageNode {
   }
 }
 
-export class UiDateField extends UiTextNode {
+export class UiDateField extends UiNode {
   private _recordHolder: RecordHolder;
 
   /**
@@ -391,8 +404,36 @@ export class UiDateField extends UiTextNode {
       this._recordHolder = src._recordHolder;
     } else {
       super(param as UiApplication, name as string);
+      let app = param as UiApplication;
       this._recordHolder = UiNode.VOID_RECORD_HOLDER;
+      this.appendChild(new UiTextNode(app, 'text'));
+      this.appendChild(new UiImageNode(app, 'arrow'));
     }
+  }
+
+  protected initialize(): void {
+    let textStyle = new UiStyleBuilder(this.style).borderSize('0px').build();
+    let imageStyle = new UiStyleBuilder(this.style)
+      .borderSize('0px')
+      .textAlign('center')
+      .verticalAlign('middle')
+      .build();
+    let height = Math.min(Math.max(0, this.innerHeight), 32);
+    let text = this.getTextNode();
+    text.style = textStyle;
+    text.position(0, 0, 0, 0, null, null);
+    let image = this.getImageNode();
+    image.position(null, 0, 0, 0, height, null);
+    image.imageContent = DOWN_ARROW_DATA;
+    image.style = imageStyle;
+  }
+
+  private getTextNode(): UiTextNode {
+    return this.getChildAt(0) as UiTextNode;
+  }
+
+  private getImageNode(): UiImageNode {
+    return this.getChildAt(1) as UiImageNode;
   }
 
   public onRecordHolderChanged(holder: RecordHolder): UiResult {
@@ -400,7 +441,7 @@ export class UiDateField extends UiTextNode {
     this._recordHolder = holder;
     let value = this._recordHolder.getValue(this.dataFieldName);
     if (value != null && Types.isValueType(value)) {
-      this.textContent = this.formatDate(this.toDate(value as Value));
+      this.getTextNode().textContent = this.formatDate(this.toDate(value as Value));
       result |= UiResult.AFFECTED;
     }
     return result;

@@ -52,6 +52,7 @@ export class VerticalListPage extends UiPageNode {
         b.element(new UiLookupField(app, 'c'))
           .bounds(11, 3, 10, 2)
           .style(DEFAULT_STYLE)
+          .popupOver(true)
           .focusable(true)
           .dataSource('sample2');
         b.element(new UiImageLookupField(app, 'g'))

@@ -369,6 +369,10 @@ export class UiStyle {
     ).toString();
   }
 
+  public get lineHeightAsLength(): CssLength {
+    return this.getProperty((s) => s._lineHeight, UiStyle.DEFAULT_LINE_HEIGHT) as CssLength;
+  }
+
   public get textAlign(): TextAlign {
     return this.getProperty((s) => s._textAlign, 'justify') as TextAlign;
   }
@@ -503,29 +507,54 @@ export class UiStyleBuilder {
 
   private static _counter: number = 0;
 
-  public constructor() {
-    this._basedOn = null;
-    this._childrenOrdered = false;
-    this._conditionName = null;
-    this._conditionParam = null;
-    this._textColor = null;
-    this._backgroundColor = null;
-    this._backgroundImage = null;
-    this._borderLeft = null;
-    this._borderTop = null;
-    this._borderRight = null;
-    this._borderBottom = null;
-    this._borderRadiusTopLeft = null;
-    this._borderRadiusTopRight = null;
-    this._borderRadiusBottomLeft = null;
-    this._borderRadiusBottomRight = null;
-    this._borderColor = null;
-    this._borderImage = null;
-    this._fontSize = null;
-    this._fontFamily = null;
-    this._lineHeight = null;
-    this._textAlign = null;
-    this._verticalAlign = null;
+  public constructor(baseStyle?: UiStyle) {
+    if (baseStyle === undefined) {
+      this._basedOn = null;
+      this._childrenOrdered = false;
+      this._conditionName = null;
+      this._conditionParam = null;
+      this._textColor = null;
+      this._backgroundColor = null;
+      this._backgroundImage = null;
+      this._borderLeft = null;
+      this._borderTop = null;
+      this._borderRight = null;
+      this._borderBottom = null;
+      this._borderRadiusTopLeft = null;
+      this._borderRadiusTopRight = null;
+      this._borderRadiusBottomLeft = null;
+      this._borderRadiusBottomRight = null;
+      this._borderColor = null;
+      this._borderImage = null;
+      this._fontSize = null;
+      this._fontFamily = null;
+      this._lineHeight = null;
+      this._textAlign = null;
+      this._verticalAlign = null;
+    } else {
+      this._basedOn = baseStyle.basedOn;
+      this._childrenOrdered = false;
+      this._conditionName = baseStyle.conditionName;
+      this._conditionParam = baseStyle.conditionParam;
+      this._textColor = baseStyle.textColor;
+      this._backgroundColor = baseStyle.backgroundColor;
+      this._backgroundImage = baseStyle.backgroundImage;
+      this._borderLeft = baseStyle.borderLeftAsLength;
+      this._borderTop = baseStyle.borderTopAsLength;
+      this._borderRight = baseStyle.borderRightAsLength;
+      this._borderBottom = baseStyle.borderBottomAsLength;
+      this._borderRadiusTopLeft = baseStyle.borderRadiusTopLeftAsLength;
+      this._borderRadiusTopRight = baseStyle.borderRadiusTopRightAsLength;
+      this._borderRadiusBottomLeft = baseStyle.borderRadiusBottomLeftAsLength;
+      this._borderRadiusBottomRight = baseStyle.borderRadiusBottomRightAsLength;
+      this._borderColor = baseStyle.borderColor;
+      this._borderImage = baseStyle.borderImage;
+      this._fontSize = baseStyle.fontSizeAsLength;
+      this._fontFamily = baseStyle.fontFamily;
+      this._lineHeight = baseStyle.lineHeightAsLength;
+      this._textAlign = baseStyle.textAlign;
+      this._verticalAlign = baseStyle.verticalAlign;
+    }
   }
 
   public basedOn(parent: UiStyle | null): UiStyleBuilder {

@@ -1,15 +1,28 @@
-import { Properties } from '~/lib/lang';
+import { Logs, Properties } from '~/lib/lang';
 import { RecordHolder } from '~/lib/ui/RecordHolder';
 import { DataRecord, DataSource } from '~/lib/ui/DataSource';
 import { KeyCodes } from '~/lib/ui/KeyCodes';
 import { Rect } from '~/lib/ui/Rect';
 import type { UiApplication } from '~/lib/ui/UiApplication';
 import { UiListNode } from '~/lib/ui/UiListNode';
-import { UiNode, UiResult } from '~/lib/ui/UiNode';
-import { UiBuilder } from '~/lib/ui/UiBuilder';
+import { Flags, UiNode, UiNodeSetter, UiResult } from '~/lib/ui/UiNode';
+import { HasSetter, UiBuilder } from '~/lib/ui/UiBuilder';
 import { UiPageNode } from '~/lib/ui/UiPageNode';
 import { UiTextNode } from '~/lib/ui/UiTextNode';
 import { HistoryState } from '~/lib/ui/HistoryManager';
+import { UiImageNode } from './UiImageNode';
+import { UiStyleBuilder } from './UiStyle';
+
+//
+//取得元 https://fonts.google.com/icons?utm_source=developers.google.com&utm_medium=referral
+//
+const DOWN_ARROW_DATA =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAAAXNSR0IArs4c6QAAAT1J' +
+  'REFUaEPtln0NwkAUwzsFIAEJoIAgBQdIQgIOQAISkIAE8pJdsoyvXdsLWXj31wi8rr923K3DzFc3c/9IgF83mA1kA2' +
+  'IC+QiJAcrj2YAcoSiQDYgByuPZgByhKPC3DSwBrABcxQDLeGjdGC2mgTB/7gF2Boh1r3cCsK+FYAAuALb9je4AFIhi' +
+  'PkKJdayFYADipgGxECHG5kMuGgiIyYsBCHEVwmI+jLAACoTNvArAQFjNOwBqIOzmXQBTIJqYdwK8g9gAKOdG2Sqp3e' +
+  'bdtqT8iV9pjnenOKnjlG1i3t1AARpDDEGr9/lvB4K7gU8QdvOtGhhDxOdD7Qn7LfnyfasGhhBx7XprfeJqDTA1SPp3' +
+  'CUBHZxrMBkxB0jLZAB2daTAbMAVJy2QDdHSmwWzAFCQtkw3Q0ZkGswFTkLTMAzC4NzFxR1ZQAAAAAElFTkSuQmCC';
 
 const SUBNAME_TITLE = 'title';
 
@@ -159,10 +172,18 @@ export class UiLookupPopup extends UiPageNode {
     let rPopup = new Rect();
     if (height <= clientHeight - rOwner.bottom) {
       //呼び出し元フィールド下に配置
-      rPopup.locate(rOwner.left, rOwner.bottom, rOwner.width, height);
+      if (this._owner.popupOver) {
+        rPopup.locate(rOwner.left, rOwner.top, rOwner.width, height);
+      } else {
+        rPopup.locate(rOwner.left, rOwner.bottom, rOwner.width, height);
+      }
     } else if (height <= rOwner.top) {
       //呼び出し元上に配置
-      rPopup.locate(rOwner.left, rOwner.top - height, rOwner.width, height);
+      if (this._owner.popupOver) {
+        rPopup.locate(rOwner.left, rOwner.bottom - height, rOwner.width, height);
+      } else {
+        rPopup.locate(rOwner.left, rOwner.top - height, rOwner.width, height);
+      }
     } else {
       //画面中央に配置
       let clientWidth = app.clientWidth;
@@ -173,7 +194,6 @@ export class UiLookupPopup extends UiPageNode {
         height
       );
     }
-    rPopup.move(40, 0); //for debug
     this.left = `${rPopup.left}px`;
     this.top = `${rPopup.top}px`;
     this.width = `${rPopup.width}px`;
@@ -183,10 +203,16 @@ export class UiLookupPopup extends UiPageNode {
     let b = new UiBuilder('1px');
     b.element(this);
     b.belongs((b) => {
-      b.element(new UiListNode(app, 'list')).inset(0).dataSource(dsName);
+      b.element(new UiListNode(app, 'list'))
+        .inset(0)
+        .dataSource(dsName)
+        .vertical(true)
+        .loop(false)
+        .focusable(true);
       b.belongs((b) => {
         b.element(new UiLookupItem(app, 'rec', this._owner))
           .bounds(0, 0, rOwner.width, rOwner.height)
+          .focusable(true)
           .style(this._owner.style);
       });
     });
@@ -195,11 +221,26 @@ export class UiLookupPopup extends UiPageNode {
   protected afterMount(): void {
     let app = this.application;
     let dsName = this._owner.dataSourceName as string;
-    (app.getDataSource(dsName) as DataSource).select({});
+    let value = this._owner.getValue() as DataRecord;
+    Logs.debug('value %s', JSON.stringify(value));
+    let key = value['key'] as string;
+    (app.getDataSource(dsName) as DataSource).select({ key: key });
   }
 }
 
-export class UiLookupField extends UiTextNode {
+/**
+ * UiLookupFieldのセッター
+ */
+export class UiLookupFieldSetter extends UiNodeSetter {
+  public static readonly INSTANCE = new UiLookupFieldSetter();
+  public popupOver(on: boolean): this {
+    let node = this.node as UiLookupField;
+    node.popupOver = on;
+    return this;
+  }
+}
+
+export class UiLookupField extends UiNode implements HasSetter<UiLookupFieldSetter> {
   private _recordHolder: RecordHolder;
 
   /**
@@ -239,8 +280,48 @@ export class UiLookupField extends UiTextNode {
       this._recordHolder = src._recordHolder;
     } else {
       super(param as UiApplication, name as string);
+      let app = param as UiApplication;
+      this.appendChild(new UiTextNode(app, 'text'));
+      this.appendChild(new UiImageNode(app, 'arrow'));
       this._recordHolder = UiNode.VOID_RECORD_HOLDER;
     }
+  }
+
+  public getSetter(): UiLookupFieldSetter {
+    return UiLookupFieldSetter.INSTANCE;
+  }
+
+  public get popupOver(): boolean {
+    return this.getFlag(Flags.POPUP_OVER);
+  }
+
+  public set popupOver(on: boolean) {
+    this.setFlag(Flags.POPUP_OVER, on);
+  }
+
+  protected initialize(): void {
+    let textStyle = new UiStyleBuilder(this.style).borderSize('0px').build();
+    let imageStyle = new UiStyleBuilder(this.style)
+      .borderSize('0px')
+      .textAlign('center')
+      .verticalAlign('middle')
+      .build();
+    let height = Math.min(Math.max(0, this.innerHeight), 32);
+    let text = this.getTextNode();
+    text.style = textStyle;
+    text.position(0, 0, 0, 0, null, null);
+    let image = this.getImageNode();
+    image.position(null, 0, 0, 0, height, null);
+    image.imageContent = DOWN_ARROW_DATA;
+    image.style = imageStyle;
+  }
+
+  private getTextNode(): UiTextNode {
+    return this.getChildAt(0) as UiTextNode;
+  }
+
+  private getImageNode(): UiImageNode {
+    return this.getChildAt(1) as UiImageNode;
   }
 
   public onRecordHolderChanged(holder: RecordHolder): UiResult {
@@ -248,9 +329,9 @@ export class UiLookupField extends UiTextNode {
     let value = this._recordHolder.getValue(this.dataFieldName) as DataRecord;
     if (value != null) {
       let title = value[SUBNAME_TITLE] as string;
-      this.textContent = title;
+      this.getTextNode().textContent = title;
     } else {
-      this.textContent = '';
+      this.getTextNode().textContent = '';
     }
     return UiResult.AFFECTED;
   }
@@ -272,6 +353,10 @@ export class UiLookupField extends UiTextNode {
   public showPopup(args: Properties<string>): UiResult {
     this.application.call(new UiLookupPopup(this.application, '', this), new HistoryState('', {}));
     return UiResult.AFFECTED;
+  }
+
+  public getValue(): DataRecord {
+    return this._recordHolder.getValue(this.name) as DataRecord;
   }
 
   public updateValue(subRecord: DataRecord): void {
