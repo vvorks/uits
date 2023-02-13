@@ -67,6 +67,27 @@ export abstract class DataSource {
   public abstract count(): number;
 
   /**
+   * このデータソースが特定のデータ範囲のみを保持している場合、その先頭の位置を示す
+   * （データ全体を保持している場合には０となる）
+   * データ読み込みが完了していない場合、-1を返す
+   */
+  public abstract offset(): number;
+
+  /**
+   * このデータソースが特定のデータ範囲のみを保持している場合、その先頭の位置(offset)からの保持件数を示す
+   * （データ全体を保持している場合にはcount()の結果と等しくなる）
+   * データ読み込みが完了していない場合、-1を返す
+   */
+  public abstract limit(): number;
+
+  /**
+   * 検索時に指定された条件に基づき、最も適した値の位置を返す。
+   * 検索直後にoffset/limitがある場合、その範囲中のいずれかとなる事を保証する
+   * データ読み込みが完了していない場合、-1を返す
+   */
+  public abstract attention(): number;
+
+  /**
    * DataSourceの指定位置のDataRecordを返す
    *
    * 通常は非nullのDataRecordを返すが、データ読み込みが完了していない場合、nullを返す

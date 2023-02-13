@@ -31,13 +31,17 @@ export enum Flags {
   /** ループスクロールフラグ */ LOOP                = 0x00000020,
   /** 両端マージン要否フラグ */ OUTER_MARGIN        = 0x00000040,
   /** フォーカスロックフラグ */ FOCUS_LOCK          = 0x00000080,
-  /** 初期化済みフラグ */       INITIALIZED         = 0x00000100,
-  /** マウント済みフラグ */     MOUNTED             = 0x00000200,
-  /** DOM接続済みフラグ */      BINDED              = 0x00000400,
-  /** 削除済みフラグ */         DELETED             = 0x00000800,
-  /** クリック中フラグ */       CLICKING            = 0x00001000,
-  /** フォーカス移動中フラグ */ FOCUSING            = 0x00002000,
-  /** 編集中フラグ */           EDITING             = 0x00004000,
+  /** 項目上にPOPUP */          POPUP_OVER          = 0x00000100,
+  //                                                  0x00000200,
+  //                                                  0x00000400,
+  //                                                  0x00000800,
+  /** 初期化済みフラグ */       INITIALIZED         = 0x00001000,
+  /** マウント済みフラグ */     MOUNTED             = 0x00002000,
+  /** DOM接続済みフラグ */      BINDED              = 0x00004000,
+  /** 削除済みフラグ */         DELETED             = 0x00008000,
+  /** クリック中フラグ */       CLICKING            = 0x00010000,
+  /** フォーカス移動中フラグ */ FOCUSING            = 0x00020000,
+  /** 編集中フラグ */           EDITING             = 0x00040000,
   /** 初期フラグ値 */           INITIAL             = ENABLE | VISIBLE,
   /** クローン不要なフラグ */   NOT_CLONABLE_FLAGS  = CLICKING | DELETED | MOUNTED,
   /** UiListNode で使用 */      LIST_INITIAL        = VERTICAL | LOOP | OUTER_MARGIN,
@@ -1294,38 +1298,6 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
     this.setFlag(Flags.BINDED, on);
   }
 
-  public get vertical(): boolean {
-    return this.getFlag(Flags.VERTICAL);
-  }
-
-  public set vertical(on: boolean) {
-    this.setFlag(Flags.VERTICAL, on);
-  }
-
-  public get loop(): boolean {
-    return this.getFlag(Flags.LOOP);
-  }
-
-  public set loop(on: boolean) {
-    this.setFlag(Flags.LOOP, on);
-  }
-
-  public get focusLock(): boolean {
-    return this.getFlag(Flags.FOCUS_LOCK);
-  }
-
-  public set focusLock(on: boolean) {
-    this.setFlag(Flags.FOCUS_LOCK, on);
-  }
-
-  public get outerMargin(): boolean {
-    return this.getFlag(Flags.OUTER_MARGIN);
-  }
-
-  public set outerMargin(on: boolean) {
-    this.setFlag(Flags.OUTER_MARGIN, on);
-  }
-
   protected getFlag(bit: Flags): boolean {
     return !!(this._flags & bit);
   }
@@ -2037,9 +2009,11 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
       let index = parent.getIndexOfChild(this);
       let ref: HTMLElement | null = null;
       if (index >= 0) {
-        for (let i = index + 1; i < parent._children.length; i++) {
-          if (parent._children[i]._domElement != null) {
-            ref = parent._children[i]._domElement;
+        let siblings = parent._children;
+        for (let i = index + 1; i < siblings.length; i++) {
+          let younger = siblings[i]._domElement;
+          if (younger != null && younger.parentNode != null) {
+            ref = younger;
             break;
           }
         }

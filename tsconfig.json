@@ -1,11 +1,12 @@
 {
-	"compilerOptions": {
-		"sourceMap": true,
-		"target": "ES5",
-		"module": "ES2015",
-		"strict": true,
-		"paths": {
-			"~/*": ["./src/js/*"]
-		}
-	}
+  "compilerOptions": {
+    "sourceMap": true,
+    "target": "ES5",
+    "module": "ES2015",
+    "strict": true,
+    "paths": {
+      "~/*": ["./src/js/*"],
+      "lottie-web": ["./node_modules/lottie-web/index.d.ts"]
+    }
+  }
 }

@@ -297,6 +297,30 @@ export class UiGridNode extends UiScrollNode implements HasSetter<UiGridNodeSett
     return UiGridNodeSetter.INSTANCE;
   }
 
+  public get vertical(): boolean {
+    return this.getFlag(Flags.VERTICAL);
+  }
+
+  public set vertical(on: boolean) {
+    this.setFlag(Flags.VERTICAL, on);
+  }
+
+  public get loop(): boolean {
+    return this.getFlag(Flags.LOOP);
+  }
+
+  public set loop(on: boolean) {
+    this.setFlag(Flags.LOOP, on);
+  }
+
+  public get outerMargin(): boolean {
+    return this.getFlag(Flags.OUTER_MARGIN);
+  }
+
+  public set outerMargin(on: boolean) {
+    this.setFlag(Flags.OUTER_MARGIN, on);
+  }
+
   private itemFocusable(): boolean {
     if (this._template != null) {
       let app = this.application;
@@ -360,12 +384,16 @@ export class UiGridNode extends UiScrollNode implements HasSetter<UiGridNodeSett
     if (this.count() < 0) {
       //最初の通知
       this._dataSource = ds;
-      this._pageTopIndex = this.validateIndex(0); //TODO ds.offset()を考慮すべき
+      let attention = ds.attention();
+      this._pageTopIndex = this.validateIndex(attention);
       this.adjustScroll();
       this.renumberRecs(true);
       this.setRecsVisiblity();
       if (this.focusable && app.getFocusOf(this) == this) {
-        app.resetFocus(this.adjustFocus(this));
+        let delta = attention - this._pageTopIndex;
+        let rec = this._children[LINE_MARGIN * this._columnCount + delta];
+        let field = this.findFirstField(rec);
+        app.resetFocus(field != null ? field : rec);
       }
       (this.getPageNode() as UiPageNode).setHistoryStateAgain();
     } else {
@@ -651,9 +679,9 @@ export class UiGridNode extends UiScrollNode implements HasSetter<UiGridNodeSett
     let app = this.application;
     if (this.focusLock || prev == this) {
       let firstRec = this._children[LINE_MARGIN];
-      let list = firstRec.getFocusableDescendantsIf((e) => app.isFocusable(e), 1);
-      if (list.length > 0) {
-        return list[0];
+      let firstField = this.findFirstField(firstRec);
+      if (firstField != null) {
+        return firstField;
       }
     } else {
       let nearest = app.getNearestNode(prev, this, (e) => e != this);
@@ -663,6 +691,15 @@ export class UiGridNode extends UiScrollNode implements HasSetter<UiGridNodeSett
       }
     }
     return this;
+  }
+
+  private findFirstField(firstRec: UiNode): UiNode | null {
+    let app = this.application;
+    let list = firstRec.getFocusableDescendantsIf((e) => app.isFocusable(e), 1);
+    if (list.length > 0) {
+      return list[0];
+    }
+    return null;
   }
 
   public scrollFor(target: UiNode, animationTime?: number): UiResult {

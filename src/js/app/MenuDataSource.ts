@@ -40,6 +40,18 @@ export class MenuDataSource extends DataSource {
     return this._currentRecs.length;
   }
 
+  public offset(): number {
+    return 0;
+  }
+
+  public limit(): number {
+    return this.count();
+  }
+
+  public attention(): number {
+    return 0;
+  }
+
   public getRecord(index: number): DataRecord | null {
     Asserts.require(0 <= index && index < this.count());
     return this._currentRecs[index];
