@@ -1,10 +1,14 @@
 import type { UiApplication } from '~/lib/ui/UiApplication';
-import { UiNode, UiResult } from '~/lib/ui/UiNode';
+import { UiNode } from '~/lib/ui/UiNode';
+import { Scrollable } from './Scrollable';
 
 /**
  * UiIndicator 値（0.0～1.0）をバーチャートのように表示するUIコンポーネント
  */
 export class UiIndicatorNode extends UiNode {
+  /** オン部分（色のついた部分）のスタイル指定名 */
+  public static readonly ON_NAME = 'on';
+
   /**
    * オン部分（色のついた部分）を表現するUiNode
    */
@@ -59,7 +63,7 @@ export class UiIndicatorNode extends UiNode {
       super(param as UiApplication, name as string);
       let app = param as UiApplication;
       //子ノードを作成
-      this._onNode = new UiNode(app, 'on');
+      this._onNode = new UiNode(app, UiIndicatorNode.ON_NAME);
       //自身に登録
       this.appendChild(this._onNode);
       //その他項目の初期化
@@ -116,8 +120,20 @@ export class UiIndicatorNode extends UiNode {
     let style = this.style;
     //基底クラスのコピーコンストラクタ実行中、未初期化状態で呼び出される場合があるためnullチェック
     if (this._onNode != null) {
-      //onNode, offNodeに配布
+      //onNodeに配布
       this._onNode.style = style;
     }
+  }
+
+  /**
+   * 対象コンテンツのシーク位置変更通知
+   *
+   * @param source コンテンツリスト
+   * @param offset シーク位置（ミリ秒単位）
+   * @param limit 未使用
+   * @param count コンテンツ時間（ミリ秒単位）
+   */
+  public onTScroll(source: Scrollable, offset: number, limit: number, count: number): void {
+    this.indicatorValue = offset / count;
   }
 }

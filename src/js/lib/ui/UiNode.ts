@@ -244,6 +244,12 @@ export class UiNodeSetter extends UiSetter {
     return this;
   }
 
+  public tscroll(name: string): this {
+    let node = this.node as UiNode;
+    node.tScrollName = name;
+    return this;
+  }
+
   public action(listener: ActionListener): this {
     let node = this.node as UiNode;
     node.addActionListener(listener);
@@ -270,6 +276,8 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
   private _hScrollName: string | null;
 
   private _vScrollName: string | null;
+
+  private _tScrollName: string | null;
 
   private _left: CssLength | null;
 
@@ -363,6 +371,7 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
       this._dataFieldName = src._dataFieldName;
       this._hScrollName = src._hScrollName;
       this._vScrollName = src._vScrollName;
+      this._tScrollName = src._tScrollName;
       this._left = src._left;
       this._top = src._top;
       this._right = src._right;
@@ -396,6 +405,7 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
       this._dataFieldName = null;
       this._hScrollName = null;
       this._vScrollName = null;
+      this._tScrollName = null;
       this._left = null;
       this._top = null;
       this._right = null;
@@ -513,6 +523,25 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
       }
     } else {
       this._vScrollName = name;
+    }
+  }
+
+  public get tScrollName(): string | null {
+    return this._tScrollName;
+  }
+
+  public set tScrollName(name: string | null) {
+    if (this.mounted) {
+      let page = this.getPageNode() as UiPageNode;
+      if (this._tScrollName != null) {
+        page.detachTScroll(this._tScrollName, this);
+      }
+      this._tScrollName = name;
+      if (this._tScrollName != null) {
+        page.attachTScroll(this._tScrollName, this);
+      }
+    } else {
+      this._tScrollName = name;
     }
   }
 
@@ -899,6 +928,8 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
     }
   }
 
+  public onTScroll(source: Scrollable, offset: number, limit: number, count: number): void {}
+
   public fireHScroll(): void {
     let page = this.getPageNode() as UiPageNode;
     if (this.mounted && this._hScrollName != null) {
@@ -920,6 +951,8 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
       page.dispatchVScroll(this._vScrollName, this, offset, limit, count);
     }
   }
+
+  public fireTScroll(): void {}
 
   public get style(): UiStyle {
     return this._style;
@@ -1360,6 +1393,9 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
     if (this._vScrollName != null) {
       page.attachVScroll(this._vScrollName, this);
     }
+    if (this._tScrollName != null) {
+      page.attachTScroll(this._tScrollName, this);
+    }
     this.mounted = true;
     this.afterMount();
   }
@@ -1372,6 +1408,9 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
     this.beforeUnmount();
     this.mounted = false;
     let page = this.getPageNode() as UiPageNode;
+    if (this._tScrollName != null) {
+      page.detachTScroll(this._tScrollName, this);
+    }
     if (this._vScrollName != null) {
       page.detachVScroll(this._vScrollName, this);
     }

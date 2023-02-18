@@ -784,21 +784,54 @@ export class UiListNode extends UiScrollNode implements HasSetter<UiListNodeSett
   }
 
   public onVScroll(source: Scrollable, offset: number, limit: number, count: number): void {
-    this._pageTopIndex = this.validateIndex(Math.floor(offset / this._lineSize));
-    this.adjustScroll();
-    this.renumberRecs(true);
-    this.setRecsVisiblity();
-    let remain = (offset % this._lineSize) + LINE_MARGIN * this._lineSize;
-    this.scrollTop = `${remain}px`;
+    if (limit != this._pageSize) {
+      offset = Math.round((offset * this._pageSize) / limit);
+      count = Math.round((count * this._pageSize) / limit);
+    }
+    let newIndex = this.validateIndex(Math.floor(offset / this._lineSize));
+    let delta = this.getScrollDelta(newIndex, this._pageTopIndex);
+    if (offset % this._lineSize == 0 && Math.abs(delta) == 1) {
+      this.scrollRecord(delta);
+    } else {
+      this._pageTopIndex = newIndex;
+      this.adjustScroll();
+      this.renumberRecs(true);
+      this.setRecsVisiblity();
+      let remain = (offset % this._lineSize) + LINE_MARGIN * this._lineSize;
+      this.scrollTop = `${remain}px`;
+    }
   }
 
   public onHScroll(source: Scrollable, offset: number, limit: number, count: number): void {
-    this._pageTopIndex = this.validateIndex(Math.floor(offset / this._lineSize));
-    this.adjustScroll();
-    this.renumberRecs(true);
-    this.setRecsVisiblity();
-    let remain = (offset % this._lineSize) + LINE_MARGIN * this._lineSize;
-    this.scrollLeft = `${remain}px`;
+    if (limit != this._pageSize) {
+      offset = Math.round((offset * this._pageSize) / limit);
+      count = Math.round((count * this._pageSize) / limit);
+    }
+    Logs.debug('onHScroll %d %d %d', offset, limit, count);
+    let newIndex = this.validateIndex(Math.floor(offset / this._lineSize));
+    let delta = this.getScrollDelta(newIndex, this._pageTopIndex);
+    if (offset % this._lineSize == 0 && Math.abs(delta) == 1) {
+      this.scrollRecord(delta);
+    } else {
+      this._pageTopIndex = newIndex;
+      this.adjustScroll();
+      this.renumberRecs(true);
+      this.setRecsVisiblity();
+      let remain = (offset % this._lineSize) + LINE_MARGIN * this._lineSize;
+      this.scrollLeft = `${remain}px`;
+    }
+  }
+
+  private getScrollDelta(newIndex: number, oldIndex: number): number {
+    if (this.loop) {
+      let count = Math.max(0, this.count());
+      if (newIndex == 0 && oldIndex == count - 1) {
+        return +1;
+      } else if (newIndex == count - 1 && oldIndex == 0) {
+        return -1;
+      }
+    }
+    return newIndex - oldIndex;
   }
 
   public fireVScroll(): void {

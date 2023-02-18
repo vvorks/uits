@@ -24,9 +24,15 @@ const MENU_DATA: Properties<DataRecord[]> = {
 };
 
 export class MenuDataSource extends DataSource {
-  private _criteria: Properties<Value> = {};
+  private _criteria: Properties<Value>;
 
-  private _currentRecs: DataRecord[] = [];
+  private _currentRecs: DataRecord[];
+
+  public constructor() {
+    super();
+    this._criteria = {};
+    this._currentRecs = [];
+  }
 
   public lastUpdateAt(): Date {
     return new Date(0);

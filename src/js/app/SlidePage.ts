@@ -8,8 +8,28 @@ import {
   UiResult,
   UiTextField,
   UiTextNode,
+  UiIndicatorList,
+  UiStyleBuilder,
+  UiStyle,
+  Colors,
+  UiIndicatorNode,
+  UiPlayList,
 } from '~/lib/ui';
 import { DEFAULT_STYLE, GROUP_STYLE, IMAGE_STYLE, LIST_STYLE } from '~/app/TestApplication';
+
+const IND_LIST_STYLE: UiStyle = new UiStyleBuilder().backgroundColor(Colors.BLACK).build();
+
+const IND_STYLE: UiStyle = new UiStyleBuilder()
+  .basedOn(IND_LIST_STYLE)
+  .condition('NAMED', UiIndicatorList.INDICATOR_NAME)
+  .backgroundColor(Colors.SILVER)
+  .build();
+
+const IND_ON_STYLE: UiStyle = new UiStyleBuilder()
+  .basedOn(IND_STYLE)
+  .condition('NAMED', UiIndicatorNode.ON_NAME)
+  .backgroundColor(Colors.ORANGE)
+  .build();
 
 export class SlidePage extends UiPageNode {
   protected initialize(): void {
@@ -22,19 +42,25 @@ export class SlidePage extends UiPageNode {
         .style(DEFAULT_STYLE)
         .focusable(true)
         .textContent('自動的にスライドします');
+      b.element(new UiPlayList(app, 'player'))
+        .position(1, 4, 1, 1, null, null)
+        .dataSource('playlist')
+        .hscroll('content')
+        .tscroll('playing');
       b.element(new UiListNode(app, 'list'))
         .position(1, 4, 1, 1, null, null)
         .style(LIST_STYLE)
-        .dataSource('hokusai')
+        .dataSource('playlist')
+        .hscroll('content')
         .vertical(false)
         .loop(true);
       b.belongs((b) => {
         b.element(new UiNode(app, 'card')).inset(0);
         b.belongs((b) => {
-          b.element(new UiTextField(app, 'a'))
+          b.element(new UiTextField(app, 'title'))
             .position(1, 1, null, null, 10, 2)
             .style(DEFAULT_STYLE);
-          b.element(new UiTextField(app, 'b'))
+          b.element(new UiTextField(app, 'duration'))
             .position(12, 1, 12, null, null, 2)
             .style(DEFAULT_STYLE);
           b.element(new UiTextField(app, 'c'))
@@ -60,15 +86,14 @@ export class SlidePage extends UiPageNode {
             .style(DEFAULT_STYLE);
         });
       });
+      b.element(new UiIndicatorList(app, 'ind'))
+        .position(14, 9, null, null, 20, 2)
+        .hscroll('content')
+        .tscroll('playing')
+        .margin('4px')
+        .style(IND_LIST_STYLE);
     });
-    (app.getDataSource('hokusai') as DataSource).select({});
-    app.runInterval(this, 1, 3000, () => {
-      let node = this.findNodeByPath('list') as UiListNode;
-      let result = UiResult.CONSUMED;
-      if (node != null) {
-        result |= node.scrollRecord(1);
-      }
-      return result;
-    });
+    let ds = app.getDataSource('playlist') as DataSource;
+    ds.select({});
   }
 }

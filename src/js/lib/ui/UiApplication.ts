@@ -373,7 +373,7 @@ class RunAnimationEntry extends RunEntry<AnimationTask> {
     if (this._baseTime == 0) {
       this._baseTime = now;
     }
-    let step = (now - this._baseTime) / this._limit;
+    let step = this.repeat ? now : (now - this._baseTime) / this._limit;
     let result = this.task(step);
     if (result & UiResult.EXIT || (!this.repeat && step >= 1.0)) {
       this._flags |= RunFlags.EXIT;

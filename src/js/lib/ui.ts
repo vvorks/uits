@@ -61,6 +61,12 @@ export { UiIndicatorNode };
 import { UiIndicatorField } from '~/lib/ui/UiIndicatorField';
 export { UiIndicatorField };
 
+import { UiIndicatorList } from '~/lib/ui/UiIndicatorList';
+export { UiIndicatorList };
+
+import { UiPlayList } from '~/lib/ui/UiPlayList';
+export { UiPlayList };
+
 import { UiScrollbar } from '~/lib/ui/UiScrollbar';
 export { UiScrollbar };
 

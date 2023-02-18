@@ -262,6 +262,18 @@ export class TestApplication extends UiApplication {
     this.addDataSource('menu', new MenuDataSource());
     this.addDataSource('menuNext', new MenuDataSource());
 
+    this.addDataSource(
+      'playlist',
+      new TestDataSource((criteria: Properties<Value>) => {
+        let theData: DataRecord[] = [];
+        theData.push({ title: 'スパイダーマン', duration: 3 * 1000 });
+        theData.push({ title: 'スーパーマン', duration: 4 * 1000 });
+        theData.push({ title: 'バットマン', duration: 5 * 1000 });
+        theData.push({ title: 'ウルトラマン', duration: 6 * 1000 });
+        return theData;
+      })
+    );
+
     //this.testFormatter();
   }
 

@@ -17,6 +17,8 @@ export class UiPageNode extends UiNode implements HasSetter<UiPageNodeSetter> {
 
   private _vScrollables: Properties<Scrollable[]>;
 
+  private _tScrollables: Properties<Scrollable[]>;
+
   private _lastHistoryState: HistoryState | null;
 
   /**
@@ -60,6 +62,7 @@ export class UiPageNode extends UiNode implements HasSetter<UiPageNodeSetter> {
     }
     this._hScrollables = {};
     this._vScrollables = {};
+    this._tScrollables = {};
   }
 
   public getSetter(): UiPageNodeSetter {
@@ -103,6 +106,7 @@ export class UiPageNode extends UiNode implements HasSetter<UiPageNodeSetter> {
   protected afterMount(): void {
     this.initScroll(this._hScrollables, (s) => s.fireHScroll());
     this.initScroll(this._vScrollables, (s) => s.fireVScroll());
+    this.initScroll(this._tScrollables, (s) => s.fireTScroll());
     this.setChanged(Changed.STYLE, true);
     this.resetFocus();
   }
@@ -163,6 +167,14 @@ export class UiPageNode extends UiNode implements HasSetter<UiPageNodeSetter> {
     this.detachScroll(this._vScrollables, name, scrollable);
   }
 
+  public attachTScroll(name: string, scrollable: Scrollable): void {
+    this.attachScroll(this._tScrollables, name, scrollable);
+  }
+
+  public detachTScroll(name: string, scrollable: Scrollable): void {
+    this.detachScroll(this._tScrollables, name, scrollable);
+  }
+
   private attachScroll(prop: Properties<Scrollable[]>, name: string, scrollable: Scrollable): void {
     let array = prop[name];
     if (array !== undefined) {
@@ -216,6 +228,23 @@ export class UiPageNode extends UiNode implements HasSetter<UiPageNodeSetter> {
       for (let s of array) {
         if (s != source) {
           s.onVScroll(source, offset, limit, count);
+        }
+      }
+    }
+  }
+
+  public dispatchTScroll(
+    name: string,
+    source: Scrollable,
+    offset: number,
+    limit: number,
+    count: number
+  ) {
+    let array = this._tScrollables[name];
+    if (array !== undefined) {
+      for (let s of array) {
+        if (s != source) {
+          s.onTScroll(source, offset, limit, count);
         }
       }
     }
