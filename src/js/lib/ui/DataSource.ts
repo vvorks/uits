@@ -10,7 +10,11 @@ export abstract class DataSource {
   /**
    * 通知先アプリケーションリスト
    */
-  private _applications: UiApplication[] = [];
+  private _applications: UiApplication[];
+
+  protected constructor() {
+    this._applications = [];
+  }
 
   /**
    * 通知先アプリケーションを登録する

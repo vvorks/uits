@@ -84,6 +84,14 @@ export class MenuTestPage extends UiPageNode {
         .style(DEFAULT_STYLE)
         .focusable(true);
       b.belongs((b) => {
+        b.element(new UiNode(app, 'omote')).inset(0).style(DEFAULT_STYLE);
+        b.belongs((b) => {
+          b.element(new UiTextNode(app, 'title'))
+            .inset(2)
+            .style(DEFAULT_STYLE)
+            .focusable(false)
+            .textContent('omote');
+        });
         b.element(new UiNode(app, 'ura')).inset(0).style(DEFAULT_STYLE);
         b.belongs((b) => {
           for (let r = 0; r < 2; r++) {
@@ -95,14 +103,6 @@ export class MenuTestPage extends UiPageNode {
                 .textContent('test' + r + '_' + c);
             }
           }
-        });
-        b.element(new UiNode(app, 'omote')).inset(0).style(DEFAULT_STYLE);
-        b.belongs((b) => {
-          b.element(new UiTextNode(app, 'title'))
-            .inset(2)
-            .style(DEFAULT_STYLE)
-            .focusable(false)
-            .textContent('omote');
         });
       });
       //menu
