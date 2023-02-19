@@ -23,6 +23,7 @@ const IND_STYLE: UiStyle = new UiStyleBuilder()
   .basedOn(IND_LIST_STYLE)
   .condition('NAMED', UiIndicatorList.INDICATOR_NAME)
   .backgroundColor(Colors.SILVER)
+  .borderRadius('1rem')
   .build();
 
 const IND_ON_STYLE: UiStyle = new UiStyleBuilder()
@@ -91,6 +92,8 @@ export class SlidePage extends UiPageNode {
         .hscroll('content')
         .tscroll('playing')
         .margin('4px')
+        .outerMargin(true)
+        .zoomRatio(2)
         .style(IND_LIST_STYLE);
     });
     let ds = app.getDataSource('playlist') as DataSource;

@@ -2,10 +2,10 @@ import { CssLength } from './CssLength';
 import { Scrollable } from './Scrollable';
 import type { UiApplication } from './UiApplication';
 import { UiIndicatorNode } from './UiIndicatorNode';
-import { Size, UiNode, UiNodeSetter } from './UiNode';
+import { Flags, Size, UiNode, UiNodeSetter, UiResult } from './UiNode';
 
-/** 現在コンテンツを示すIndicatorの倍率 */
-const CURRENT_WIDTH_RATIO = 3.0;
+/** 現在コンテンツを示すIndicatorの倍率既定値 */
+const DEFAULT_ZOOM_RATIO = 2.0;
 
 export class UiIndicatorListSetter extends UiNodeSetter {
   public static readonly INSTANCE = new UiIndicatorListSetter();
@@ -14,16 +14,35 @@ export class UiIndicatorListSetter extends UiNodeSetter {
     node.margin = value;
     return this;
   }
+  public zoomRatio(ratio: number): this {
+    let node = this.node as UiIndicatorList;
+    node.zoomRatio = ratio;
+    return this;
+  }
+  public outerMargin(on: boolean): this {
+    let node = this.node as UiIndicatorList;
+    node.outerMargin = on;
+    return this;
+  }
 }
 
 export class UiIndicatorList extends UiNode {
   public static readonly INDICATOR_NAME = 'indicator';
 
+  /** 現在拡大表示中のIndicator Index */
   private _currentIndex: number;
 
+  /** 直前に拡大表示中だったIndicatorのIndex */
+  private _previousIndex: number;
+
+  /** 現在拡大表示中のシーク時間 */
   private _currentTime: number;
 
+  /** Indicator間の余白 */
   private _margin: CssLength;
+
+  /** 拡大表示比率 */
+  private _zoomRatio: number;
 
   /**
    * クローンメソッド
@@ -60,13 +79,17 @@ export class UiIndicatorList extends UiNode {
       super(param as UiIndicatorList);
       let src = param as UiIndicatorList;
       this._currentIndex = src._currentIndex;
+      this._previousIndex = src._previousIndex;
       this._currentTime = src._currentTime;
       this._margin = src._margin;
+      this._zoomRatio = src._zoomRatio;
     } else {
       super(param as UiApplication, name as string);
       this._currentIndex = 0;
+      this._previousIndex = 0;
       this._currentTime = 0;
       this._margin = CssLength.ZERO;
+      this._zoomRatio = DEFAULT_ZOOM_RATIO;
     }
   }
 
@@ -93,6 +116,31 @@ export class UiIndicatorList extends UiNode {
   }
 
   /**
+   *  ズーム比率取得
+   */
+  public get zoomRatio(): number {
+    return this._zoomRatio;
+  }
+
+  /**
+   * ズーム比率設定
+   */
+  public set zoomRatio(ratio: number) {
+    if (this._zoomRatio != ratio) {
+      this._zoomRatio = ratio;
+      this.onContentChanged();
+    }
+  }
+
+  public get outerMargin(): boolean {
+    return this.getFlag(Flags.OUTER_MARGIN);
+  }
+
+  public set outerMargin(on: boolean) {
+    this.setFlag(Flags.OUTER_MARGIN, on);
+  }
+
+  /**
    * スタイル変更通知
    */
   protected onStyleChanged(): void {
@@ -114,8 +162,8 @@ export class UiIndicatorList extends UiNode {
       return;
     }
     offset %= count;
-    let logicalIndex = offset / limit;
-    let logicalCount = count / limit;
+    let logicalIndex = Math.floor((offset * 1) / limit);
+    let logicalCount = Math.floor((count * 1) / limit);
     let app = this.application;
     let childCount = this.getChildCount();
     if (childCount != logicalCount) {
@@ -128,9 +176,11 @@ export class UiIndicatorList extends UiNode {
       while (logicalCount < childCount) {
         this.removeChildAt(--childCount);
       }
+      this._previousIndex = logicalIndex;
       this._currentIndex = logicalIndex;
       this.onContentChanged();
     } else if (this._currentIndex != logicalIndex) {
+      this._previousIndex = this._currentIndex;
       this._currentIndex = logicalIndex;
       this.onContentChanged();
     }
@@ -159,21 +209,43 @@ export class UiIndicatorList extends UiNode {
   }
 
   protected renderContent(): void {
-    let count = this._children.length;
+    const count = this._children.length;
     if (count == 0) {
       return;
     }
-    let width = this.innerWidth;
-    let margin = this._margin.toPixel(() => width);
-    let netWidth = width - margin * (count - 1);
-    let div = count == 1 ? 1 : count - 1 + CURRENT_WIDTH_RATIO;
-    let unitWidth = netWidth / div;
-    let x = 0;
-    for (let i = 0; i < count; i++) {
-      let c = this._children[i] as UiIndicatorNode;
-      let w = i == this._currentIndex ? unitWidth * CURRENT_WIDTH_RATIO : unitWidth;
-      c.position(`${x}px`, '0px', null, '0px', `${w}px`, null);
-      x += w + margin;
+    const app = this.application;
+    const time = app.animationTime;
+    const width = this.innerWidth;
+    const margin = this._margin.toPixel(() => width);
+    const netWidth = width - margin * (count + (this.outerMargin ? +1 : -1));
+    const div = count == 1 ? 1 : count + (this._zoomRatio - 1);
+    const unitWidth = Math.floor(netWidth / div);
+    const fullExt = netWidth - unitWidth * count;
+    const outerMarginPx = this.outerMargin ? margin : 0;
+    if (this._previousIndex == this._currentIndex || time == 0) {
+      let x = this.outerMargin ? margin : 0;
+      for (let i = 0; i < count; i++) {
+        let c = this._children[i] as UiIndicatorNode;
+        let w = unitWidth + (i == this._currentIndex ? fullExt : 0);
+        c.position(`${x}px`, `${outerMarginPx}px`, null, `${outerMarginPx}px`, `${w}px`, null);
+        x += w + margin;
+      }
+    } else {
+      app.runAnimation(this, 1, time, false, (step: number) => {
+        let ratio = Math.min(Math.max(0, step), 1);
+        let currExt = fullExt * ratio;
+        let prevExt = fullExt - currExt;
+        let x = this.outerMargin ? margin : 0;
+        for (let i = 0; i < count; i++) {
+          let c = this._children[i] as UiIndicatorNode;
+          let w = unitWidth;
+          w += i == this._currentIndex ? currExt : 0;
+          w += i == this._previousIndex ? prevExt : 0;
+          c.position(`${x}px`, `${outerMarginPx}px`, null, `${outerMarginPx}px`, `${w}px`, null);
+          x += w + margin;
+        }
+        return UiResult.AFFECTED;
+      });
     }
   }
 
