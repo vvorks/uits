@@ -234,7 +234,6 @@ class UiMenuBlock extends UiNode {
       let node = this.owner.getTemplateByName(template);
       if (node != null) {
         let item = (node as UiMenuItem).clone();
-        item.checkActionListener();
         item.index = i;
         let type = rec[FIELD_TYPE] as FieldType;
         item.focusable = type != 'filler' ? true : false;

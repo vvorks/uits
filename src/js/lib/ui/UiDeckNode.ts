@@ -5,6 +5,7 @@ import { UiNode, UiResult } from '~/lib/ui/UiNode';
 export class UiDeckNode extends UiNode {
   private _selected: string | null;
   private _selectedBefore: string | null;
+  private _selectedBeforeOwner: UiNode | null;
   private _savedFocusNodes: Properties<UiNode>;
 
   /**
@@ -43,11 +44,13 @@ export class UiDeckNode extends UiNode {
       let src = param as UiDeckNode;
       this._selected = src._selected;
       this._selectedBefore = src._selectedBefore;
+      this._selectedBeforeOwner = src._selectedBeforeOwner;
       this._savedFocusNodes = {};
     } else {
       super(param as UiApplication, name as string);
       this._selected = null;
       this._selectedBefore = null;
+      this._selectedBeforeOwner = null;
       this._savedFocusNodes = {};
     }
   }
@@ -121,8 +124,7 @@ export class UiDeckNode extends UiNode {
     for (let piece of this._children) {
       let saved = this._savedFocusNodes[piece.name];
       if (saved !== undefined) {
-        this._selectedBefore = this._selected;
-        this.select(piece.name);
+        this._selectedBefore = null;
         return saved;
       }
     }
@@ -135,13 +137,16 @@ export class UiDeckNode extends UiNode {
       let piece = Arrays.first(target.getAncestorsIf((e) => e.parent == this, 1));
       if (piece != null && piece.name != this._selected) {
         this._selectedBefore = this._selected;
+        this._selectedBeforeOwner = other;
         this.select(piece.name);
         result |= UiResult.AFFECTED;
       }
     } else {
       this.saveFocusInSelected();
       if (this._selectedBefore != null) {
-        this.select(this._selectedBefore);
+        if (this._selectedBeforeOwner == other) {
+          this.select(this._selectedBefore);
+        }
         this._selectedBefore = null;
         result |= UiResult.AFFECTED;
       }

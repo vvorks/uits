@@ -2,7 +2,14 @@ import { CssLength } from '~/lib/ui/CssLength';
 import { Color, Colors } from '~/lib/ui/Colors';
 import { UiNode } from '~/lib/ui/UiNode';
 
-export type UiStyleCondition = 'NAMED' | 'CLICKING' | 'FOCUS' | 'ENABLE' | 'DISABLE' | 'OTHERWISE';
+export type UiStyleCondition =
+  | 'NAMED'
+  | 'CLICKING'
+  | 'FOCUS'
+  | 'EMPHASIS'
+  | 'ENABLE'
+  | 'DISABLE'
+  | 'OTHERWISE';
 export type TextAlign = 'left' | 'right' | 'center' | 'justify';
 export type VerticalAlign = 'top' | 'bottom' | 'middle';
 
@@ -17,9 +24,10 @@ export class UiStyle {
     NAMED: 1,
     CLICKING: 2,
     FOCUS: 3,
-    ENABLE: 4,
-    DISABLE: 5,
-    OTHERWISE: 6,
+    EMPHASIS: 4,
+    ENABLE: 5,
+    DISABLE: 6,
+    OTHERWISE: 7,
   };
 
   private static readonly CONDITION_FUNCS: ((node: UiNode, param: string | null) => boolean)[] = [
@@ -27,6 +35,7 @@ export class UiStyle {
     (node: UiNode, param: string | null) => node.name == param, //NAMED
     (node: UiNode, param: string | null) => node.clicking, //CLICKING
     (node: UiNode, param: string | null) => node.hasFocus(), //FOCUS
+    (node: UiNode, param: string | null) => node.emphasis, //EMPHASIS
     (node: UiNode, param: string | null) => node.enable, //ENABLE
     (node: UiNode, param: string | null) => !node.enable, //DISABLE
     (node: UiNode, param: string | null) => true, //OTHERWISE
@@ -404,6 +413,14 @@ export class UiStyle {
   }
 
   public toCssString(): string {
+    if (this._basedOn == null) {
+      return this.makeFullStyle();
+    } else {
+      return this.makeDeltaStyle();
+    }
+  }
+
+  private makeFullStyle(): string {
     let sb = '';
     sb += '{';
     sb += this.getColorProperty('color', this.textColor);
@@ -426,6 +443,61 @@ export class UiStyle {
     return sb;
   }
 
+  private makeDeltaStyle(): string {
+    let sb = '';
+    sb += '{';
+    if (this._textColor != null) {
+      sb += this.getColorProperty('color', this.textColor);
+    }
+    if (this._backgroundColor != null) {
+      sb += this.getColorProperty('background', this.backgroundColor);
+    }
+    if (this._backgroundImage != null) {
+      sb += this.getStringProperty('background-image', this.backgroundImage);
+    }
+    if (this._borderLeft != null) {
+      sb += this.getStringProperty('border-left-width', this.borderLeft);
+    }
+    if (this._borderTop != null) {
+      sb += this.getStringProperty('border-top-width', this.borderTop);
+    }
+    if (this._borderRight != null) {
+      sb += this.getStringProperty('border-right-width', this.borderRight);
+    }
+    if (this._borderBottom != null) {
+      sb += this.getStringProperty('border-bottom-width', this.borderBottom);
+    }
+    if (this._borderRadiusTopLeft != null) {
+      sb += this.getStringProperty('border-top-left-radius', this.borderRadiusTopLeft);
+    }
+    if (this._borderRadiusTopRight != null) {
+      sb += this.getStringProperty('border-top-right-radius', this.borderRadiusTopRight);
+    }
+    if (this._borderRadiusBottomLeft != null) {
+      sb += this.getStringProperty('border-bottom-left-radius', this.borderRadiusBottomLeft);
+    }
+    if (this._borderRadiusBottomRight != null) {
+      sb += this.getStringProperty('border-bottom-right-radius', this.borderRadiusBottomRight);
+    }
+    if (this._borderColor != null) {
+      sb += this.getColorProperty('border-color', this.borderColor);
+    }
+    if (this._borderImage != null) {
+      sb += this.getStringProperty('border-image', this.borderImage);
+    }
+    if (this._fontSize != null) {
+      sb += this.getStringProperty('font-size', this.fontSize);
+    }
+    if (this._fontFamily != null) {
+      sb += this.getStringProperty('font-family', this.fontFamily);
+    }
+    if (this._lineHeight != null) {
+      sb += this.getStringProperty('line-height', this.lineHeight);
+    }
+    sb += '}';
+    return sb;
+  }
+
   private getColorProperty(cssName: string, color: Color | null): string {
     if (color == null) {
       return '';
@@ -438,6 +510,17 @@ export class UiStyle {
       return '';
     }
     return cssName + ':' + str.toString() + ';';
+  }
+
+  public getClassList(prefix: string): string[] {
+    let s: UiStyle | null = this;
+    let result: string[] = [];
+    result.push(prefix + s.id);
+    while (s.basedOn != null) {
+      s = s.basedOn;
+      result.push(prefix + s.id);
+    }
+    return result;
   }
 }
 

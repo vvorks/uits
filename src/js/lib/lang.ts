@@ -1,5 +1,12 @@
-import { ParamError, StateError, LogicalError, UnsupportedError } from '~/lib/lang/Error';
-export { ParamError, StateError, LogicalError, UnsupportedError };
+import {
+  ParamError,
+  StateError,
+  LogicalError,
+  IOError,
+  NetworkError,
+  UnsupportedError,
+} from '~/lib/lang/Error';
+export { ParamError, StateError, LogicalError, IOError, NetworkError, UnsupportedError };
 
 import { Asserts } from '~/lib/lang/Asserts';
 export { Asserts };

@@ -23,25 +23,27 @@ export type Size = string | number;
  */
 // prettier-ignore
 export enum Flags {
-  /** フォーカス可能フラグ */   FOCUSABLE           = 0x00000001,
-  /** 有効フラグ */             ENABLE              = 0x00000002,
-  /** 表示フラグ */             VISIBLE             = 0x00000004,
-  /** 編集可能フラグ */         EDITABLE            = 0x00000008,
-  /** 縦スクロールフラグ */     VERTICAL            = 0x00000010,
-  /** ループスクロールフラグ */ LOOP                = 0x00000020,
-  /** 両端マージン要否フラグ */ OUTER_MARGIN        = 0x00000040,
-  /** フォーカスロックフラグ */ FOCUS_LOCK          = 0x00000080,
-  /** 項目上にPOPUP */          POPUP_OVER          = 0x00000100,
-  //                                                  0x00000200,
-  //                                                  0x00000400,
-  //                                                  0x00000800,
-  /** 初期化済みフラグ */       INITIALIZED         = 0x00001000,
-  /** マウント済みフラグ */     MOUNTED             = 0x00002000,
-  /** DOM接続済みフラグ */      BINDED              = 0x00004000,
-  /** 削除済みフラグ */         DELETED             = 0x00008000,
-  /** クリック中フラグ */       CLICKING            = 0x00010000,
-  /** フォーカス移動中フラグ */ FOCUSING            = 0x00020000,
-  /** 編集中フラグ */           EDITING             = 0x00040000,
+  /** フォーカス可能フラグ */   FOCUSABLE           = 0x00000001,     //UiNode
+  /** 有効フラグ */             ENABLE              = 0x00000002,     //UiNode
+  /** 表示フラグ */             VISIBLE             = 0x00000004,     //UiNode
+  /** 強調フラグ */             EMPHASIS            = 0x00000008,     //UiNode
+  //                                                  0x00000010,     //reserved
+  //                                                  0x00000020,     //reserved
+  //                                                  0x00000040,     //reserved
+  //                                                  0x00000080,     //reserved
+  /** 項目上にPOPUP */          POPUP_OVER          = 0x00000100,     //UiLookupField
+  /** UiSpanListでの一行表示 */ SINGLE_LINE         = 0x00000100,     //UiSpanList
+  /** 縦スクロールフラグ */     VERTICAL            = 0x00000100,     //UiListNode, UiGridNode
+  /** ループスクロールフラグ */ LOOP                = 0x00000200,     //UiListNode, UiGridNode
+  /** 両端マージン要否フラグ */ OUTER_MARGIN        = 0x00000400,     //UiListNode, UiGridNode
+  /** フォーカスロックフラグ */ FOCUS_LOCK          = 0x00000800,     //UiScrollNode
+  /** 初期化済みフラグ */       INITIALIZED         = 0x00001000,     //UiNode
+  /** マウント済みフラグ */     MOUNTED             = 0x00002000,     //UiNode
+  /** DOM接続済みフラグ */      BINDED              = 0x00004000,     //UiNode
+  /** 削除済みフラグ */         DELETED             = 0x00008000,     //UiNode
+  /** クリック中フラグ */       CLICKING            = 0x00010000,     //UiNode
+  /** フォーカス移動中フラグ */ FOCUSING            = 0x00020000,     //UiNode
+  /** 編集中フラグ */           EDITING             = 0x00040000,     //UiNode
   /** 初期フラグ値 */           INITIAL             = ENABLE | VISIBLE,
   /** クローン不要なフラグ */   NOT_CLONABLE_FLAGS  = CLICKING | DELETED | MOUNTED,
   /** UiListNode で使用 */      LIST_INITIAL        = VERTICAL | LOOP | OUTER_MARGIN,
@@ -214,9 +216,9 @@ export class UiNodeSetter extends UiSetter {
     return this;
   }
 
-  public editable(value: boolean): this {
+  public emphasis(value: boolean): this {
     let node = this.node as UiNode;
-    node.editable = value;
+    node.emphasis = value;
     return this;
   }
 
@@ -842,8 +844,8 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
     }
   }
 
-  public checkActionListener() {
-    Logs.debug('actionListeer count %d', this._actionListeners.length);
+  protected hasActionListener(): boolean {
+    return this._actionListeners.length > 0;
   }
 
   protected fireActionEvent(action: string, param?: any): UiResult {
@@ -856,6 +858,10 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
 
   public getPageNode(): UiPageNode | null {
     return this.parent == null ? null : this.parent.getPageNode();
+  }
+
+  public static getNodePathOf(node: UiNode | null) {
+    return node != null ? node.getNodePath() : 'null';
   }
 
   public getNodePath(): string {
@@ -1263,6 +1269,15 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
     }
   }
 
+  public get emphasis(): boolean {
+    return this.getFlag(Flags.EMPHASIS);
+  }
+
+  public set emphasis(on: boolean) {
+    if (this.setFlag(Flags.EMPHASIS, on)) {
+      this.setChanged(Changed.DISPLAY, true);
+    }
+  }
   public get clicking(): boolean {
     return this.getFlag(Flags.CLICKING);
   }
@@ -1305,14 +1320,6 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
 
   public set focusable(on: boolean) {
     this.setFlag(Flags.FOCUSABLE, on);
-  }
-
-  public get editable(): boolean {
-    return this.getFlag(Flags.EDITABLE);
-  }
-
-  public set editable(on: boolean) {
-    this.setFlag(Flags.EDITABLE, on);
   }
 
   public get initialized(): boolean {
@@ -1916,8 +1923,22 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
       return;
     }
     let dom = this._domElement as HTMLElement;
-    dom.setAttribute('class', styleClassName);
+    const newClassList = s.getClassList(this._stylePrefix);
+    const oldClassList = this.getClassListOf(dom);
+    const onlyOldClassList = oldClassList.filter((e) => newClassList.indexOf(e) == -1);
+    const onlyNewClassList = newClassList.filter((e) => oldClassList.indexOf(e) == -1);
+    onlyOldClassList.forEach((e) => dom.classList.remove(e));
+    onlyNewClassList.forEach((e) => dom.classList.add(e));
     this._styleClassName = styleClassName;
+  }
+
+  private getClassListOf(dom: HTMLElement): string[] {
+    let list = dom.classList;
+    let result: string[] = [];
+    for (let i = 0; i < list.length; i++) {
+      result.push(list[i]);
+    }
+    return result;
   }
 
   protected syncLocation(): void {

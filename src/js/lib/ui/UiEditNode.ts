@@ -1,17 +1,33 @@
 import type { UiApplication } from './UiApplication';
 import { Properties } from '../lang';
-import { UiNode, UiResult } from './UiNode';
+import { UiNode, UiNodeSetter, UiResult } from './UiNode';
 import { Colors } from './Colors';
 import { HistoryState } from './HistoryManager';
 import { UiKeyboard } from './UiKeyboard';
 import { KeyCodes } from './KeyCodes';
 
 const NBSP = '\u00A0';
-
+export class UiEditNodeSetter extends UiNodeSetter {
+  public static readonly INSTANCE = new UiEditNodeSetter();
+  public placeHolder(value: string): this {
+    let node = this.node as UiEditNode;
+    node.placeHolder = value;
+    return this;
+  }
+}
 /**
  * （ソフトキーボードによる）文字列編集ノード
  */
 export class UiEditNode extends UiNode {
+  /** 編集中に文字列が変更された場合に送付されるアクションのタグ名 */
+  public static readonly EVENT_TAG_CHANGED = 'changed';
+
+  /** 編集が終了した場合に送付されるアクションのタグ名 */
+  public static readonly EVENT_TAG_FINISHED = 'finished';
+
+  /** 編集をキャンセルした場合に送付されるアクションのタグ名 */
+  public static readonly EVENT_TAG_CANCELED = 'canceled';
+
   private static readonly VIRTUAL_WIDTH = 16384;
 
   /** 濁音、半濁音、小文字変換テーブル */
@@ -88,11 +104,11 @@ export class UiEditNode extends UiNode {
 
   private _textContent: string;
   private _saveContent: string;
+  private _placeHolder: string;
   private _editStart: number;
   private _editEnd: number;
   private _cursorPos: number;
   private _divLeft: number;
-
   /**
    * クローンメソッド
    *
@@ -133,6 +149,7 @@ export class UiEditNode extends UiNode {
       this._editEnd = src._editEnd;
       this._cursorPos = src._cursorPos;
       this._divLeft = src._divLeft;
+      this._placeHolder = src._placeHolder;
     } else {
       super(param as UiApplication, name as string);
       this._textContent = '';
@@ -141,9 +158,9 @@ export class UiEditNode extends UiNode {
       this._editEnd = 0;
       this._cursorPos = 0;
       this._divLeft = 0;
+      this._placeHolder = '';
     }
   }
-
   protected createDomElement(target: UiNode, tag: string): HTMLElement {
     let border = this.getBorderSize();
     let dom = super.createDomElement(target, tag);
@@ -157,8 +174,40 @@ export class UiEditNode extends UiNode {
     dom.appendChild(div);
     return dom;
   }
+  public getSetter(): UiEditNodeSetter {
+    return UiEditNodeSetter.INSTANCE;
+  }
+  public set placeHolder(text: string) {
+    this._placeHolder = text;
+  }
+  public get placeHolder() {
+    return this._placeHolder;
+  }
 
   protected renderContent(): void {
+    if (this._textContent.length == 0 && this._placeHolder != '') {
+      this.renderPlaceHolderContent();
+    } else {
+      this.renderEditContent();
+    }
+  }
+  protected renderPlaceHolderContent(): void {
+    let dom = this.domElement as HTMLElement;
+    let div = dom.firstChild as HTMLDivElement;
+    let defaultStyle = this.style.getEffectiveStyle(this);
+    let editingStyle = defaultStyle.getConditionalStyle('FOCUS');
+    let editingBack: string;
+    if (editingStyle == null) {
+      editingBack = defaultStyle.backgroundColor;
+    } else {
+      editingBack = editingStyle.backgroundColor;
+    }
+    let sb = `<span style="color:${Colors.GRAY};background-color:${editingBack}">`;
+    sb += this._placeHolder;
+    sb += '</span>';
+    div.innerHTML = sb;
+  }
+  protected renderEditContent(): void {
     //スタイル取得
     let defaultStyle = this.style.getEffectiveStyle(this);
     let editingStyle = defaultStyle.getConditionalStyle('FOCUS');
@@ -314,6 +363,7 @@ export class UiEditNode extends UiNode {
     this._cursorPos += text.length;
     this._editEnd += text.length;
     this.onContentChanged();
+    this.fireTextAction(UiEditNode.EVENT_TAG_CHANGED);
   }
 
   /**
@@ -331,6 +381,7 @@ export class UiEditNode extends UiNode {
           modified +
           this._textContent.substring(this._cursorPos);
         this.onContentChanged();
+        this.fireTextAction(UiEditNode.EVENT_TAG_CHANGED);
       }
     }
   }
@@ -349,6 +400,7 @@ export class UiEditNode extends UiNode {
       this._cursorPos--;
       this._editStart = Math.min(this._editStart, this._cursorPos);
       this.onContentChanged();
+      this.fireTextAction(UiEditNode.EVENT_TAG_CHANGED);
     }
   }
 
@@ -417,7 +469,12 @@ export class UiEditNode extends UiNode {
       this._textContent = this._saveContent;
     }
     this.resetPosition();
+    this.fireTextAction(commit ? UiEditNode.EVENT_TAG_FINISHED : UiEditNode.EVENT_TAG_CANCELED);
     return UiResult.AFFECTED;
+  }
+
+  private fireTextAction(tag: string): void {
+    this.fireActionEvent(tag, this.textContent);
   }
 
   public onKeyDown(target: UiNode, key: number, ch: number, mod: number, at: number): UiResult {

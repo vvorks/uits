@@ -109,6 +109,9 @@ export { DataSource };
 import { DataRecord } from '~/lib/ui/DataSource';
 export type { DataRecord };
 
+import { LocalDataSource } from '~/lib/ui/LocalDataSource';
+export { LocalDataSource };
+
 import { UiStyleCondition as RawUiStyleCondition } from '~/lib/ui/UiStyle';
 export type UiStyleCondition = RawUiStyleCondition;
 

@@ -175,6 +175,16 @@ class UiRecord extends UiButton implements RecordHolder {
     return new Rect(this.getRect());
   }
 
+  public onFocus(target: UiNode, gained: boolean, other: UiNode | null): UiResult {
+    if (gained && this._record != null) {
+      return this.owner.onRecordSelected(this._record);
+    }
+    return UiResult.IGNORED;
+  }
+
+  /**
+   * 基底クラス（UiButton）でボタンが押下された時に呼ばれるメソッド
+   */
   protected doAction(): UiResult {
     if (this._record != null) {
       return this.owner.onRecordClicked(this._record);
@@ -212,6 +222,12 @@ export class UiListNodeSetter extends UiScrollNodeSetter {
  * 垂直及び水平の仮想データリストノード
  */
 export class UiListNode extends UiScrollNode implements HasSetter<UiListNodeSetter> {
+  /** 項目中で決定が押下された場合に送付されるアクションのタグ名 */
+  public static readonly EVENT_TAG_CLICK = 'click';
+
+  /** 項目が選択された場合に送付されるアクションのタグ名 */
+  public static readonly EVENT_TAG_SELECT = 'select';
+
   private _template: UiRecord | null;
 
   private _templateRect: Rect | null;
@@ -807,7 +823,6 @@ export class UiListNode extends UiScrollNode implements HasSetter<UiListNodeSett
       offset = Math.round((offset * this._pageSize) / limit);
       count = Math.round((count * this._pageSize) / limit);
     }
-    Logs.debug('onHScroll %d %d %d', offset, limit, count);
     let newIndex = this.validateIndex(Math.floor(offset / this._lineSize));
     let delta = this.getScrollDelta(newIndex, this._pageTopIndex);
     if (offset % this._lineSize == 0 && Math.abs(delta) == 1) {
@@ -941,6 +956,10 @@ export class UiListNode extends UiScrollNode implements HasSetter<UiListNodeSett
   }
 
   public onRecordClicked(rec: DataRecord): UiResult {
-    return this.fireActionEvent('click', rec);
+    return this.fireActionEvent(UiListNode.EVENT_TAG_CLICK, rec);
+  }
+
+  public onRecordSelected(rec: DataRecord): UiResult {
+    return this.fireActionEvent(UiListNode.EVENT_TAG_SELECT, rec);
   }
 }

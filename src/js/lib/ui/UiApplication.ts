@@ -601,6 +601,13 @@ export class UiApplication {
     window.setTimeout(() => {
       this.processIntervalTasks();
     }, this.getNextInterval());
+    if (!window.requestAnimationFrame) {
+      //attempt replace to vender specific implemantation
+      let func = this.findVenderRequestAnimationFrame();
+      if (func != null) {
+        window.requestAnimationFrame = func;
+      }
+    }
     if (!!window.requestAnimationFrame) {
       const aniFunc = (at: number) => {
         this.processAnimationFrame(at);
@@ -608,6 +615,7 @@ export class UiApplication {
       };
       window.requestAnimationFrame(aniFunc);
     } else {
+      Logs.error('requestAnimationFrame does not implemented');
       const aniFunc = () => {
         let at = this.newTimestamp();
         this.processAnimationFrame(at);
@@ -623,6 +631,19 @@ export class UiApplication {
     }
     //初回のロード処理
     this.processHashChanged();
+  }
+
+  private findVenderRequestAnimationFrame(): ((callback: FrameRequestCallback) => number) | null {
+    let func =
+      window['webkitRequestAnimationFrame' as any] ||
+      window['mozRequestAnimationFrame' as any] ||
+      window['oRequestAnimationFrame' as any] ||
+      window['msRequestAnimationFrame' as any] ||
+      null;
+    if (func != null) {
+      return func as unknown as (callback: FrameRequestCallback) => number;
+    }
+    return null;
   }
 
   protected initialize(at: number): void {}

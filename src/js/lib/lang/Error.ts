@@ -32,6 +32,28 @@ export class LogicalError extends Error {
 }
 
 /**
+ * 入出力エラー
+ */
+export class IOError extends Error {
+  constructor(message?: string) {
+    super(message);
+    this.name = new.target.name;
+    Object.setPrototypeOf(this, new.target.prototype);
+  }
+}
+
+/**
+ * ネットワークエラー
+ */
+export class NetworkError extends Error {
+  constructor(message?: string) {
+    super(message);
+    this.name = new.target.name;
+    Object.setPrototypeOf(this, new.target.prototype);
+  }
+}
+
+/**
  * 未サポートエラー
  */
 export class UnsupportedError extends Error {

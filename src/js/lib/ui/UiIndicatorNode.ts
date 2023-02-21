@@ -86,9 +86,9 @@ export class UiIndicatorNode extends UiNode {
       //変更された値を保持
       this._indicatorValue = value;
       if (this.isVertical()) {
-        this.updatgeVertical(value);
+        this.updateVertical(value);
       } else {
-        this.updatgeHorizontal(value);
+        this.updateHorizontal(value);
       }
       //変更フラグを設定
       this.onContentChanged();
@@ -100,13 +100,13 @@ export class UiIndicatorNode extends UiNode {
     return rect.width < rect.height;
   }
 
-  private updatgeVertical(ratio: number): void {
+  private updateVertical(ratio: number): void {
     const totalHeight = this.getRect().height;
     const height = Math.round(totalHeight * ratio);
     this._onNode.position(0, null, 0, 0, null, height);
   }
 
-  private updatgeHorizontal(ratio: number): void {
+  private updateHorizontal(ratio: number): void {
     const totalWidth = this.getRect().width;
     const width = Math.round(totalWidth * ratio);
     this._onNode.position(0, 0, null, 0, width, null);
@@ -120,7 +120,7 @@ export class UiIndicatorNode extends UiNode {
     let style = this.style;
     //基底クラスのコピーコンストラクタ実行中、未初期化状態で呼び出される場合があるためnullチェック
     if (this._onNode != null) {
-      //onNodeに配布
+      //onNode, offNodeに配布
       this._onNode.style = style;
     }
   }

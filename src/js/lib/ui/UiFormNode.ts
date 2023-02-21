@@ -1,23 +1,22 @@
+import type { UiApplication } from './UiApplication';
 import { Value } from '../lang';
 import { DataRecord } from './DataSource';
 import { RecordHolder } from './RecordHolder';
-import type { UiApplication } from './UiApplication';
-import { UiNode, UiNodeSetter } from './UiNode';
+import { UiScrollNode, UiScrollNodeSetter } from './UiScrollNode';
+import { HasSetter } from './UiBuilder';
 
-export class UiFormNodeSetter extends UiNodeSetter {
+export class UiFormNodeSetter extends UiScrollNodeSetter {
   public static readonly INSTANCE = new UiFormNodeSetter();
   public record(rec: DataRecord): this {
     let node = this.node as UiFormNode;
-    node.setInitialRecord(rec);
+    node.setRecord(rec);
     return this;
   }
 }
 
-export class UiFormNode extends UiNode implements RecordHolder {
+export class UiFormNode extends UiScrollNode implements RecordHolder, HasSetter<UiFormNodeSetter> {
   /** 本ノードが持つ唯一のデータレコード */
   private _record: DataRecord | null;
-  /** 共有名一覧 */
-  private _sharedNames: Set<string>;
 
   /**
    * クローンメソッド
@@ -53,29 +52,14 @@ export class UiFormNode extends UiNode implements RecordHolder {
       super(param as UiFormNode);
       let src = param as UiFormNode;
       this._record = src._record;
-      this._sharedNames = src._sharedNames;
     } else {
       super(param as UiApplication, name as string);
       this._record = null;
-      this._sharedNames = new Set<string>();
     }
   }
 
-  protected initialize(): void {
-    this.collectSharedNames(this._sharedNames);
-  }
-
-  private collectSharedNames(sharedNames: Set<string>): Set<string> {
-    let names = new Set<string>();
-    for (let t of this.getDescendants()) {
-      let name = t.name;
-      if (names.has(name)) {
-        sharedNames.add(name);
-      } else {
-        names.add(name);
-      }
-    }
-    return sharedNames;
+  public getSetter(): UiFormNodeSetter {
+    return UiFormNodeSetter.INSTANCE;
   }
 
   public getRecord(): DataRecord | null {
@@ -87,10 +71,6 @@ export class UiFormNode extends UiNode implements RecordHolder {
     if (this._record != null) {
       this.doAction(this._record);
     }
-  }
-
-  public setInitialRecord(rec: DataRecord): void {
-    this._record = rec;
   }
 
   public getValue(name: string): DataRecord | Value {
@@ -107,16 +87,22 @@ export class UiFormNode extends UiNode implements RecordHolder {
     }
     if (this._record[name] != value) {
       this._record[name] = value;
-      if (this._sharedNames.has(name)) {
-        for (let c of this.getDescendantsIf((e) => e.dataFieldName == name)) {
-          c.onRecordHolderChanged(this);
-        }
-      }
+      this.doAction(this._record);
     }
-    this.doAction(this._record);
   }
 
   protected doAction(rec: DataRecord): void {
-    this.fireActionEvent('update', rec);
+    if (this.mounted) {
+      for (let c of this.getDescendants()) {
+        c.onRecordHolderChanged(this);
+      }
+      this.fireActionEvent('update', rec);
+    }
+  }
+
+  protected afterMount() {
+    for (let c of this.getDescendants()) {
+      c.onRecordHolderChanged(this);
+    }
   }
 }

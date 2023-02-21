@@ -222,7 +222,6 @@ export class UiLookupPopup extends UiPageNode {
     let app = this.application;
     let dsName = this._owner.dataSourceName as string;
     let value = this._owner.getValue() as DataRecord;
-    Logs.debug('value %s', JSON.stringify(value));
     let key = value['key'] as string;
     (app.getDataSource(dsName) as DataSource).select({ key: key });
   }
