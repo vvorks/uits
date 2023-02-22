@@ -24,6 +24,7 @@ import { VolumeToast } from '~/app/VolumeToast';
 import { UiApplication } from '~/lib/ui/UiApplication';
 import { VerticalGridPage } from './VerticalGridPage';
 import { LottieTestPage } from './LottieTestPage';
+import { Hello } from './Hello';
 
 export const DEFAULT_STYLE: UiStyle = new UiStyleBuilder()
   .textColor(Colors.BLACK)
@@ -169,6 +170,7 @@ export class TestApplication extends UiApplication {
 
   protected initialize(at: number): void {
     this.addPageFactory('', (tag) => new UiLaunchPage(this, tag));
+    this.addPageFactory('hello', (tag) => new Hello(this, tag));
     this.addPageFactory('lottie', (tag) => new LottieTestPage(this, tag));
     this.addPageFactory('vlist', (tag) => new VerticalListPage(this, tag));
     this.addPageFactory('hlist', (tag) => new HorizontalListPage(this, tag));

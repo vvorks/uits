@@ -1,4 +1,4 @@
-import { Value, Values } from '~/lib/lang';
+import { Logs, Value, Values } from '~/lib/lang';
 import { Color } from '~/lib/ui/Colors';
 import { UiNode, UiNodeSetter } from '~/lib/ui/UiNode';
 import type { UiApplication } from '~/lib/ui/UiApplication';
@@ -121,6 +121,7 @@ export class UiTextNode extends UiNode implements HasSetter<UiTextNodeSetter> {
   }
 
   protected renderContent(): void {
+    let app = this.application;
     let border = this.getBorderSize();
     let dom = this.domElement as HTMLElement;
     let uiStyle = this.style.getEffectiveStyle(this);
@@ -144,7 +145,10 @@ export class UiTextNode extends UiNode implements HasSetter<UiTextNodeSetter> {
         divStyle.removeProperty('color');
       }
       this.addPaddingForRadius(divStyle, uiStyle);
-      div.innerText = this.retrieveTextResource(Values.asString(this.textContent));
+      let text = this.retrieveTextResource(Values.asString(this.textContent)).trimRight();
+      div.innerText = text;
+      let ellipsis = '・・・';
+      app.runFinally(() => this.addEllipsis(text, ellipsis, dom, div));
     } else {
       let tb = dom.firstChild as HTMLTableElement;
       let td = tb.firstChild as HTMLTableCellElement;
@@ -163,7 +167,43 @@ export class UiTextNode extends UiNode implements HasSetter<UiTextNodeSetter> {
         tdStyle.removeProperty('color');
       }
       this.addPaddingForRadius(tdStyle, uiStyle);
-      td.innerText = this.retrieveTextResource(Values.asString(this.textContent));
+      let text = this.retrieveTextResource(Values.asString(this.textContent)).trimRight();
+      td.innerText = text;
+      let ellipsis = '・・・';
+      app.runFinally(() => this.addEllipsis(text, ellipsis, dom, td));
+    }
+  }
+
+  private addEllipsis(
+    text: string,
+    ellipsis: string,
+    outer: HTMLElement,
+    inner: HTMLElement
+  ): void {
+    if (outer.offsetHeight < outer.scrollHeight) {
+      let low = 0;
+      let high = text.length;
+      let mid = 0;
+      while (low < high) {
+        mid = Math.floor((low + high) / 2);
+        let str = text.substring(0, mid) + ellipsis;
+        inner.innerText = str;
+        if (outer.offsetHeight < outer.scrollHeight) {
+          high = mid - 1;
+        } else {
+          low = mid + 1;
+        }
+      }
+      while (outer.offsetHeight == outer.scrollHeight) {
+        mid++;
+        let str = text.substring(0, mid) + ellipsis;
+        inner.innerText = str;
+      }
+      while (outer.offsetHeight < outer.scrollHeight) {
+        mid--;
+        let str = text.substring(0, mid) + ellipsis;
+        inner.innerText = str;
+      }
     }
   }
 

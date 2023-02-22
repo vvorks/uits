@@ -76,9 +76,6 @@ export { UiPane, UiDock };
 import { UiMenu, UiMenuItem } from '~/lib/ui/UiMenu';
 export { UiMenu, UiMenuItem };
 
-import { UiVideo } from '~/lib/ui/UiVideo';
-export { UiVideo };
-
 import { UiLaunchPage } from '~/lib/ui/UiLaunchPage';
 export { UiLaunchPage };
 
