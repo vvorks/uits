@@ -3,7 +3,7 @@ import { UiNode } from '~/lib/ui/UiNode';
 import { Scrollable } from './Scrollable';
 
 /**
- * UiIndicator 値（0.0～1.0）をバーチャートのように表示するUIコンポーネント
+ * UiIndicatorNode 値（0.0～1.0）をバーチャートのように表示するUIコンポーネント
  */
 export class UiIndicatorNode extends UiNode {
   /** オン部分（色のついた部分）のスタイル指定名 */

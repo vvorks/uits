@@ -16,6 +16,7 @@ import {
   UiPlayList,
 } from '~/lib/ui';
 import { DEFAULT_STYLE, GROUP_STYLE, IMAGE_STYLE, LIST_STYLE } from '~/app/TestApplication';
+import { UiArcIndicatorNode } from '~/lib/ui/UiArcIndicatorNode';
 
 const IND_LIST_STYLE: UiStyle = new UiStyleBuilder().backgroundColor(Colors.BLACK).build();
 
@@ -30,6 +31,25 @@ const IND_ON_STYLE: UiStyle = new UiStyleBuilder()
   .basedOn(IND_STYLE)
   .condition('NAMED', UiIndicatorNode.ON_NAME)
   .backgroundColor(Colors.ORANGE)
+  .build();
+
+export const OUTER_STYLE: UiStyle = new UiStyleBuilder()
+  .backgroundColor(Colors.TRANSPARENT)
+  .borderSize('0px')
+  .build();
+
+export const ARC_STYLE: UiStyle = new UiStyleBuilder()
+  .basedOn(OUTER_STYLE)
+  .condition('NAMED', UiArcIndicatorNode.ARC_NAME)
+  .borderSize('16px')
+  .borderColor(Colors.BLACK)
+  .build();
+
+export const ARC_ON_STYLE: UiStyle = new UiStyleBuilder()
+  .basedOn(ARC_STYLE)
+  .condition('NAMED', UiArcIndicatorNode.ON_NAME)
+  .borderSize('16px')
+  .borderColor(Colors.ORANGE)
   .build();
 
 export class SlidePage extends UiPageNode {
@@ -95,6 +115,10 @@ export class SlidePage extends UiPageNode {
         .outerMargin(true)
         .zoomRatio(2)
         .style(IND_LIST_STYLE);
+      b.element(new UiArcIndicatorNode(app, 'arcIndicator'))
+        .position(0, 0, 0, 0, 10, 10)
+        .tscroll('playing')
+        .style(OUTER_STYLE);
     });
     let ds = app.getDataSource('playlist') as DataSource;
     ds.select({});
