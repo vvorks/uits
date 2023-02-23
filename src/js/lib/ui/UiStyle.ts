@@ -406,6 +406,11 @@ export class UiStyle {
     if (this._id == UiStyle.EMPTY_STYLE_ID) {
       return;
     }
+    let p = this.basedOn;
+    while (p != null) {
+      styles.add(p);
+      p = p.basedOn;
+    }
     styles.add(this);
     for (let c of this._inherits) {
       c.collect(styles);

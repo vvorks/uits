@@ -1,14 +1,14 @@
-import { Logs, Value, Values } from '~/lib/lang';
+import { Logs, Strings, Value, Values } from '~/lib/lang';
 import { Color } from '~/lib/ui/Colors';
 import { UiNode, UiNodeSetter } from '~/lib/ui/UiNode';
 import type { UiApplication } from '~/lib/ui/UiApplication';
 import { HasSetter } from '~/lib/ui/UiBuilder';
-import { UiStyle } from '~/lib/ui/UiStyle';
+import { UiStyle, VerticalAlign } from '~/lib/ui/UiStyle';
 
 const RESOURCE_HEAD_MARKER = '{{';
 const RESOURCE_TAIL_MARKER = '}}';
 
-const VALIGN_TRANSFORM = false;
+const VALIGN_TRANSFORM = true;
 
 export class UiTextNodeSetter extends UiNodeSetter {
   public static readonly INSTANCE = new UiTextNodeSetter();
@@ -17,10 +17,17 @@ export class UiTextNodeSetter extends UiNodeSetter {
     node.textContent = value;
     return this;
   }
+  public ellipsis(value: string): this {
+    let node = this.node as UiTextNode;
+    node.ellipsis = value;
+    return this;
+  }
 }
 
 export class UiTextNode extends UiNode implements HasSetter<UiTextNodeSetter> {
   private _textContent: Value;
+
+  private _ellipsis: string | null;
 
   private _textColor: Color | null;
 
@@ -60,10 +67,12 @@ export class UiTextNode extends UiNode implements HasSetter<UiTextNodeSetter> {
       let src = param as UiTextNode;
       this._textContent = src._textContent;
       this._textColor = src._textColor;
+      this._ellipsis = src._ellipsis;
     } else {
       super(param as UiApplication, name as string);
       this._textContent = null;
       this._textColor = null;
+      this._ellipsis = null;
     }
   }
 
@@ -89,6 +98,17 @@ export class UiTextNode extends UiNode implements HasSetter<UiTextNodeSetter> {
   public set textColor(value: Color | null) {
     if (this._textColor != value) {
       this._textColor = value;
+      this.onContentChanged();
+    }
+  }
+
+  public get ellipsis(): string | null {
+    return this._ellipsis;
+  }
+
+  public set ellipsis(value: string | null) {
+    if (this._ellipsis != value) {
+      this._ellipsis = value;
       this.onContentChanged();
     }
   }
@@ -127,50 +147,71 @@ export class UiTextNode extends UiNode implements HasSetter<UiTextNodeSetter> {
     let uiStyle = this.style.getEffectiveStyle(this);
     let align = uiStyle.textAlign;
     let valign = uiStyle.verticalAlign;
+    let outer = dom;
+    let inner: HTMLElement;
+    let innerStyle: CSSStyleDeclaration;
     if (VALIGN_TRANSFORM) {
       let div = dom.firstChild as HTMLDivElement;
-      let divStyle = div.style;
-      divStyle.textAlign = align;
+      inner = div;
+      innerStyle = inner.style;
+      innerStyle.textAlign = align;
       if (valign == 'top') {
-        divStyle.top = `${border.top}px`;
+        innerStyle.top = `${border.top}px`;
       } else if (valign == 'bottom') {
-        divStyle.bottom = `${border.bottom}px`;
-      } else {
-        divStyle.top = '50%';
-        divStyle.transform = 'translate(0,-50%)';
+        innerStyle.bottom = `${border.bottom}px`;
+      } else if (valign == 'middle') {
+        //仮設定
+        innerStyle.top = '0px';
       }
-      if (this._textColor != null) {
-        divStyle.color = this._textColor;
-      } else {
-        divStyle.removeProperty('color');
-      }
-      this.addPaddingForRadius(divStyle, uiStyle);
-      let text = this.retrieveTextResource(Values.asString(this.textContent)).trimRight();
-      div.innerText = text;
-      let ellipsis = '・・・';
-      app.runFinally(() => this.addEllipsis(text, ellipsis, dom, div));
     } else {
       let tb = dom.firstChild as HTMLTableElement;
       let td = tb.firstChild as HTMLTableCellElement;
-      let tdStyle = td.style;
-      tdStyle.textAlign = align;
+      inner = td;
+      innerStyle = inner.style;
+      innerStyle.textAlign = align;
       if (valign == 'top') {
-        tdStyle.verticalAlign = 'top';
+        innerStyle.verticalAlign = 'top';
       } else if (valign == 'bottom') {
-        tdStyle.verticalAlign = 'bottom';
-      } else {
-        tdStyle.verticalAlign = 'middle';
+        innerStyle.verticalAlign = 'bottom';
+      } else if (valign == 'middle') {
+        innerStyle.verticalAlign = 'middle';
       }
-      if (this._textColor != null) {
-        tdStyle.color = this._textColor;
-      } else {
-        tdStyle.removeProperty('color');
-      }
-      this.addPaddingForRadius(tdStyle, uiStyle);
-      let text = this.retrieveTextResource(Values.asString(this.textContent)).trimRight();
-      td.innerText = text;
-      let ellipsis = '・・・';
-      app.runFinally(() => this.addEllipsis(text, ellipsis, dom, td));
+    }
+    if (this._textColor != null) {
+      innerStyle.color = this._textColor;
+    } else {
+      innerStyle.removeProperty('color');
+    }
+    this.addPaddingForRadius(innerStyle, uiStyle);
+    let text = this.retrieveTextResource(Values.asString(this.textContent)).trimRight();
+    inner.innerText = text;
+    if (valign == 'middle' || this._ellipsis != null) {
+      app.runFinally(() => this.adjustVertical(text, valign, this.ellipsis, outer, inner));
+    }
+  }
+
+  private adjustVertical(
+    text: string,
+    valign: VerticalAlign,
+    ellipsis: string | null,
+    outer: HTMLElement,
+    inner: HTMLElement
+  ): void {
+    Logs.debug(
+      'valign %s ellipsis %s, offset %d scroll %d',
+      valign,
+      ellipsis,
+      outer.clientHeight,
+      inner.clientHeight
+    );
+    if (outer.clientHeight < inner.clientHeight && ellipsis != null) {
+      this.addEllipsis(text, ellipsis, outer, inner);
+    }
+    if (valign == 'middle') {
+      let innerStyle = inner.style;
+      innerStyle.height = `${inner.clientHeight}px`;
+      innerStyle.top = '0px';
+      innerStyle.bottom = '0px';
     }
   }
 
@@ -180,30 +221,37 @@ export class UiTextNode extends UiNode implements HasSetter<UiTextNodeSetter> {
     outer: HTMLElement,
     inner: HTMLElement
   ): void {
-    if (outer.offsetHeight < outer.scrollHeight) {
-      let low = 0;
-      let high = text.length;
-      let mid = 0;
-      while (low < high) {
-        mid = Math.floor((low + high) / 2);
-        let str = text.substring(0, mid) + ellipsis;
-        inner.innerText = str;
-        if (outer.offsetHeight < outer.scrollHeight) {
-          high = mid - 1;
-        } else {
-          low = mid + 1;
-        }
-      }
-      while (outer.offsetHeight == outer.scrollHeight) {
-        mid++;
-        let str = text.substring(0, mid) + ellipsis;
-        inner.innerText = str;
-      }
-      while (outer.offsetHeight < outer.scrollHeight) {
+    let low = 0;
+    let high = text.length;
+    let mid = 0;
+    while (low < high) {
+      mid = Math.floor((low + high) / 2);
+      if (Strings.isHighSurrogate(text.charCodeAt(mid - 1))) {
         mid--;
-        let str = text.substring(0, mid) + ellipsis;
-        inner.innerText = str;
       }
+      let str = text.substring(0, mid) + ellipsis;
+      inner.innerText = str;
+      if (outer.clientHeight < inner.clientHeight) {
+        high = mid - 1;
+      } else {
+        low = mid + 1;
+      }
+    }
+    while (outer.clientHeight >= inner.clientHeight) {
+      mid++;
+      if (Strings.isHighSurrogate(text.charCodeAt(mid - 1))) {
+        mid++;
+      }
+      let str = text.substring(0, mid) + ellipsis;
+      inner.innerText = str;
+    }
+    while (outer.clientHeight < inner.clientHeight) {
+      mid--;
+      if (Strings.isHighSurrogate(text.charCodeAt(mid - 1))) {
+        mid--;
+      }
+      let str = text.substring(0, mid) + ellipsis;
+      inner.innerText = str;
     }
   }
 

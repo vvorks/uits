@@ -13,6 +13,18 @@ const ESCAPE_CHARS: Properties<string> = {
 };
 
 export class Strings {
+  public static readonly MIN_HIGH_SURROGATE = 0xd800;
+
+  public static readonly MAX_HIGH_SURROGATE = 0xdbff;
+
+  public static readonly MIN_LOW_SURROGATE = 0xdc00;
+
+  public static readonly MAX_LOW_SURROGATE = 0xdfff;
+
+  public static readonly MIN_SURROGATE = Strings.MIN_HIGH_SURROGATE;
+
+  public static readonly MAX_SURROGATE = Strings.MAX_LOW_SURROGATE;
+
   public static escapeHtml(str: string): string {
     return str.replace(ESCAPE_PATTERN, (c) => ESCAPE_CHARS[c] as string);
   }
@@ -39,5 +51,17 @@ export class Strings {
       b += str[i];
     }
     return b;
+  }
+
+  public static isHighSurrogate(ch: number): boolean {
+    return Strings.MIN_HIGH_SURROGATE <= ch && ch <= Strings.MAX_HIGH_SURROGATE;
+  }
+
+  public static isLowSurrogate(ch: number): boolean {
+    return Strings.MIN_LOW_SURROGATE <= ch && ch <= Strings.MAX_LOW_SURROGATE;
+  }
+
+  public static isSurrogate(ch: number): boolean {
+    return Strings.MIN_SURROGATE <= ch && ch <= Strings.MAX_SURROGATE;
   }
 }
