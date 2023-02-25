@@ -1,4 +1,4 @@
-import { Logs, Strings, Value, Values } from '~/lib/lang';
+import { Strings, Value, Values } from '~/lib/lang';
 import { Color } from '~/lib/ui/Colors';
 import { UiNode, UiNodeSetter } from '~/lib/ui/UiNode';
 import type { UiApplication } from '~/lib/ui/UiApplication';
@@ -197,13 +197,6 @@ export class UiTextNode extends UiNode implements HasSetter<UiTextNodeSetter> {
     outer: HTMLElement,
     inner: HTMLElement
   ): void {
-    Logs.debug(
-      'valign %s ellipsis %s, offset %d scroll %d',
-      valign,
-      ellipsis,
-      outer.clientHeight,
-      inner.clientHeight
-    );
     if (outer.clientHeight < inner.clientHeight && ellipsis != null) {
       this.addEllipsis(text, ellipsis, outer, inner);
     }

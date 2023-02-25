@@ -17,7 +17,17 @@ export class UiHtmlNode extends UiNode implements HasSetter<UiHtmlNodeSetter> {
 
   public static readonly SVG_NS = 'http://www.w3.org/2000/svg';
 
-  public static readonly TRIM_TAGS = ['html', 'head', 'body', 'script', 'iframe'];
+  public static readonly TRIM_TAGS = [
+    'html',
+    'head',
+    'meta',
+    'script',
+    'body',
+    'iframe',
+    'plaintext',
+    'xmp',
+    'form',
+  ];
 
   private _htmlContent: Value;
 
