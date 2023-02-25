@@ -103,12 +103,14 @@ export class UiArcIndicatorNode extends UiHtmlNode {
     let rx = cx - hb;
     let ry = cy - hb;
     //パスの作成
-    let path = this.writeArcPath(v, cx, cy, hb);
+    let path1 = this.writeArcPath(1.0, cx, cy, hb);
+    let path2 = this.writeArcPath(v, cx, cy, hb);
     //svgの作成
     let b = '';
     b += `<svg width="${r.width}" height="${r.height}">`;
-    b += `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="none" stroke="${borderColor}" stroke-width="${borderWidth}" />`;
-    b += `<path d="${path}" fill="none" stroke="${borderColorOn}" stroke-width="${borderWidth}" />`;
+    //b += `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="none" stroke="red" stroke-width="${borderWidth}" />`;
+    b += `<path d="${path1}" fill="none" stroke="${borderColor}" stroke-width="${borderWidth}"/>`;
+    b += `<path d="${path2}" fill="none" stroke="${borderColorOn}" stroke-width="${borderWidth}" />`;
     b += '</svg>';
     return b;
   }
@@ -116,13 +118,13 @@ export class UiArcIndicatorNode extends UiHtmlNode {
   private writeArcPath(v: number, cx: number, cy: number, hb: number): string {
     let rx = cx - hb;
     let ry = cy - hb;
-    let sa = 0.25 * UiArcIndicatorNode.TWO_PI;
+    let sa = (0.25 - 0) * UiArcIndicatorNode.TWO_PI;
     let sx = (+Math.cos(sa) + 1) * rx + hb;
     let sy = (-Math.sin(sa) + 1) * ry + hb;
     let p = `M ${sx} ${sy}`;
     //ほとんどのブラウザで円弧はベジェ曲線による近似で実装されているが
     //ベジェ曲線での近似では角度が大きいとずれがひどく、使用に堪えない。
-    //そのため、円弧を分割して描画する（以下の実装では9度きざみ）
+    //そのため、円弧を分割してパスを作成する（以下の実装では10分割）
     let step = 0.05;
     for (let w = step; w < v; w += step) {
       let wa = (0.25 - w) * UiArcIndicatorNode.TWO_PI;

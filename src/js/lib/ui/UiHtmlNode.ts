@@ -1,4 +1,4 @@
-import { Asserts, Logs, Value, Values } from '../lang';
+import { Value, Values } from '../lang';
 import type { UiApplication } from './UiApplication';
 import { HasSetter } from './UiBuilder';
 import { UiNode, UiNodeSetter } from './UiNode';
@@ -17,21 +17,7 @@ export class UiHtmlNode extends UiNode implements HasSetter<UiHtmlNodeSetter> {
 
   public static readonly SVG_NS = 'http://www.w3.org/2000/svg';
 
-  // prettier-ignore
-  public static readonly SAFE_HTML_TAGS = [
-    "h1", "h2", "h3", "h4", "h5", "h6", "hr", "p", "div", "pre", "blockquote",
-    "em", "strong", "small", "q", "dfn", "abbr", "samp", "kbd", "sub", "sup",
-    "img", "i", "b", "ruby", "rt", "rp", "span", "br", "wbr", "ins", "del",
-    "ol", "ul", "li", "dl", "dt", "dd",
-    "table", "caption", "colgroup", "col", "tbody", "thead", "tfoot", "tr", "td", "th",
-  ];
-
-  // prettier-ignore
-  public static readonly SAFE_SVG_TAGS = [
-    "svg",
-    "circle", "ellipse", "g", "line", "path", "polygon", "polyline", "rect",
-    "text", "textPath", "image"
-  ];
+  public static readonly TRIM_TAGS = ['html', 'head', 'body', 'script', 'iframe'];
 
   private _htmlContent: Value;
 
@@ -86,64 +72,78 @@ export class UiHtmlNode extends UiNode implements HasSetter<UiHtmlNodeSetter> {
 
   public set htmlContent(value: Value) {
     if (this._htmlContent != value) {
-      Asserts.require(this.checkSafety(value));
-      this._htmlContent = value;
+      this._htmlContent = this.toSafety(value);
       this.onContentChanged();
     }
   }
-
-  private checkSafety(value: Value): boolean {
-    if (value == null) {
-      return true;
-    }
-    let str = Values.asString(value);
-    let parser = new DOMParser();
-    let doc = parser.parseFromString(str, 'text/html');
-    return this.checkSafetyChildren(doc.body);
-  }
-
-  private checkSafetyNode(node: Node): boolean {
-    switch (node.nodeType) {
-      case Node.ELEMENT_NODE:
-        return this.checkSafetyElement(node as Element);
-      case Node.TEXT_NODE:
-        return true;
-      default:
-        Logs.error('error %d', node.nodeType);
-        return false;
-    }
-  }
-
-  private checkSafetyElement(e: Element): boolean {
-    let ns = e.namespaceURI;
-    let localName = e.localName;
-    if (ns == UiHtmlNode.HTML_NS) {
-      if (UiHtmlNode.SAFE_HTML_TAGS.indexOf(localName) == -1) {
-        Logs.error('error %s %s', ns, localName);
-        return false;
-      }
-    } else if (ns == UiHtmlNode.SVG_NS) {
-      if (UiHtmlNode.SAFE_SVG_TAGS.indexOf(localName) == -1) {
-        Logs.error('error %s %s', ns, localName);
-        return false;
-      }
-    }
-    return this.checkSafetyChildren(e);
-  }
-
-  private checkSafetyChildren(e: Element): boolean {
-    let children = e.childNodes;
-    for (let i = 0; i < children.length; i++) {
-      if (!this.checkSafetyNode(children.item(i))) {
-        return false;
-      }
-    }
-    return true;
-  }
-
   protected renderContent(): void {
     let dom = this.domElement as HTMLElement;
     let html = this._htmlContent != null ? Values.asString(this._htmlContent) : '';
     dom.innerHTML = html;
+  }
+
+  private toSafety(value: Value): Value {
+    if (value == null) {
+      return value;
+    }
+    let str = Values.asString(value);
+    let parser = new DOMParser();
+    let doc = parser.parseFromString(str, 'text/html');
+    let body = doc.body;
+    this.toSafetyChildren(body);
+    return body.innerHTML;
+  }
+
+  private toSafetyChildren(e: Element): void {
+    let children = e.childNodes;
+    let n = children.length;
+    for (let i = n - 1; i >= 0; i--) {
+      let c = children.item(i);
+      if (!this.toSafetyNode(c)) {
+        c.remove();
+      }
+    }
+  }
+
+  private toSafetyNode(node: Node): boolean {
+    switch (node.nodeType) {
+      case Node.ELEMENT_NODE:
+        return this.toSafetyElement(node as Element);
+      case Node.TEXT_NODE:
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  private toSafetyElement(e: Element): boolean {
+    let ns = e.namespaceURI;
+    let localName = e.localName;
+    if (ns == UiHtmlNode.HTML_NS || ns == UiHtmlNode.SVG_NS) {
+      if (UiHtmlNode.TRIM_TAGS.indexOf(localName) >= 0) {
+        return false;
+      }
+      if (!this.toSafetyAttributes(e)) {
+        return false;
+      }
+      this.toSafetyChildren(e);
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  private toSafetyAttributes(e: Element): boolean {
+    for (let key of e.getAttributeNames()) {
+      if (key.startsWith('on')) {
+        e.removeAttribute(key);
+      } else {
+        let value = e.getAttribute(key);
+        if (value != null && value.startsWith('javascript:')) {
+          e.removeAttribute(key);
+        }
+      }
+    }
+    return true;
   }
 }
