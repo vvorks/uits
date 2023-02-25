@@ -1466,7 +1466,6 @@ export class UiApplication {
   }
 
   private getMouseModifier(evt: MouseEvent): number {
-    //TODO ボタン情報付与
     return (
       (evt.shiftKey ? KeyCodes.MOD_SHIFT : 0) |
       (evt.ctrlKey ? KeyCodes.MOD_CTRL : 0) |

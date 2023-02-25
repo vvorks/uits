@@ -53,7 +53,7 @@ export class UiArcIndicatorNode extends UiHtmlNode {
       this._indicatorValue = src._indicatorValue;
     } else {
       super(param as UiApplication, name as string);
-      this._indicatorValue = 0.5; //TODO 仮
+      this._indicatorValue = 0;
     }
   }
 

@@ -1,6 +1,5 @@
 import { Types } from './Types';
 
-//TODO Date(とBigIntも？)をValue型の一部として認めるべき？
 export type Value = string | number | boolean | null;
 
 export class Values {
