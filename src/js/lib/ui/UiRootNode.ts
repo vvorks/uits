@@ -60,7 +60,7 @@ export class UiRootNode extends UiNode {
     return this.application.clientHeight;
   }
 
-  protected createDomElement(target: UiNode, tag: string): HTMLElement {
+  protected createDomElement(target: UiNode, tag: string): HTMLElement | null {
     return target == this ? this.application.rootElement : document.createElement(tag);
   }
 

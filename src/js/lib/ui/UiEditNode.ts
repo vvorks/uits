@@ -161,9 +161,12 @@ export class UiEditNode extends UiNode {
       this._placeHolder = '';
     }
   }
-  protected createDomElement(target: UiNode, tag: string): HTMLElement {
-    let border = this.getBorderSize();
+  protected createDomElement(target: UiNode, tag: string): HTMLElement | null {
     let dom = super.createDomElement(target, tag);
+    if (dom == null) {
+      return dom;
+    }
+    let border = this.getBorderSize();
     let div = document.createElement('div');
     let style = div.style;
     style.position = 'absolute';

@@ -26,6 +26,7 @@ import { VerticalGridPage } from './VerticalGridPage';
 import { LottieTestPage } from './LottieTestPage';
 import { TextTestPage } from './TextTestPage';
 import { SvgTestPage } from './SvgTestPage';
+import { GridCanvasPage } from './GridCanvasPage';
 
 export const DEFAULT_STYLE: UiStyle = new UiStyleBuilder()
   .textColor(Colors.BLACK)
@@ -171,6 +172,8 @@ export class TestApplication extends UiApplication {
 
   protected initialize(at: number): void {
     this.addPageFactory('', (tag) => new UiLaunchPage(this, tag));
+    this.addPageFactory('grid', (tag) => new GridPage(this, tag));
+    this.addPageFactory('cgrid', (tag) => new GridCanvasPage(this, tag));
     this.addPageFactory('text', (tag) => new TextTestPage(this, tag));
     this.addPageFactory('svg', (tag) => new SvgTestPage(this, tag));
     this.addPageFactory('lottie', (tag) => new LottieTestPage(this, tag));

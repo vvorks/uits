@@ -4,6 +4,7 @@ import { TextAlign, VerticalAlign } from '~/lib/ui/UiStyle';
 import { Value } from '../lang';
 import type { UiApplication } from '~/lib/ui/UiApplication';
 import { HasSetter } from '~/lib/ui/UiBuilder';
+import { UiCanvas } from './UiCanvas';
 
 export class UiImageNodeSetter extends UiNodeSetter {
   public static readonly INSTANCE = new UiImageNodeSetter();
@@ -23,6 +24,8 @@ export class UiImageNodeSetter extends UiNodeSetter {
 
 export class UiImageNode extends UiNode implements HasSetter<UiImageNodeSetter> {
   private _imageContent: any;
+
+  private _imageObject: HTMLImageElement | null;
 
   private _imageWidth: CssLength | null;
 
@@ -63,11 +66,13 @@ export class UiImageNode extends UiNode implements HasSetter<UiImageNodeSetter> 
       super(param as UiImageNode);
       let src = param as UiImageNode;
       this._imageContent = src._imageContent;
+      this._imageObject = src._imageObject;
       this._imageWidth = src._imageWidth;
       this._imageHeight = src._imageHeight;
     } else {
       super(param as UiApplication, name as string);
       this._imageContent = null;
+      this._imageObject = null;
       this._imageWidth = new CssLength('100%');
       this._imageHeight = null;
     }
@@ -84,6 +89,16 @@ export class UiImageNode extends UiNode implements HasSetter<UiImageNodeSetter> 
   public set imageContent(value: any) {
     if (this._imageContent != value) {
       this._imageContent = value;
+      let dom = this.ensureDomElement();
+      if (dom == null) {
+        const img = new Image();
+        img.addEventListener('load', () => {
+          this._imageObject = img;
+          this.onContentChanged();
+          this.application.sync(); //TODO 暫定
+        });
+        img.src = this._imageContent;
+      }
       this.onContentChanged();
     }
   }
@@ -104,8 +119,11 @@ export class UiImageNode extends UiNode implements HasSetter<UiImageNodeSetter> 
     this._imageHeight = size == null ? null : new CssLength(size);
   }
 
-  protected createDomElement(target: UiNode, tag: string): HTMLElement {
+  protected createDomElement(target: UiNode, tag: string): HTMLElement | null {
     let dom = super.createDomElement(target, tag);
+    if (dom == null) {
+      return dom;
+    }
     let img = document.createElement('img');
     let style = img.style;
     style.position = 'absolute';
@@ -132,11 +150,11 @@ export class UiImageNode extends UiNode implements HasSetter<UiImageNodeSetter> 
       cssStyle.width = this._imageWidth != null ? this._imageWidth.toString() : 'auto';
       cssStyle.height = this._imageHeight != null ? this._imageHeight.toString() : 'auto';
     }
-    if (align == 'left') {
+    if (align == 'left' || align == 'justify') {
       cssStyle.left = '0px';
     } else if (align == 'right') {
       cssStyle.right = '0px';
-    } else if (align == 'center') {
+    } else {
       cssStyle.left = '0px';
       cssStyle.right = '0px';
       cssStyle.margin = 'auto';
@@ -150,5 +168,14 @@ export class UiImageNode extends UiNode implements HasSetter<UiImageNodeSetter> 
       cssStyle.transform = 'translate(0,-50%)';
     }
     img.src = this._imageContent;
+  }
+
+  protected paintContent(canvas: UiCanvas): void {
+    let style = this.style.getEffectiveStyle(this);
+    let w = this.innerWidth;
+    let h = this.innerHeight;
+    if (this._imageObject != null) {
+      canvas.drawImage(this._imageObject, this._imageWidth, this._imageHeight, 0, 0, w, h, style);
+    }
   }
 }

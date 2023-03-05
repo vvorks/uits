@@ -21,7 +21,7 @@ const DEFAULT_WHEEL_SCALE = 0.5;
 const DEFAULT_INTERVAL_PRECISION = 500;
 
 /** アニメーション時間の既定値 */
-const DEFAULT_ANIMATION_TIME = 100;
+const DEFAULT_ANIMATION_TIME = 0; //100;
 
 /** キー長押し判定閾値の既定値 */
 const DEFAULT_LONG_PRESS_TIME = 1000;
@@ -1126,29 +1126,29 @@ export class UiApplication {
   }
 
   private processAnimationFrame(at: number): void {
-    let result: UiResult = UiResult.AFFECTED;
-    let hadAnimation = this.hasOneshotAnimation();
-    let hasAnimation = false;
-    try {
-      for (let e of this._animationTasks) {
-        result |= e.run(at);
-      }
-      this.cancelAnimationTasksIfExit();
-      let hasAnimation = this.hasOneshotAnimation();
-      if (hadAnimation && !hasAnimation) {
-        result |= this.recoverFocus();
-      }
-      //後処理
-      this.postProcessEvent(null, result);
-    } finally {
-      this.flushFinally();
-    }
-    this._busy = hasAnimation;
-    if (!this._busy && this._savedResizeEvent != null) {
-      let evt = this._savedResizeEvent;
-      this._savedResizeEvent = null;
-      this.processResize(evt);
-    }
+    // let result: UiResult = UiResult.AFFECTED;
+    // let hadAnimation = this.hasOneshotAnimation();
+    // let hasAnimation = false;
+    // try {
+    //   for (let e of this._animationTasks) {
+    //     result |= e.run(at);
+    //   }
+    //   this.cancelAnimationTasksIfExit();
+    //   hasAnimation = this.hasOneshotAnimation();
+    //   if (hadAnimation && !hasAnimation) {
+    //     result |= this.recoverFocus();
+    //   }
+    //   //後処理
+    //   this.postProcessEvent(null, result);
+    // } finally {
+    //   this.flushFinally();
+    // }
+    this._busy = false; //hasAnimation;
+    // if (!this._busy && this._savedResizeEvent != null) {
+    //   let evt = this._savedResizeEvent;
+    //   this._savedResizeEvent = null;
+    //   this.processResize(evt);
+    // }
   }
 
   private processKeyDown(evt: KeyboardEvent): void {

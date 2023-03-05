@@ -10,6 +10,7 @@ import { UiPageNode } from '~/lib/ui/UiPageNode';
 import { KeyCodes } from '~/lib/ui/KeyCodes';
 import { Inset } from '~/lib/ui/Inset';
 import { UiSetter, HasSetter } from '~/lib/ui/UiBuilder';
+import { UiCanvas } from './UiCanvas';
 
 /**
  * （外部からパラメータとして使用する）サイズ型
@@ -1883,13 +1884,15 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
   protected ensureDomElement(): HTMLElement | null {
     if (!this.binded) {
       this._domElement = this.createDomElement(this, 'div');
-      this._domElement.id = '' + this._id + ':' + this.name;
+      if (this._domElement != null) {
+        this._domElement.id = '' + this.id + ':' + this.name;
+      }
       this.binded = true;
     }
     return this._domElement;
   }
 
-  protected createDomElement(target: UiNode, tag: string): HTMLElement {
+  protected createDomElement(target: UiNode, tag: string): HTMLElement | null {
     return (this.parent as UiNode).createDomElement(target, tag);
   }
 
@@ -2087,6 +2090,59 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
       Asserts.ensure(false);
     }
     this.setChanged(Changed.HIERARCHY, false);
+  }
+
+  protected paintNode(canvas: UiCanvas): void {
+    canvas.saveContext();
+    //クリッピング
+    let rect = new Rect(this.getRect()); //親座標系
+    let x = rect.x;
+    let y = rect.y;
+    if (this.parent != null) {
+      let parentRect = this.parent.getViewRect();
+      rect.intersect(parentRect);
+    }
+    rect.move(-x, -y); //親座標系→自座標系
+    canvas.clipRect(rect.x, rect.y, rect.width, rect.height);
+    //背景描画
+    this.paintBackground(canvas);
+    //子ノード・内容描画
+    let vr = this.getViewRect();
+    let inside = this.getBorderSize();
+    canvas.moveOrigin(-vr.x, -vr.y);
+    canvas.moveOrigin(+inside.left, +inside.top);
+    this.paintContent(canvas);
+    this.paintChildren(canvas);
+    canvas.moveOrigin(-inside.left, -inside.top);
+    canvas.moveOrigin(+vr.x, +vr.y);
+    //枠描画
+    this.paintBorder(canvas);
+    canvas.restoreContext();
+  }
+
+  protected paintBackground(canvas: UiCanvas): void {
+    let rect = this.getRect();
+    let style = this.style.getEffectiveStyle(this);
+    canvas.drawBackground(0, 0, rect.width, rect.height, style);
+  }
+
+  protected paintContent(canvas: UiCanvas): void {
+    //draw text or image
+  }
+
+  protected paintBorder(canvas: UiCanvas): void {
+    let rect = this.getRect();
+    let style = this.style.getEffectiveStyle(this);
+    canvas.drawBorder(0, 0, rect.width, rect.height, style);
+  }
+
+  protected paintChildren(canvas: UiCanvas): void {
+    for (let c of this._children) {
+      let rect = new Rect(c.getRect());
+      canvas.moveOrigin(+rect.x, +rect.y);
+      c.paintNode(canvas);
+      canvas.moveOrigin(-rect.x, -rect.y);
+    }
   }
 
   public toString(): string {

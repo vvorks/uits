@@ -10,8 +10,8 @@ export class GridPage extends UiPageNode {
    */
   protected initialize(): void {
     let app = this.application;
-    const ROW = 30;
-    const COL = 30;
+    const ROW = 50;
+    const COL = 50;
     let b = new UiBuilder('1rem');
     b.element(this).inset(1).style(GROUP_STYLE);
     b.belongs((b) => {

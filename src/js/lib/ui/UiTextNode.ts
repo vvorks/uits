@@ -4,6 +4,7 @@ import { UiNode, UiNodeSetter } from '~/lib/ui/UiNode';
 import type { UiApplication } from '~/lib/ui/UiApplication';
 import { HasSetter } from '~/lib/ui/UiBuilder';
 import { UiStyle, VerticalAlign } from '~/lib/ui/UiStyle';
+import { UiCanvas } from './UiCanvas';
 
 const RESOURCE_HEAD_MARKER = '{{';
 const RESOURCE_TAIL_MARKER = '}}';
@@ -113,9 +114,12 @@ export class UiTextNode extends UiNode implements HasSetter<UiTextNodeSetter> {
     }
   }
 
-  protected createDomElement(target: UiNode, tag: string): HTMLElement {
-    let border = this.getBorderSize();
+  protected createDomElement(target: UiNode, tag: string): HTMLElement | null {
     let dom = super.createDomElement(target, tag);
+    if (dom == null) {
+      return dom;
+    }
+    let border = this.getBorderSize();
     if (VALIGN_TRANSFORM) {
       let div = document.createElement('div');
       let style = div.style;
@@ -298,5 +302,13 @@ export class UiTextNode extends UiNode implements HasSetter<UiTextNodeSetter> {
     let app = this.application;
     let result = app.findTextResourceAsString(tag, raw);
     return result;
+  }
+
+  protected paintContent(canvas: UiCanvas): void {
+    let style = this.style.getEffectiveStyle(this);
+    let w = this.innerWidth;
+    let h = this.innerHeight;
+    let text = this.retrieveTextResource(Values.asString(this.textContent)).trimRight();
+    canvas.drawText(text, 0, 0, w, h, this.ellipsis, style);
   }
 }
