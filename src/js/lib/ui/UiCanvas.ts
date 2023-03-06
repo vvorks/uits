@@ -115,7 +115,7 @@ export class UiCanvas extends UiNode {
     return UiResult.AFFECTED;
   }
 
-  public sync(): void {
+  protected syncImpl(rParentVisible: Rect, force: boolean): void {
     Logs.debug('sync canvas');
     this.syncHierarchy();
     this.paintChildren(this);
