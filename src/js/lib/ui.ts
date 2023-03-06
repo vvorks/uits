@@ -7,6 +7,12 @@ export { UiNode, UiResult };
 import { UiScrollNode } from '~/lib/ui/UiScrollNode';
 export { UiScrollNode };
 
+import { LayoutManager as RawLayoutManager } from '~/lib/ui/LayoutManager';
+export type LayoutManager = RawLayoutManager;
+
+import { BoxLayout } from '~/lib/ui/BoxLayout';
+export { BoxLayout };
+
 import { Scrollable as RawScrollable } from '~/lib/ui/Scrollable';
 export type Scrollable = RawScrollable;
 
