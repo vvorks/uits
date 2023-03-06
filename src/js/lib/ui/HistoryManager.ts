@@ -160,6 +160,33 @@ export class HistoryManager {
     window.history.replaceState({ index: newIndex } as HistoryElement, '', hash);
   }
 
+  public exit(): void {
+    Logs.info('exit');
+    if (this._index > 0) {
+      //ブラウザの履歴機能で先頭ページに戻す
+      window.history.go(-this._index);
+      //go()は非同期なのでpopState()で後処理実行
+      this._postProcs.push(() => {
+        window.history.back();
+        this.closeWindow();
+      });
+    } else {
+      window.history.back();
+      this.closeWindow();
+    }
+  }
+
+  /**
+   * Window(tab)を閉じる。ブラウザによって実行できない場合あり
+   */
+  private closeWindow(): void {
+    let w = window;
+    let x = w.open('', '_self');
+    if (x != null) {
+      x.close();
+    }
+  }
+
   public popState(state: any): void {
     if (state === undefined || state === null) {
       this._nextIndex = this._index + 1;

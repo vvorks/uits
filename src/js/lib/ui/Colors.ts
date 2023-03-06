@@ -69,6 +69,7 @@ export class Colors {
   public static readonly LAWN_GREEN = '#7CFC00';
   public static readonly LEMON_CHIFFON = '#FFFACD';
   public static readonly LIGHT_BLUE = '#ADD8E6';
+  public static readonly LIGHT_BLACK = '#333333';
   public static readonly LIGHT_CORAL = '#F08080';
   public static readonly LIGHT_CYAN = '#E0FFFF';
   public static readonly LIGHT_GOLDEN_ROD_YELLOW = '#FAFAD2';
@@ -90,7 +91,9 @@ export class Colors {
   public static readonly MAROON = '#800000';
   public static readonly MEDIUM_AQUA_MARINE = '#66CDAA';
   public static readonly MEDIUM_BLUE = '#0000CD';
+  public static readonly MEDIUM_GRAY = '#5C5C5C';
   public static readonly MEDIUM_ORCHID = '#BA55D3';
+  public static readonly MEDIUM_ORANGE = '#FF903C';
   public static readonly MEDIUM_PURPLE = '#9370D8';
   public static readonly MEDIUM_SEA_GREEN = '#3CB371';
   public static readonly MEDIUM_SLATE_BLUE = '#7B68EE';
@@ -134,6 +137,7 @@ export class Colors {
   public static readonly SLATE_BLUE = '#6A5ACD';
   public static readonly SLATE_GRAY = '#708090';
   public static readonly SLATE_GREY = '#708090';
+  public static readonly SMOKE_GRAY = '#535151';
   public static readonly SNOW = '#FFFAFA';
   public static readonly SPRING_GREEN = '#00FF7F';
   public static readonly STEEL_BLUE = '#4682B4';

@@ -15,11 +15,7 @@ const ESTIMATED_PROC_TIME_PER_REC = 10;
  * @param <S> インデックス情報型
  * @param <V> 値情報型
  */
-export abstract class TwoStepDataSource<
-  K,
-  S extends DataRecord,
-  V extends DataRecord
-> extends DataSource {
+export abstract class TwoStepDataSource<K, S, V> extends DataSource {
   /** 取新（インデックスリスト）取得時刻 */
   private _lastUpdateAt: number;
 
@@ -136,17 +132,18 @@ export abstract class TwoStepDataSource<
    * @param index インデックス
    * @returns 値レコード又はnull
    */
-  public getRecord(index: number): V | null {
+  public getRecord(index: number): DataRecord | null {
     if (!this._loaded) {
       return null;
     }
     Asserts.require(0 <= index && index < this._indexes.length);
     //指定位置の値取得を試みる
-    let key: K = this.getKeyAt(index);
+    let indexRec: S = this._indexes[index];
+    let key: K = this.getKeyFromIndex(indexRec);
     let value: V | undefined = this._entries.get(key);
     if (value !== undefined) {
       //値がキャッシュ内にあれば、それを返却して終了
-      return value;
+      return this.toDataRecord(indexRec, value);
     } else {
       //値の検索要求を発行
       this.prepareRecord(index);
@@ -200,21 +197,21 @@ export abstract class TwoStepDataSource<
   /**
    * データ挿入（未サポート）
    */
-  public insert(rec: V): void {
+  public insert(rec: DataRecord): void {
     throw new UnsupportedError();
   }
 
   /**
    * データ更新（未サポート）
    */
-  public update(rec: V): void {
+  public update(rec: DataRecord): void {
     throw new UnsupportedError();
   }
 
   /**
    * データ削除（未サポート）
    */
-  public remove(rec: V): void {
+  public remove(rec: DataRecord): void {
     throw new UnsupportedError();
   }
 
@@ -237,6 +234,14 @@ export abstract class TwoStepDataSource<
    * @return キー値
    */
   protected abstract getKeyFromIndex(indexRec: S): K;
+
+  /**
+   * インデックスレコードおよび詳細レコードからDataRecordに変換する
+   *
+   * @param indexRec
+   * @param detailRec
+   */
+  protected abstract toDataRecord(indexRec: S, detailRec: V): DataRecord;
 
   /**
    * 値レコードからキー値を取得する

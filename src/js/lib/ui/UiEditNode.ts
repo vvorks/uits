@@ -372,7 +372,6 @@ export class UiEditNode extends UiNode {
   /**
    * （UiKeyboard向け） 入力済み文字の変形（濁音、半濁音、小文字）
    *
-   * @param text 追加文字列
    */
   public editModifyLastChar(): void {
     if (this._cursorPos > 0) {
@@ -390,9 +389,8 @@ export class UiEditNode extends UiNode {
   }
 
   /**
-   * （UiKeyboard向け） 一時削除
+   * （UiKeyboard向け） 一字削除
    *
-   * @param text 追加文字列
    */
   public editBackspace(): void {
     if (this._cursorPos > 0) {
@@ -406,11 +404,23 @@ export class UiEditNode extends UiNode {
       this.fireTextAction(UiEditNode.EVENT_TAG_CHANGED);
     }
   }
-
+  /**
+   * （UiKeyboard向け） 全削除
+   */
+  public editClearAll(): void {
+    if (this._cursorPos > 0) {
+      this._textContent = '';
+      this._editEnd = 0;
+      this._cursorPos = 0;
+      this._editStart = 0;
+      this.onContentChanged();
+      this.fireTextAction(UiEditNode.EVENT_TAG_CHANGED);
+    }
+  }
   /**
    * （UiKeyboard向け） カーソル移動
    *
-   * @param text 追加文字列
+   * @param dir 移動量
    */
   public editMoveCursor(dir: number): void {
     if (this._editStart < this._editEnd) {
@@ -435,7 +445,6 @@ export class UiEditNode extends UiNode {
   /**
    * （UiKeyboard向け） 入力文字確定
    *
-   * @param text 追加文字列
    */
   public editConfirm(): UiResult {
     if (this._editStart == this._editEnd) {
@@ -451,7 +460,6 @@ export class UiEditNode extends UiNode {
   /**
    * （UiKeyboard向け） 編集処理開始
    *
-   * @param text 追加文字列
    */
   private editStart(): UiResult {
     this._saveContent = this._textContent;
@@ -464,7 +472,7 @@ export class UiEditNode extends UiNode {
   /**
    * （UiKeyboard向け） 編集処理完了
    *
-   * @param text 追加文字列
+   * @param commit 編集完了
    */
   public editDone(commit: boolean): UiResult {
     this.editing = false;

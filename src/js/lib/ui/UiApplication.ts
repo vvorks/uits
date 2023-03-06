@@ -13,6 +13,7 @@ import { UiAxis } from '~/lib/ui/UiAxis';
 import { UiStyle, UiStyleBuilder } from './UiStyle';
 import { Colors } from './Colors';
 import { KeyLogger } from './KeyLogger';
+import { WaitingArc } from './WaitingArc';
 
 /** システムWheel調整比の既定値  */
 const DEFAULT_WHEEL_SCALE = 0.5;
@@ -21,7 +22,7 @@ const DEFAULT_WHEEL_SCALE = 0.5;
 const DEFAULT_INTERVAL_PRECISION = 500;
 
 /** アニメーション時間の既定値 */
-const DEFAULT_ANIMATION_TIME = 0; //100;
+const DEFAULT_ANIMATION_TIME = 100;
 
 /** キー長押し判定閾値の既定値 */
 const DEFAULT_LONG_PRESS_TIME = 1000;
@@ -38,10 +39,15 @@ export const FIELD_STYLE: UiStyle = new UiStyleBuilder()
   .textColor(Colors.BLACK)
   .backgroundColor(Colors.WHITE)
   .borderSize('2px')
-  .borderColor(Colors.BLUE)
   .fontSize('12pt')
   .textAlign('center')
   .verticalAlign('middle')
+  .build();
+
+export const FIELD_STYLE_ENABLE: UiStyle = new UiStyleBuilder()
+  .basedOn(FIELD_STYLE)
+  .condition('ENABLE')
+  .borderColor(Colors.BLUE)
   .build();
 
 export const FIELD_STYLE_IN_FOCUS: UiStyle = new UiStyleBuilder()
@@ -65,6 +71,8 @@ type AnimationTask = (step: number) => UiResult;
 type PageFactory = (tag: string) => UiPageNode;
 
 type Resource = Properties<Value | Resource>;
+
+type PurgePageFunc = () => void;
 
 /**
  * 表示中ページ情報
@@ -378,7 +386,18 @@ class RunAnimationEntry extends RunEntry<AnimationTask> {
     if (result & UiResult.EXIT || (!this.repeat && step >= 1.0)) {
       this._flags |= RunFlags.EXIT;
     }
-    result &= UiResult.EXIT;
+    result &= ~UiResult.EXIT;
+    return result;
+  }
+
+  public flush(now: number): UiResult {
+    let step = this.repeat ? now : 1;
+    let result = this.task(step);
+    if (result & UiResult.EXIT || (!this.repeat && step >= 1.0)) {
+      this._flags |= RunFlags.EXIT;
+      result |= UiResult.AFFECTED;
+    }
+    result &= ~UiResult.EXIT;
     return result;
   }
 }
@@ -422,6 +441,8 @@ export class UiApplication {
   /** ビジーで保留になったResizeイベント */
   private _savedResizeEvent: UIEvent | null;
 
+  private _syncAfter: boolean;
+
   /** システムWheel調整比  */
   private _wheelScale: number;
 
@@ -458,6 +479,9 @@ export class UiApplication {
   /** キー履歴 */
   private _keyLogger: KeyLogger;
 
+  /** resetFocus要求リスト */
+  private _requestResetFocusList: UiNode[];
+
   private static _launchCounter: number = 0;
   public constructor(selector: string) {
     Logs.info('UiApplication start');
@@ -472,6 +496,7 @@ export class UiApplication {
     this._clientHeight = 0;
     this._busy = false;
     this._savedResizeEvent = null;
+    this._syncAfter = true;
     this._wheelScale = DEFAULT_WHEEL_SCALE;
     this._intervalPrecision = DEFAULT_INTERVAL_PRECISION;
     this._animationTime = DEFAULT_ANIMATION_TIME;
@@ -484,6 +509,7 @@ export class UiApplication {
     this._textResource = {};
     this._history = new HistoryManager();
     this._keyLogger = new KeyLogger();
+    this._requestResetFocusList = [];
     if (UiApplication._launchCounter > 0) {
       return;
     }
@@ -760,9 +786,9 @@ export class UiApplication {
       Logs.error("page '%s' not found", state.tag);
       return null;
     }
-    this.unmountLayerPages(layer);
+    this.notifyLayerPages(layer, (page) => page.unmountSoon());
     let newPage = factory(state.tag);
-    this.call(newPage, state, layer);
+    this.call(newPage, state, layer, true, () => this.unmountLayerPages(layer));
     return newPage;
   }
 
@@ -780,7 +806,7 @@ export class UiApplication {
       return null;
     }
     let newPage = factory(state.tag);
-    this.call(newPage, state, layer);
+    this.call(newPage, state, layer, true);
     return newPage;
   }
 
@@ -815,11 +841,7 @@ export class UiApplication {
         break;
       }
       let pageNode = page.pageNode;
-      pageNode.onUnmount();
-      this.rootNode.removeChild(pageNode);
-      this.cancelAfterTasksIn(pageNode);
-      this.cancelIntervalTasksIn(pageNode);
-      this.cancelAnimationTasksIn(pageNode);
+      this.unmountPage(pageNode);
     }
     let count = nextIndex - firstIndex;
     if (count > 0) {
@@ -827,11 +849,54 @@ export class UiApplication {
     }
   }
 
+  private notifyLayerPages(layer: PageLayer, func: (page: UiPageNode) => void): void {
+    let nextIndex = this._pageStack.findIndex((e) => e.layer > layer);
+    if (nextIndex == -1) {
+      nextIndex = this._pageStack.length;
+    }
+    let firstIndex = 0;
+    for (let i = nextIndex - 1; i >= firstIndex; i--) {
+      let page = this._pageStack[i];
+      if (page.layer < layer) {
+        firstIndex = i + 1;
+        break;
+      }
+      let pageNode = page.pageNode;
+      func(pageNode);
+    }
+  }
+
   public call(
     pageNode: UiPageNode,
     state: HistoryState,
-    layer: PageLayer = PageLayers.NORMAL
+    layer: PageLayer = PageLayers.NORMAL,
+    addWaiting: boolean = false,
+    purgeFunc: PurgePageFunc = () => {}
   ): void {
+    if (addWaiting) {
+      let waitingNode = this.createWaitingPage();
+      let waitingPage = this.pushPage(waitingNode, PageLayers.HIGHEST);
+      this.mountPage(waitingNode, state, PageLayers.HIGHEST, waitingPage);
+      pageNode.preInitialize().then((errorCode) => {
+        this.dispose(waitingNode);
+        purgeFunc();
+        if (errorCode == null) {
+          let page = this.pushPage(pageNode, layer);
+          this.mountPage(pageNode, state, layer, page);
+        } else {
+          this.dispose(pageNode);
+          Logs.error('FATAL PAGE LOADING ERROR');
+        }
+        this.sync();
+      });
+    } else {
+      purgeFunc();
+      let page = this.pushPage(pageNode, layer);
+      this.mountPage(pageNode, state, layer, page);
+    }
+  }
+
+  private pushPage(pageNode: UiPageNode, layer: PageLayer): LivePage {
     let page = new LivePage(pageNode, layer);
     let biggerIndex = this._pageStack.findIndex((e) => e.layer > layer);
     if (biggerIndex >= 0) {
@@ -842,6 +907,15 @@ export class UiApplication {
       this._pageStack.push(page);
       this.rootNode.appendChild(pageNode);
     }
+    return page;
+  }
+
+  private mountPage(
+    pageNode: UiPageNode,
+    state: HistoryState,
+    layer: PageLayer,
+    page: LivePage
+  ): void {
     pageNode.onMount();
     pageNode.setHistoryState(state);
     if (layer == PageLayers.NORMAL) {
@@ -858,12 +932,20 @@ export class UiApplication {
     if (index < 0) {
       return;
     }
+    this.unmountPage(pageNode);
     this._pageStack.splice(index, 1);
+  }
+
+  private unmountPage(pageNode: UiPageNode): void {
     pageNode.onUnmount();
     this.rootNode.removeChild(pageNode);
     this.cancelAfterTasksIn(pageNode);
     this.cancelIntervalTasksIn(pageNode);
     this.cancelAnimationTasksIn(pageNode);
+  }
+
+  protected createWaitingPage(): UiPageNode {
+    return new WaitingArc(this, '__waitingArc__');
   }
 
   public isFocusable(e: UiNode): boolean {
@@ -909,6 +991,10 @@ export class UiApplication {
       result |= UiResult.AFFECTED;
     }
     return result;
+  }
+
+  public requestFocus(node: UiNode) {
+    this._requestResetFocusList.push(node);
   }
 
   public updateAxis(node: UiNode): UiResult {
@@ -992,6 +1078,15 @@ export class UiApplication {
     return result;
   }
 
+  private flushResetFocus() {
+    if (this._requestResetFocusList.length > 0) {
+      for (let node of this._requestResetFocusList) {
+        this.resetFocus(node);
+      }
+      this._requestResetFocusList.splice(0);
+    }
+  }
+
   public sync() {
     this.rootNode.sync();
     this._busy = true;
@@ -999,6 +1094,10 @@ export class UiApplication {
 
   public runFinally(task: RunFinallyTask): void {
     this._finallyTasks.push(task);
+  }
+
+  public syncAfterFinally() {
+    this._syncAfter = true;
   }
 
   protected flushFinally(): void {
@@ -1110,6 +1209,10 @@ export class UiApplication {
     this._animationTasks = divided[1];
   }
 
+  public isAnimatingNode(node: UiNode): boolean {
+    return this._animationTasks.find((e) => e.node == node) !== undefined;
+  }
+
   private cancelAnimationTasksIfExit() {
     let divided = Arrays.divide(this._animationTasks, (e) => e.exit);
     this._animationTasks = divided[1];
@@ -1125,30 +1228,41 @@ export class UiApplication {
     return divided[1].length > 0;
   }
 
+  private flushAnimationTask(): UiResult {
+    let result: UiResult = UiResult.IGNORED;
+    let at: number = this.newTimestamp();
+    for (let e of this._animationTasks) {
+      result |= e.flush(at);
+    }
+    this.cancelAnimationTasksIfExit();
+    return result;
+  }
+
   private processAnimationFrame(at: number): void {
-    // let result: UiResult = UiResult.AFFECTED;
-    // let hadAnimation = this.hasOneshotAnimation();
-    // let hasAnimation = false;
-    // try {
-    //   for (let e of this._animationTasks) {
-    //     result |= e.run(at);
-    //   }
-    //   this.cancelAnimationTasksIfExit();
-    //   hasAnimation = this.hasOneshotAnimation();
-    //   if (hadAnimation && !hasAnimation) {
-    //     result |= this.recoverFocus();
-    //   }
-    //   //後処理
-    //   this.postProcessEvent(null, result);
-    // } finally {
-    //   this.flushFinally();
-    // }
-    this._busy = false; //hasAnimation;
-    // if (!this._busy && this._savedResizeEvent != null) {
-    //   let evt = this._savedResizeEvent;
-    //   this._savedResizeEvent = null;
-    //   this.processResize(evt);
-    // }
+    let result: UiResult = this._syncAfter ? UiResult.AFFECTED : UiResult.IGNORED;
+    this._syncAfter = false;
+    let hadAnimation = this.hasOneshotAnimation();
+    let hasAnimation = false;
+    try {
+      for (let e of this._animationTasks) {
+        result |= e.run(at);
+      }
+      this.cancelAnimationTasksIfExit();
+      hasAnimation = this.hasOneshotAnimation();
+      if (hadAnimation && !hasAnimation) {
+        result |= this.recoverFocus();
+      }
+      //後処理
+      this.postProcessEvent(null, result);
+    } finally {
+      this.flushFinally();
+    }
+    this._busy = false;
+    if (!this._busy && this._savedResizeEvent != null) {
+      let evt = this._savedResizeEvent;
+      this._savedResizeEvent = null;
+      this.processResize(evt);
+    }
   }
 
   private processKeyDown(evt: KeyboardEvent): void {
@@ -1159,9 +1273,12 @@ export class UiApplication {
         this.postProcessEvent(evt, UiResult.CONSUMED);
         return;
       }
+      let result: UiResult = UiResult.IGNORED;
+      // アニメーション実行タスク処理
+      result |= this.flushAnimationTask();
       //イベント情報取得
-      let key = evt.keyCode;
-      let ch = evt.charCode;
+      let key = this.getKeyCode(evt);
+      let ch = this.getCharCode(evt);
       let mod = this.getKeyModifier(evt);
       let at = evt.timeStamp;
       Logs.info('keyDown key=0x%x ch=0x%x mod=0x%x', key, ch, mod);
@@ -1170,14 +1287,13 @@ export class UiApplication {
         mod |= KeyCodes.MOD_LONG_PRESS;
       }
       //UINodeへのキーディスパッチ
-      let result: UiResult = UiResult.IGNORED;
       let depth = this._pageStack.length;
       for (let i = depth - 1; i >= 0; i--) {
         let page = this._pageStack[i];
         let target = page.focusOrPage;
         let node: UiNode | null = target;
         while (node != null) {
-          result = node.onKeyDown(target, key, ch, mod, at);
+          result |= node.onKeyDown(target, key, ch, mod, at);
           if (result & UiResult.CONSUMED) {
             break;
           }
@@ -1192,9 +1308,11 @@ export class UiApplication {
         //UiNode側の処理でフォーカスが変化している場合があるので、再取得
         let target = this.getFocus();
         if (target != null) {
-          result = this.onKeyDown(target, key, ch, mod, at);
+          result |= this.onKeyDown(target, key, ch, mod, at);
         }
       }
+      // フォーカス処理
+      this.flushResetFocus();
       //後処理
       this.postProcessEvent(evt, result);
     } finally {
@@ -1205,8 +1323,8 @@ export class UiApplication {
   private processKeyPress(evt: KeyboardEvent): void {
     try {
       //イベント情報取得
-      let key = evt.keyCode;
-      let ch = evt.charCode;
+      let key = this.getKeyCode(evt);
+      let ch = this.getCharCode(evt);
       let mod = this.getKeyModifier(evt);
       let at = evt.timeStamp;
       Logs.info('keyPress key=0x%x ch=0x%x mod=0x%x', key, ch, mod);
@@ -1218,7 +1336,7 @@ export class UiApplication {
         let target = page.focusOrPage;
         let node: UiNode | null = target;
         while (node != null) {
-          result = node.onKeyPress(target, key, ch, mod, at);
+          result |= node.onKeyPress(target, key, ch, mod, at);
           if (result & UiResult.CONSUMED) {
             break;
           }
@@ -1233,9 +1351,11 @@ export class UiApplication {
         //UiNode側の処理でフォーカスが変化している場合があるので、再取得
         let target = this.getFocus();
         if (target != null) {
-          result = this.onKeyPress(target, key, ch, mod, at);
+          result |= this.onKeyPress(target, key, ch, mod, at);
         }
       }
+      // フォーカス処理
+      this.flushResetFocus();
       //後処理
       this.postProcessEvent(evt, result);
     } finally {
@@ -1246,8 +1366,8 @@ export class UiApplication {
   private processKeyUp(evt: KeyboardEvent): void {
     try {
       //イベント情報取得
-      let key = evt.keyCode;
-      let ch = evt.charCode;
+      let key = this.getKeyCode(evt);
+      let ch = this.getCharCode(evt);
       let mod = this.getKeyModifier(evt);
       let at = evt.timeStamp;
       Logs.info('keyUp key=0x%x ch=0x%x mod=0x%x', key, ch, mod);
@@ -1260,7 +1380,7 @@ export class UiApplication {
         let target = page.focusOrPage;
         let node: UiNode | null = target;
         while (node != null) {
-          result = node.onKeyUp(target, key, ch, mod, at);
+          result |= node.onKeyUp(target, key, ch, mod, at);
           if (result & UiResult.CONSUMED) {
             break;
           }
@@ -1275,9 +1395,11 @@ export class UiApplication {
         //UiNode側の処理でフォーカスが変化している場合があるので、再取得
         let target = this.getFocus();
         if (target != null) {
-          result = this.onKeyUp(target, key, ch, mod, at);
+          result |= this.onKeyUp(target, key, ch, mod, at);
         }
       }
+      // フォーカス処理
+      this.flushResetFocus();
       //後処理
       this.postProcessEvent(evt, result);
     } finally {
@@ -1285,7 +1407,15 @@ export class UiApplication {
     }
   }
 
-  private getKeyModifier(evt: KeyboardEvent): number {
+  protected getKeyCode(evt: KeyboardEvent): number {
+    return evt.keyCode;
+  }
+
+  protected getCharCode(evt: KeyboardEvent): number {
+    return evt.charCode;
+  }
+
+  protected getKeyModifier(evt: KeyboardEvent): number {
     return (
       (evt.shiftKey ? KeyCodes.MOD_SHIFT : 0) |
       (evt.ctrlKey ? KeyCodes.MOD_CTRL : 0) |
@@ -1303,6 +1433,9 @@ export class UiApplication {
         this.postProcessEvent(evt, UiResult.CONSUMED);
         return;
       }
+      let result: UiResult = UiResult.IGNORED;
+      // アニメーション実行タスク処理
+      result |= this.flushAnimationTask();
       let x = evt.clientX;
       let y = evt.clientY;
       let mod = this.getMouseModifier(evt);
@@ -1311,7 +1444,7 @@ export class UiApplication {
       let pt: Rect = new Rect().locate(x, y, 1, 1);
       let target: UiNode = this.getMouseTarget(pt);
       let node: UiNode = target;
-      let result = node.onMouseMove(target, pt.x, pt.y, mod, at);
+      result |= node.onMouseMove(target, pt.x, pt.y, mod, at);
       while (!(result & UiResult.CONSUMED) && node.parent != null) {
         node.translate(pt, +1);
         node = node.parent;
@@ -1320,6 +1453,8 @@ export class UiApplication {
       if (!(result & UiResult.CONSUMED)) {
         result |= this.onMouseMove(target, pt.x, pt.y, mod, at);
       }
+      // フォーカス処理
+      this.flushResetFocus();
       //後処理
       this.postProcessEvent(evt, result);
     } finally {
@@ -1335,6 +1470,9 @@ export class UiApplication {
         this.postProcessEvent(evt, UiResult.CONSUMED);
         return;
       }
+      let result: UiResult = UiResult.IGNORED;
+      // アニメーション実行タスク処理
+      result |= this.flushAnimationTask();
       let x = evt.clientX;
       let y = evt.clientY;
       let mod = this.getMouseModifier(evt);
@@ -1343,7 +1481,7 @@ export class UiApplication {
       let pt: Rect = new Rect().locate(x, y, 1, 1);
       let target: UiNode = this.getMouseTarget(pt);
       let node: UiNode = target;
-      let result = node.onMouseDown(target, pt.x, pt.y, mod, at);
+      result |= node.onMouseDown(target, pt.x, pt.y, mod, at);
       while (!(result & UiResult.CONSUMED) && node.parent != null) {
         node.translate(pt, +1);
         node = node.parent;
@@ -1352,6 +1490,8 @@ export class UiApplication {
       if (!(result & UiResult.CONSUMED)) {
         result |= this.onMouseDown(target, pt.x, pt.y, mod, at);
       }
+      // フォーカス処理
+      this.flushResetFocus();
       //後処理
       this.postProcessEvent(evt, result);
     } finally {
@@ -1378,6 +1518,8 @@ export class UiApplication {
       if (!(result & UiResult.CONSUMED)) {
         result |= this.onMouseUp(target, pt.x, pt.y, mod, at);
       }
+      // フォーカス処理
+      this.flushResetFocus();
       //後処理
       this.postProcessEvent(evt, result);
     } finally {
@@ -1404,6 +1546,8 @@ export class UiApplication {
       if (!(result & UiResult.CONSUMED)) {
         result |= this.onMouseClick(target, pt.x, pt.y, mod, at);
       }
+      // フォーカス処理
+      this.flushResetFocus();
       //後処理
       this.postProcessEvent(evt, result);
     } finally {
@@ -1430,6 +1574,8 @@ export class UiApplication {
       if (!(result & UiResult.CONSUMED)) {
         result |= this.onMouseDoubleClick(target, pt.x, pt.y, mod, at);
       }
+      // フォーカス処理
+      this.flushResetFocus();
       //後処理
       this.postProcessEvent(evt, result);
     } finally {
@@ -1458,6 +1604,8 @@ export class UiApplication {
       if (!(result & UiResult.CONSUMED)) {
         result |= this.onMouseWheel(target, pt.x, pt.y, dx, dy, mod, at);
       }
+      // フォーカス処理
+      this.flushResetFocus();
       //後処理
       this.postProcessEvent(evt, result);
     } finally {
@@ -1512,6 +1660,9 @@ export class UiApplication {
         this._savedResizeEvent = evt;
         return;
       }
+      let result: UiResult = UiResult.IGNORED;
+      // アニメーション実行タスク処理
+      result |= this.flushAnimationTask();
       let at = evt.timeStamp;
       let docElement = document.documentElement;
       let w = docElement.clientWidth;
@@ -1519,7 +1670,7 @@ export class UiApplication {
       Logs.info('resize width=%d height=%d at %d', w, h, at);
       this._clientWidth = w;
       this._clientHeight = h;
-      let result = this.rootNode.onResize(at);
+      result |= this.rootNode.onResize(at);
       //後処理
       this.postProcessEvent(evt, result);
     } finally {
@@ -1582,6 +1733,10 @@ export class UiApplication {
     return UiResult.AFFECTED;
   }
 
+  public exitApplication(): void {
+    this._history.exit();
+  }
+
   public processDataSourceChanged(ds: DataSource): void {
     let at = this.newTimestamp();
     try {
@@ -1601,7 +1756,7 @@ export class UiApplication {
     }
   }
 
-  private postProcessEvent(evt: Event | null, result: UiResult): void {
+  protected postProcessEvent(evt: Event | null, result: UiResult): void {
     if (result & UiResult.AFFECTED) {
       this.sync();
     }

@@ -175,6 +175,16 @@ class UiRecord extends UiButton implements RecordHolder {
     return new Rect(this.getRect());
   }
 
+  public onFocus(target: UiNode, gained: boolean, other: UiNode | null): UiResult {
+    if (gained && this._record != null) {
+      return this.owner.onRecordSelected(this._record);
+    }
+    return UiResult.IGNORED;
+  }
+
+  /**
+   * 基底クラス（UiButton）でボタンが押下された時に呼ばれるメソッド
+   */
   protected doAction(): UiResult {
     if (this._record != null) {
       return this.owner.onRecordClicked(this._record);
@@ -212,6 +222,12 @@ export class UiGridNodeSetter extends UiScrollNodeSetter {
  * 垂直及び水平の仮想データリストノード
  */
 export class UiGridNode extends UiScrollNode implements HasSetter<UiGridNodeSetter> {
+  /** 項目中で決定が押下された場合に送付されるアクションのタグ名 */
+  public static readonly EVENT_TAG_CLICK = 'click';
+
+  /** 項目が選択された場合に送付されるアクションのタグ名 */
+  public static readonly EVENT_TAG_SELECT = 'select';
+
   private _template: UiRecord | null;
 
   private _templateRect: Rect | null;
@@ -384,7 +400,7 @@ export class UiGridNode extends UiScrollNode implements HasSetter<UiGridNodeSett
     if (this.count() < 0) {
       //最初の通知
       this._dataSource = ds;
-      let attention = ds.attention();
+      let attention = Math.max(0, ds.attention());
       this._pageTopIndex = this.validateIndex(attention);
       this.adjustScroll();
       this.renumberRecs(true);
@@ -812,21 +828,53 @@ export class UiGridNode extends UiScrollNode implements HasSetter<UiGridNodeSett
   }
 
   public onVScroll(source: Scrollable, offset: number, limit: number, count: number): void {
-    this._pageTopIndex = this.validateIndex(Math.floor(offset / this._lineSize));
-    this.adjustScroll();
-    this.renumberRecs(true);
-    this.setRecsVisiblity();
-    let remain = (offset % this._lineSize) + LINE_MARGIN * this._lineSize;
-    this.scrollTop = `${remain}px`;
+    if (limit != this._pageSize) {
+      offset = Math.round((offset * this._pageSize) / limit);
+      count = Math.round((count * this._pageSize) / limit);
+    }
+    let newIndex = this.validateIndex(Math.floor(offset / this._lineSize));
+    let delta = this.getScrollDelta(newIndex, this._pageTopIndex);
+    if (offset % this._lineSize == 0 && Math.abs(delta) == 1) {
+      this.scrollRecord(delta);
+    } else {
+      this._pageTopIndex = newIndex;
+      this.adjustScroll();
+      this.renumberRecs(true);
+      this.setRecsVisiblity();
+      let remain = (offset % this._lineSize) + LINE_MARGIN * this._lineSize;
+      this.scrollTop = `${remain}px`;
+    }
   }
 
   public onHScroll(source: Scrollable, offset: number, limit: number, count: number): void {
-    this._pageTopIndex = this.validateIndex(Math.floor(offset / this._lineSize));
-    this.adjustScroll();
-    this.renumberRecs(true);
-    this.setRecsVisiblity();
-    let remain = (offset % this._lineSize) + LINE_MARGIN * this._lineSize;
-    this.scrollLeft = `${remain}px`;
+    if (limit != this._pageSize) {
+      offset = Math.round((offset * this._pageSize) / limit);
+      count = Math.round((count * this._pageSize) / limit);
+    }
+    let newIndex = this.validateIndex(Math.floor(offset / this._lineSize));
+    let delta = this.getScrollDelta(newIndex, this._pageTopIndex);
+    if (offset % this._lineSize == 0 && Math.abs(delta) == 1) {
+      this.scrollRecord(delta);
+    } else {
+      this._pageTopIndex = newIndex;
+      this.adjustScroll();
+      this.renumberRecs(true);
+      this.setRecsVisiblity();
+      let remain = (offset % this._lineSize) + LINE_MARGIN * this._lineSize;
+      this.scrollLeft = `${remain}px`;
+    }
+  }
+
+  private getScrollDelta(newIndex: number, oldIndex: number): number {
+    if (this.loop) {
+      let count = Math.max(0, this.count());
+      if (newIndex == 0 && oldIndex == count - 1) {
+        return +1;
+      } else if (newIndex == count - 1 && oldIndex == 0) {
+        return -1;
+      }
+    }
+    return newIndex - oldIndex;
   }
 
   public fireVScroll(): void {
@@ -936,6 +984,10 @@ export class UiGridNode extends UiScrollNode implements HasSetter<UiGridNodeSett
   }
 
   public onRecordClicked(rec: DataRecord): UiResult {
-    return this.fireActionEvent('click', rec);
+    return this.fireActionEvent(UiGridNode.EVENT_TAG_CLICK, rec);
+  }
+
+  public onRecordSelected(rec: DataRecord): UiResult {
+    return this.fireActionEvent(UiGridNode.EVENT_TAG_SELECT, rec);
   }
 }

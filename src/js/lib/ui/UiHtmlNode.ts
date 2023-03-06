@@ -1,4 +1,4 @@
-import { Value, Values } from '../lang';
+import { Logs, Strings, Value, Values } from '../lang';
 import type { UiApplication } from './UiApplication';
 import { HasSetter } from './UiBuilder';
 import { UiNode, UiNodeSetter } from './UiNode';
@@ -13,10 +13,6 @@ export class UiHtmlNodeSetter extends UiNodeSetter {
 }
 
 export class UiHtmlNode extends UiNode implements HasSetter<UiHtmlNodeSetter> {
-  public static readonly HTML_NS = 'http://www.w3.org/1999/xhtml';
-
-  public static readonly SVG_NS = 'http://www.w3.org/2000/svg';
-
   public static readonly TRIM_TAGS = [
     'html',
     'head',
@@ -96,64 +92,67 @@ export class UiHtmlNode extends UiNode implements HasSetter<UiHtmlNodeSetter> {
     if (value == null) {
       return value;
     }
-    let str = Values.asString(value);
+    let xhtml = Values.asString(value);
     let parser = new DOMParser();
-    let doc = parser.parseFromString(str, 'text/html');
-    let body = doc.body;
-    this.toSafetyChildren(body);
-    return body.innerHTML;
+    let doc = parser.parseFromString('<doc>' + xhtml + '</doc>', 'application/xml');
+    let safeHtml = this.toSafetyChildren(doc.firstChild as Node);
+    return safeHtml;
   }
 
-  private toSafetyChildren(e: Element): void {
-    let children = e.childNodes;
+  private toSafetyChildren(node: Node): string {
+    let b = '';
+    let children = node.childNodes;
     let n = children.length;
-    for (let i = n - 1; i >= 0; i--) {
+    for (let i = 0; i < n; i++) {
       let c = children.item(i);
-      if (!this.toSafetyNode(c)) {
-        c.remove();
-      }
+      b += this.toSafetyNode(c);
     }
+    return b;
   }
 
-  private toSafetyNode(node: Node): boolean {
+  private toSafetyNode(node: Node): string {
+    let b = '';
     switch (node.nodeType) {
       case Node.ELEMENT_NODE:
-        return this.toSafetyElement(node as Element);
+        b += this.toSafetyElement(node as Element);
+        break;
       case Node.TEXT_NODE:
-        return true;
+        b += node.textContent;
+        break;
       default:
-        return false;
+        break;
     }
+    return b;
   }
 
-  private toSafetyElement(e: Element): boolean {
+  private toSafetyElement(e: Element): string {
+    let b = '';
     let ns = e.namespaceURI;
     let localName = e.localName;
-    if (ns == UiHtmlNode.HTML_NS || ns == UiHtmlNode.SVG_NS) {
-      if (UiHtmlNode.TRIM_TAGS.indexOf(localName) >= 0) {
-        return false;
-      }
-      if (!this.toSafetyAttributes(e)) {
-        return false;
-      }
-      this.toSafetyChildren(e);
-      return true;
-    } else {
-      return false;
+    let tagName = e.tagName;
+    //危険なタグの除去
+    if (UiHtmlNode.TRIM_TAGS.indexOf(localName) >= 0) {
+      return b;
     }
-  }
-
-  private toSafetyAttributes(e: Element): boolean {
-    for (let key of e.getAttributeNames()) {
-      if (key.startsWith('on')) {
-        e.removeAttribute(key);
-      } else {
-        let value = e.getAttribute(key);
-        if (value != null && value.startsWith('javascript:')) {
-          e.removeAttribute(key);
+    b += '<';
+    b += tagName;
+    let attributes = e.attributes;
+    let length = attributes.length;
+    for (let i = 0; i < length; i++) {
+      let key = attributes[i].name;
+      if (!key.startsWith('on')) {
+        let value = attributes[i].value;
+        //危険な属性の除去
+        if (value != null && !value.startsWith('javascript:')) {
+          b += ` ${key}="${value}"`;
         }
       }
     }
-    return true;
+    b += '>';
+    b += this.toSafetyChildren(e);
+    b += '</';
+    b += tagName;
+    b += '>';
+    return b;
   }
 }

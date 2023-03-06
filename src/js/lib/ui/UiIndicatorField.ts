@@ -70,6 +70,8 @@ export class UiIndicatorField extends UiIndicatorNode {
     if (Types.isNumber(value)) {
       this.indicatorValue = value as number;
       result |= UiResult.AFFECTED;
+    } else {
+      this.indicatorValue = 0.0;
     }
     return result;
   }

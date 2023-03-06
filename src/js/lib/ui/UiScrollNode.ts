@@ -142,7 +142,7 @@ export class UiScrollNode extends UiNode implements HasSetter<UiScrollNodeSetter
         let sx = s.left + dx * Math.min(step, 1.0);
         let sy = s.top + dy * Math.min(step, 1.0);
         this.setScroll(sx, sy, step);
-        return step >= 1.0 ? UiResult.EXIT : UiResult.EATEN;
+        return UiResult.AFFECTED | (step >= 1.0 ? UiResult.EXIT : 0);
       });
       result = UiResult.IGNORED;
     }

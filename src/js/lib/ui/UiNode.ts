@@ -1,8 +1,8 @@
+import type { UiApplication } from '~/lib/ui/UiApplication';
 import { Asserts, Clonable, Logs, Predicate, UnsupportedError, Value } from '~/lib/lang';
 import { Rect } from '~/lib/ui/Rect';
 import { CssLength } from '~/lib/ui/CssLength';
 import { UiStyle } from '~/lib/ui/UiStyle';
-import type { UiApplication } from '~/lib/ui/UiApplication';
 import { DataRecord, DataSource } from '~/lib/ui/DataSource';
 import { RecordHolder } from '~/lib/ui/RecordHolder';
 import { Scrollable } from '~/lib/ui/Scrollable';
@@ -10,6 +10,7 @@ import { UiPageNode } from '~/lib/ui/UiPageNode';
 import { KeyCodes } from '~/lib/ui/KeyCodes';
 import { Inset } from '~/lib/ui/Inset';
 import { UiSetter, HasSetter } from '~/lib/ui/UiBuilder';
+import { LayoutManager } from './LayoutManager';
 import { UiCanvas } from './UiCanvas';
 
 /**
@@ -28,12 +29,14 @@ export enum Flags {
   /** 有効フラグ */             ENABLE              = 0x00000002,     //UiNode
   /** 表示フラグ */             VISIBLE             = 0x00000004,     //UiNode
   /** 強調フラグ */             EMPHASIS            = 0x00000008,     //UiNode
-  //                                                  0x00000010,     //reserved
+  /** DOM削除対象外フラグ */     FLOATING           = 0x00000010,     //UiSpanList
   //                                                  0x00000020,     //reserved
   //                                                  0x00000040,     //reserved
   //                                                  0x00000080,     //reserved
   /** 項目上にPOPUP */          POPUP_OVER          = 0x00000100,     //UiLookupField
   /** UiSpanListでの一行表示 */ SINGLE_LINE         = 0x00000100,     //UiSpanList
+  /** UiMenuItem非表示フラグ */ HIDE_ON_CLOSE       = 0x00000100,     //UiMenuItem
+  /** 可変サイズフラグ */       VARIABLE            = 0x00000100,     //UiImageNode
   /** 縦スクロールフラグ */     VERTICAL            = 0x00000100,     //UiListNode, UiGridNode
   /** ループスクロールフラグ */ LOOP                = 0x00000200,     //UiListNode, UiGridNode
   /** 両端マージン要否フラグ */ OUTER_MARGIN        = 0x00000400,     //UiListNode, UiGridNode
@@ -68,14 +71,17 @@ export enum Changed {
   /** スクロール属性更新フラグ */
   SCROLL = 0x00000008,
 
+  /** 要再レイアウトフラグ */
+  LAYOUT = 0x00000010,
+
   /** リソース更新フラグ */
   RESOURCE = CONTENT | LOCATION | DISPLAY | SCROLL,
 
   /** 階層更新フラグ */
-  HIERARCHY = 0x00000010,
+  HIERARCHY = 0x00000020,
 
   /** スタイル更新フラグ */
-  STYLE = 0x00000020,
+  STYLE = 0x00000040,
 
   /** 全更新フラグ */
   ALL = CONTENT | LOCATION | DISPLAY | SCROLL | HIERARCHY | STYLE,
@@ -116,6 +122,12 @@ class VoidRecordHolder implements RecordHolder {
 
   public setRecord(rec: DataRecord): void {
     throw new UnsupportedError();
+  }
+}
+
+class VoidLayout implements LayoutManager {
+  public layout(node: UiNode): UiResult {
+    return UiResult.IGNORED;
   }
 }
 
@@ -222,7 +234,11 @@ export class UiNodeSetter extends UiSetter {
     node.emphasis = value;
     return this;
   }
-
+  public floating(value: boolean): this {
+    let node = this.node as UiNode;
+    node.floating = value;
+    return this;
+  }
   public dataSource(name: string): this {
     let node = this.node as UiNode;
     node.dataSourceName = name;
@@ -258,6 +274,12 @@ export class UiNodeSetter extends UiSetter {
     node.addActionListener(listener);
     return this;
   }
+
+  public layoutManager(man: LayoutManager): this {
+    let node = this.node as UiNode;
+    node.layoutManager = man;
+    return this;
+  }
 }
 
 /**
@@ -265,6 +287,7 @@ export class UiNodeSetter extends UiSetter {
  */
 export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSetter> {
   public static readonly VOID_RECORD_HOLDER: RecordHolder = new VoidRecordHolder();
+  public static readonly VOID_LAYOUT: LayoutManager = new VoidLayout();
 
   private _application: UiApplication;
 
@@ -307,6 +330,8 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
   private _stylePrefix: string;
 
   private _styleClassName: string;
+
+  private _layoutManager: LayoutManager;
 
   private _rect: Rect | null;
 
@@ -388,6 +413,7 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
       this._style = src._style;
       this._stylePrefix = src._stylePrefix;
       this._styleClassName = src._styleClassName;
+      this._layoutManager = src._layoutManager;
       this._rect = null;
       this._parent = null;
       this._children = [];
@@ -422,6 +448,7 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
       this._style = UiStyle.EMPTY;
       this._stylePrefix = '';
       this._styleClassName = '';
+      this._layoutManager = UiNode.VOID_LAYOUT;
       this._rect = null;
       this._parent = null;
       this._children = [];
@@ -688,6 +715,7 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
     if (!CssLength.equals(this._scrollWidth, value)) {
       this._scrollWidth = value;
       this.fireHScroll();
+      this.onLayoutChanged();
       this.onScrollChanged();
     }
   }
@@ -701,12 +729,17 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
     if (!CssLength.equals(this._scrollHeight, value)) {
       this._scrollHeight = value;
       this.fireVScroll();
+      this.onLayoutChanged();
       this.onScrollChanged();
     }
   }
 
   protected onScrollChanged(): void {
     this.setChanged(Changed.SCROLL, true);
+  }
+
+  public onLayoutChanged(): void {
+    this.setChanged(Changed.LAYOUT, true);
   }
 
   public get parent(): UiNode | null {
@@ -766,6 +799,7 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
     }
     this.fireHScroll();
     this.fireVScroll();
+    this.onLayoutChanged();
     this.onScrollChanged();
   }
 
@@ -781,6 +815,7 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
     child.parent = null;
     this.fireHScroll();
     this.fireVScroll();
+    this.onLayoutChanged();
     this.onScrollChanged();
   }
 
@@ -799,6 +834,7 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
     this._children.splice(0);
     this.fireHScroll();
     this.fireVScroll();
+    this.onLayoutChanged();
     this.onScrollChanged();
   }
 
@@ -814,6 +850,7 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
     child.parent = null;
     this.fireHScroll();
     this.fireVScroll();
+    this.onLayoutChanged();
     this.onScrollChanged();
   }
 
@@ -825,7 +862,9 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
       for (let c of this._children) {
         c._parent = this;
       }
+      this.onLayoutChanged();
       this.onScrollChanged();
+      other.onLayoutChanged();
       other.onScrollChanged();
     } else {
       for (let c of other._children) {
@@ -969,6 +1008,17 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
     if (this._style != value) {
       this._style = value;
       this.onStyleChanged();
+    }
+  }
+
+  public get layoutManager(): LayoutManager {
+    return this._layoutManager;
+  }
+
+  public set layoutManager(man: LayoutManager) {
+    if (this._layoutManager != man) {
+      this._layoutManager = man;
+      this.onLayoutChanged();
     }
   }
 
@@ -1229,7 +1279,7 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
           this.width = rect.width + dw * ratio;
           this.height = rect.height + dh * ratio;
         }
-        return step >= 1.0 ? UiResult.EXIT : UiResult.EATEN;
+        return UiResult.AFFECTED | (step >= 1.0 ? UiResult.EXIT : 0);
       });
     }
     return UiResult.AFFECTED;
@@ -1256,6 +1306,9 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
 
   public set visible(on: boolean) {
     if (this.setFlag(Flags.VISIBLE, on)) {
+      for (let c of this.getDescendants()) {
+        c.notifyChanged(Flags.VISIBLE, on);
+      }
       this.setChanged(Changed.DISPLAY | Changed.LOCATION, true);
     }
   }
@@ -1266,6 +1319,7 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
 
   public set enable(on: boolean) {
     if (this.setFlag(Flags.ENABLE, on)) {
+      this.notifyChanged(Flags.ENABLE, on);
       this.setChanged(Changed.DISPLAY, true);
     }
   }
@@ -1276,8 +1330,16 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
 
   public set emphasis(on: boolean) {
     if (this.setFlag(Flags.EMPHASIS, on)) {
+      this.notifyChanged(Flags.EMPHASIS, on);
       this.setChanged(Changed.DISPLAY, true);
     }
+  }
+  public get floating(): boolean {
+    return this.getFlag(Flags.FLOATING);
+  }
+
+  public set floating(on: boolean) {
+    this.setFlag(Flags.FLOATING, on);
   }
   public get clicking(): boolean {
     return this.getFlag(Flags.CLICKING);
@@ -1360,6 +1422,8 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
     return changed;
   }
 
+  public notifyChanged(flgs: Flags, on: boolean) {}
+
   protected isChanged(bit: Changed): boolean {
     return !!(this._changed & bit);
   }
@@ -1373,65 +1437,81 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
   }
 
   public hasFocus(): boolean {
-    let focusNode = this.application.getFocus();
-    if (focusNode == null) {
-      return false;
-    }
-    return this == focusNode || this.isAncestorOf(focusNode) || focusNode.isAncestorOf(this);
+    let app = this.application;
+    let currFocus = app.getFocus();
+    let pageFocus = app.getFocusOf(this);
+    return (
+      this == currFocus || //TOPページのフォーカスと等しい
+      (currFocus != null && currFocus.isAncestorOf(this)) || //TOPページのフォーカスの子孫である
+      (pageFocus != null && this.isAncestorOf(pageFocus)) //所属ページ毎のフォーカス位置の祖先である。
+    );
   }
 
   protected initialize(): void {}
 
   public onMount(): void {
-    if (!this.initialized) {
-      this.initialize();
-      this.initialized = true;
+    if (!this.mounted) {
+      if (!this.initialized) {
+        this.initialize();
+        this.initialized = true;
+      }
+      this.beforeMount();
+      for (let c of this._children) {
+        c.onMount();
+      }
+      if (this.dataSourceName != null) {
+        this.application.attachIntoDataSource(this.dataSourceName, this);
+      }
+      let page = this.getPageNode() as UiPageNode;
+      if (this._hScrollName != null) {
+        page.attachHScroll(this._hScrollName, this);
+      }
+      if (this._vScrollName != null) {
+        page.attachVScroll(this._vScrollName, this);
+      }
+      if (this._tScrollName != null) {
+        page.attachTScroll(this._tScrollName, this);
+      }
+      this.mounted = true;
+      this.afterMount();
     }
-    this.beforeMount();
-    for (let c of this._children) {
-      c.onMount();
-    }
-    if (this.dataSourceName != null) {
-      this.application.attachIntoDataSource(this.dataSourceName, this);
-    }
-    let page = this.getPageNode() as UiPageNode;
-    if (this._hScrollName != null) {
-      page.attachHScroll(this._hScrollName, this);
-    }
-    if (this._vScrollName != null) {
-      page.attachVScroll(this._vScrollName, this);
-    }
-    if (this._tScrollName != null) {
-      page.attachTScroll(this._tScrollName, this);
-    }
-    this.mounted = true;
-    this.afterMount();
   }
 
   protected beforeMount(): void {}
 
   protected afterMount(): void {}
 
-  public onUnmount(): void {
-    this.beforeUnmount();
-    this.mounted = false;
-    let page = this.getPageNode() as UiPageNode;
-    if (this._tScrollName != null) {
-      page.detachTScroll(this._tScrollName, this);
-    }
-    if (this._vScrollName != null) {
-      page.detachVScroll(this._vScrollName, this);
-    }
-    if (this._hScrollName != null) {
-      page.detachHScroll(this._hScrollName, this);
-    }
-    if (this.dataSourceName != null) {
-      this.application.detachFromDataSource(this.dataSourceName, this);
-    }
+  public unmountSoon(): void {
+    this.preUnmount();
     for (let c of this._children) {
-      c.onUnmount();
+      c.unmountSoon();
     }
-    this.afterUnmount();
+  }
+
+  protected preUnmount(): void {}
+
+  public onUnmount(): void {
+    if (this.mounted) {
+      this.beforeUnmount();
+      this.mounted = false;
+      let page = this.getPageNode() as UiPageNode;
+      if (this._tScrollName != null) {
+        page.detachTScroll(this._tScrollName, this);
+      }
+      if (this._vScrollName != null) {
+        page.detachVScroll(this._vScrollName, this);
+      }
+      if (this._hScrollName != null) {
+        page.detachHScroll(this._hScrollName, this);
+      }
+      if (this.dataSourceName != null) {
+        this.application.detachFromDataSource(this.dataSourceName, this);
+      }
+      for (let c of this._children) {
+        c.onUnmount();
+      }
+      this.afterUnmount();
+    }
   }
 
   protected beforeUnmount(): void {}
@@ -1528,6 +1608,30 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
       }
     }
     return this.getFocusableChildrenIf(filter, limit, list);
+  }
+
+  /**
+   * 指定条件に合致する子ノードを取得する
+   *
+   * @param filter 検索条件
+   * @param limit 検索結果上限
+   * @param list 結果格納先リスト
+   * @returns list
+   */
+  public getChildIf(
+    filter: Predicate<UiNode>,
+    limit: number = Number.MAX_SAFE_INTEGER,
+    list: UiNode[] = []
+  ): UiNode[] {
+    for (let c of this._children) {
+      if (filter(c)) {
+        list.push(c);
+        if (list.length >= limit) {
+          return list;
+        }
+      }
+    }
+    return list;
   }
 
   /**
@@ -1839,6 +1943,7 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
    */
   public onResize(at: number): UiResult {
     this.onLocationChanged();
+    this.onLayoutChanged();
     this.onScrollChanged();
     this.onStyleChanged();
     let result = UiResult.AFFECTED;
@@ -1864,28 +1969,48 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
     return UiResult.IGNORED;
   }
 
-  public sync(): void {
+  protected syncImpl(rParentVisible: Rect, force: boolean): void {
     let dom = this.ensureDomElement();
-    if (dom != null) {
-      this.syncStyle();
-      this.syncStyleClass();
-      this.syncLocation();
-      this.syncContent();
-    }
-    for (let c of this._children) {
-      c.sync();
-    }
-    if (dom != null) {
-      this.syncHierarchy();
-      this.syncScroll();
+    let rVisible = new Rect(rParentVisible).intersect(this.getRect());
+    this.translate(rVisible, -1);
+    //TODO 要調整。アニメ中の表示が追い付かないようなら投入
+    //let animating = this.isAnimating();
+    //force = force || animating;
+    let appeared = (this.visible && !this.deleted && (!rVisible.empty || force)) || this.floating;
+    if (appeared) {
+      this.syncLayout();
+      if (dom != null) {
+        this.syncStyle();
+        this.syncStyleClass();
+        this.syncLocation();
+        this.syncContent();
+      }
+      for (let c of this._children) {
+        c.syncImpl(rVisible, force);
+      }
+      if (dom != null) {
+        this.syncHierarchy();
+        this.syncScroll();
+      }
+    } else {
+      if (dom != null) {
+        this.unsyncHierarchy();
+        this.unsyncScroll();
+      }
     }
   }
 
+  private isAnimating(): boolean {
+    let app = this.application;
+    return (
+      app.isAnimatingNode(this) || this.getAncestorsIf((e) => app.isAnimatingNode(e)).length > 0
+    );
+  }
   protected ensureDomElement(): HTMLElement | null {
     if (!this.binded) {
       this._domElement = this.createDomElement(this, 'div');
       if (this._domElement != null) {
-        this._domElement.id = '' + this.id + ':' + this.name;
+        this._domElement.id = '' + this._id + ':' + this.name;
       }
       this.binded = true;
     }
@@ -1930,8 +2055,8 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
     const oldClassList = this.getClassListOf(dom);
     const onlyOldClassList = oldClassList.filter((e) => newClassList.indexOf(e) == -1);
     const onlyNewClassList = newClassList.filter((e) => oldClassList.indexOf(e) == -1);
-    onlyOldClassList.forEach((e) => dom.classList.remove(e));
-    onlyNewClassList.forEach((e) => dom.classList.add(e));
+    onlyOldClassList.forEach((e) => dom.classList.remove(e)); //old browser can not remove multiple
+    onlyNewClassList.forEach((e) => dom.classList.add(e)); //old browser can not add multiple
     this._styleClassName = styleClassName;
   }
 
@@ -1963,13 +2088,28 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
     this.setChanged(Changed.LOCATION, false);
   }
 
+  protected syncLayout(): void {
+    if (!this.isChanged(Changed.LAYOUT)) {
+      return;
+    }
+    if (this._layoutManager.layout(this) & UiResult.AFFECTED) {
+      this.setChanged(Changed.SCROLL, true);
+    }
+    this.setChanged(Changed.LAYOUT, false);
+  }
+
   protected syncScroll(): void {
     if (!this.isChanged(Changed.SCROLL)) {
       return;
     }
     let rect = this.getScrollRect();
-    this.setScrollBounds(rect.left, rect.top, rect.width, rect.height);
-    this.setChanged(Changed.LOCATION, false);
+    this.setScrollBounds(
+      Math.round(rect.left),
+      Math.round(rect.top),
+      Math.round(rect.width),
+      Math.round(rect.height)
+    );
+    this.setChanged(Changed.SCROLL, false);
   }
 
   protected getChildrenRect(): Rect {
@@ -2142,6 +2282,20 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
       canvas.moveOrigin(+rect.x, +rect.y);
       c.paintNode(canvas);
       canvas.moveOrigin(-rect.x, -rect.y);
+    }
+  }
+
+  protected unsyncHierarchy(): void {
+    let dom = this._domElement as HTMLElement;
+    if (dom.parentElement != null) {
+      dom.parentElement.removeChild(dom);
+      this.setChanged(Changed.HIERARCHY, true);
+    }
+  }
+
+  protected unsyncScroll(): void {
+    for (let c of this.getDescendants()) {
+      c.onScrollChanged();
     }
   }
 

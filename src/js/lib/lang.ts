@@ -58,3 +58,8 @@ export function singleton<T>(func: () => T): () => T {
     };
   })().doit;
 }
+
+/**
+ * エラーコード（エラーなしの場合、null）
+ */
+export type ErrorCode = string | null;

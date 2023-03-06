@@ -1,6 +1,6 @@
-import { Properties } from '~/lib/lang';
-import { Scrollable } from '~/lib/ui/Scrollable';
 import type { UiApplication } from '~/lib/ui/UiApplication';
+import { ErrorCode, Properties } from '~/lib/lang';
+import { Scrollable } from '~/lib/ui/Scrollable';
 import { Changed, UiNode, UiNodeSetter } from '~/lib/ui/UiNode';
 import { UiStyle } from '~/lib/ui/UiStyle';
 import { HistoryState } from '~/lib/ui/HistoryManager';
@@ -67,6 +67,15 @@ export class UiPageNode extends UiNode implements HasSetter<UiPageNodeSetter> {
 
   public getSetter(): UiPageNodeSetter {
     return UiPageNodeSetter.INSTANCE;
+  }
+
+  public async preInitialize(): Promise<ErrorCode> {
+    // return new Promise<ErrorCode>((resolve) => {
+    //   setTimeout(() => {
+    //     resolve(null);
+    //   }, 5000);
+    // });
+    return null;
   }
 
   public getHistoryState(): HistoryState {

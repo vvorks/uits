@@ -135,16 +135,20 @@ export class UiDeckNode extends UiNode {
     let result = UiResult.IGNORED;
     if (gained) {
       let piece = Arrays.first(target.getAncestorsIf((e) => e.parent == this, 1));
-      if (piece != null && piece.name != this._selected) {
+      if (piece != null) {
         this._selectedBefore = this._selected;
         this._selectedBeforeOwner = other;
-        this.select(piece.name);
+        if (piece.name != this._selected) {
+          this.select(piece.name);
+        }
         result |= UiResult.AFFECTED;
       }
     } else {
       this.saveFocusInSelected();
       if (this._selectedBefore != null) {
-        if (this._selectedBeforeOwner == other) {
+        if (this._selectedBeforeOwner != null && this._selectedBeforeOwner != other) {
+          this.application.requestFocus(this._selectedBeforeOwner);
+        } else {
           this.select(this._selectedBefore);
         }
         this._selectedBefore = null;

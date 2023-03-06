@@ -1,4 +1,4 @@
-import { Asserts, Types } from '~/lib/lang';
+import { Asserts, Types, Values } from '~/lib/lang';
 import { Metrics } from '~/lib/ui/Metrics';
 import { Size } from '~/lib/ui/UiNode';
 
@@ -28,7 +28,7 @@ export class CssLength {
       this._value = arg as number;
       this._unit = defaultUnit;
     }
-    Asserts.require(!isNaN(this._value));
+    Asserts.require(!isNaN(this._value), 'arg is ' + Values.asString(arg));
   }
 
   public get value(): number {

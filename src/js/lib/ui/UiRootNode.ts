@@ -68,6 +68,10 @@ export class UiRootNode extends UiNode {
     return new Rect(this.getRect());
   }
 
+  public sync(): void {
+    this.syncImpl(this.getViewRect(), false);
+  }
+
   protected syncStyle(): void {
     if (!this.isChanged(Changed.STYLE)) {
       return;

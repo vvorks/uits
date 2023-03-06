@@ -1,10 +1,21 @@
 import type { UiApplication } from '~/lib/ui/UiApplication';
-import { Value } from '~/lib/lang';
-import { UiImageNode } from '~/lib/ui/UiImageNode';
+import { Logs, Value } from '~/lib/lang';
+import { UiImageNode, UiImageNodeSetter } from '~/lib/ui/UiImageNode';
 import { RecordHolder } from '~/lib/ui/RecordHolder';
 import { KeyCodes } from '~/lib/ui/KeyCodes';
 import { UiNode, UiResult } from '~/lib/ui/UiNode';
-
+export class UiRadioSetter extends UiImageNodeSetter {
+  public static readonly INSTANCE = new UiRadioSetter();
+  public radioUrl(...value: string[]): this {
+    let node = this.node as UiRadio;
+    if (value.length != 2) {
+      Logs.debug('There are missing or too many arguments.');
+      return this;
+    }
+    node.setRadioUrl(value);
+    return this;
+  }
+}
 //
 //取得元 https://fonts.google.com/icons?utm_source=developers.google.com&utm_medium=referral
 //
@@ -52,6 +63,10 @@ export class UiRadio extends UiImageNode {
 
   private _specValue: Value;
 
+  private _radiOnData: string;
+
+  private _radioOffData: string;
+
   /**
    * クローンメソッド
    *
@@ -89,11 +104,15 @@ export class UiRadio extends UiImageNode {
       this._recordHolder = src._recordHolder;
       this._value = src._value;
       this._specValue = src._specValue;
+      this._radiOnData = src._radiOnData;
+      this._radioOffData = src._radioOffData;
     } else {
       super(param as UiApplication, name as string);
       this._recordHolder = UiNode.VOID_RECORD_HOLDER;
       this._value = null;
       this._specValue = spec as Value;
+      this._radiOnData = RADIO_ON_DATA;
+      this._radioOffData = RADIO_OFF_DATA;
     }
   }
 
@@ -110,8 +129,14 @@ export class UiRadio extends UiImageNode {
   public set value(v: Value) {
     if (this._value != v) {
       this._value = v;
-      this.imageContent = this.matched ? RADIO_ON_DATA : RADIO_OFF_DATA;
-      this.imageWidth = '1rem';
+      this.imageContent = this.matched ? this._radiOnData : this._radioOffData;
+      if (this.innerWidth > this.innerHeight) {
+        this.imageWidth = null;
+        this.imageHeight = '100%';
+      } else {
+        this.imageWidth = '100%';
+        this.imageHeight = null;
+      }
       this._recordHolder.setValue(this.dataFieldName, this._value);
       this.onContentChanged();
     }
@@ -130,7 +155,15 @@ export class UiRadio extends UiImageNode {
     }
     return result;
   }
-
+  public getSetter(): UiRadioSetter {
+    return UiRadioSetter.INSTANCE;
+  }
+  public setRadioUrl(value: string[]) {
+    if (value[0] != null && value[1] != null) {
+      this._radiOnData = value[0];
+      this._radioOffData = value[1];
+    }
+  }
   public onMouseDown(target: UiNode, x: number, y: number, mod: number, at: number): UiResult {
     //Drag And Drop 動作を禁止させるためイベントを消費する
     return UiResult.CONSUMED;

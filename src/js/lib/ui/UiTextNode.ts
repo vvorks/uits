@@ -1,6 +1,6 @@
-import { Strings, Value, Values } from '~/lib/lang';
+import { Logs, Strings, Value, Values } from '~/lib/lang';
 import { Color } from '~/lib/ui/Colors';
-import { UiNode, UiNodeSetter } from '~/lib/ui/UiNode';
+import { Flags, UiNode, UiNodeSetter } from '~/lib/ui/UiNode';
 import type { UiApplication } from '~/lib/ui/UiApplication';
 import { HasSetter } from '~/lib/ui/UiBuilder';
 import { UiStyle, VerticalAlign } from '~/lib/ui/UiStyle';
@@ -8,8 +8,6 @@ import { UiCanvas } from './UiCanvas';
 
 const RESOURCE_HEAD_MARKER = '{{';
 const RESOURCE_TAIL_MARKER = '}}';
-
-const VALIGN_TRANSFORM = true;
 
 export class UiTextNodeSetter extends UiNodeSetter {
   public static readonly INSTANCE = new UiTextNodeSetter();
@@ -23,6 +21,11 @@ export class UiTextNodeSetter extends UiNodeSetter {
     node.ellipsis = value;
     return this;
   }
+  public variable(on: boolean): this {
+    let node = this.node as UiTextNode;
+    node.variable = on;
+    return this;
+  }
 }
 
 export class UiTextNode extends UiNode implements HasSetter<UiTextNodeSetter> {
@@ -32,6 +35,7 @@ export class UiTextNode extends UiNode implements HasSetter<UiTextNodeSetter> {
 
   private _textColor: Color | null;
 
+  private _isHtmlContent: boolean;
   /**
    * クローンメソッド
    *
@@ -69,11 +73,13 @@ export class UiTextNode extends UiNode implements HasSetter<UiTextNodeSetter> {
       this._textContent = src._textContent;
       this._textColor = src._textColor;
       this._ellipsis = src._ellipsis;
+      this._isHtmlContent = src._isHtmlContent;
     } else {
       super(param as UiApplication, name as string);
       this._textContent = null;
       this._textColor = null;
       this._ellipsis = null;
+      this._isHtmlContent = false;
     }
   }
 
@@ -82,12 +88,17 @@ export class UiTextNode extends UiNode implements HasSetter<UiTextNodeSetter> {
   }
 
   public get textContent(): Value {
-    return this._textContent;
+    let str = '';
+    if (!this._isHtmlContent) {
+      str = this._textContent as string;
+    }
+    return str;
   }
 
   public set textContent(value: Value) {
     if (this._textContent != value) {
       this._textContent = value;
+      this._isHtmlContent = false;
       this.onContentChanged();
     }
   }
@@ -113,6 +124,29 @@ export class UiTextNode extends UiNode implements HasSetter<UiTextNodeSetter> {
       this.onContentChanged();
     }
   }
+  public get variable(): boolean {
+    return this.getFlag(Flags.VARIABLE);
+  }
+
+  public set variable(on: boolean) {
+    if (this.setFlag(Flags.VARIABLE, on)) {
+      //nop
+    }
+  }
+  protected set htmlContent(text: string) {
+    if (text != '') {
+      this._isHtmlContent = true;
+      this._textContent = text;
+    }
+  }
+  protected get htmlContent() {
+    let str = '';
+    if (this._isHtmlContent) {
+      str = this._textContent as string;
+      Logs.info(str);
+    }
+    return str;
+  }
 
   protected createDomElement(target: UiNode, tag: string): HTMLElement | null {
     let dom = super.createDomElement(target, tag);
@@ -120,27 +154,12 @@ export class UiTextNode extends UiNode implements HasSetter<UiTextNodeSetter> {
       return dom;
     }
     let border = this.getBorderSize();
-    if (VALIGN_TRANSFORM) {
-      let div = document.createElement('div');
-      let style = div.style;
-      style.position = 'absolute';
-      style.left = `${border.left}px`;
-      style.right = `${border.right}px`;
-      dom.appendChild(div);
-    } else {
-      let tb = document.createElement('div');
-      let style = tb.style;
-      style.display = 'table';
-      style.width = '100%';
-      style.height = '100%';
-      let td = document.createElement('div');
-      let tdStyle = td.style;
-      tdStyle.display = 'table-cell';
-      tdStyle.width = '100%';
-      tdStyle.height = '100%';
-      tb.appendChild(td);
-      dom.appendChild(tb);
-    }
+    let div = document.createElement('div');
+    let style = div.style;
+    style.position = 'absolute';
+    style.left = `${border.left}px`;
+    style.right = `${border.right}px`;
+    dom.appendChild(div);
     return dom;
   }
 
@@ -154,43 +173,56 @@ export class UiTextNode extends UiNode implements HasSetter<UiTextNodeSetter> {
     let outer = dom;
     let inner: HTMLElement;
     let innerStyle: CSSStyleDeclaration;
-    if (VALIGN_TRANSFORM) {
-      let div = dom.firstChild as HTMLDivElement;
-      inner = div;
-      innerStyle = inner.style;
-      innerStyle.textAlign = align;
-      if (valign == 'top') {
-        innerStyle.top = `${border.top}px`;
-      } else if (valign == 'bottom') {
-        innerStyle.bottom = `${border.bottom}px`;
-      } else if (valign == 'middle') {
-        //仮設定
-        innerStyle.top = '0px';
-      }
-    } else {
-      let tb = dom.firstChild as HTMLTableElement;
-      let td = tb.firstChild as HTMLTableCellElement;
-      inner = td;
-      innerStyle = inner.style;
-      innerStyle.textAlign = align;
-      if (valign == 'top') {
-        innerStyle.verticalAlign = 'top';
-      } else if (valign == 'bottom') {
-        innerStyle.verticalAlign = 'bottom';
-      } else if (valign == 'middle') {
-        innerStyle.verticalAlign = 'middle';
-      }
+    let div = dom.firstChild as HTMLDivElement;
+    inner = div;
+    innerStyle = inner.style;
+    innerStyle.textAlign = align;
+    innerStyle.wordBreak = 'break-word';
+    if (valign == 'top') {
+      innerStyle.top = `${border.top}px`;
+      innerStyle.removeProperty('bottom');
+      innerStyle.removeProperty('height');
+    } else if (valign == 'bottom') {
+      innerStyle.removeProperty('top');
+      innerStyle.bottom = `${border.bottom}px`;
+      innerStyle.removeProperty('height');
+    } else if (valign == 'middle') {
+      //仮設定
+      innerStyle.top = '0px';
+      innerStyle.removeProperty('bottom');
+      innerStyle.removeProperty('height');
     }
     if (this._textColor != null) {
       innerStyle.color = this._textColor;
     } else {
       innerStyle.removeProperty('color');
     }
-    this.addPaddingForRadius(innerStyle, uiStyle);
-    let text = this.retrieveTextResource(Values.asString(this.textContent)).trimRight();
-    inner.innerText = text;
-    if (valign == 'middle' || this._ellipsis != null) {
+    UiStyle.addPadding(innerStyle, uiStyle, this.getRect());
+    let text: string;
+    if (this._isHtmlContent) {
+      text = this.retrieveTextResource(Values.asString(this.htmlContent)).trimRight();
+      inner.innerHTML = text;
+    } else {
+      text = this.retrieveTextResource(Values.asString(this.textContent)).trimRight();
+      inner.innerText = text;
+    }
+    if (this.variable) {
+      app.runFinally(() => {
+        this.resizeVertical(outer);
+      });
+    } else if (valign == 'middle' || this._ellipsis != null) {
       app.runFinally(() => this.adjustVertical(text, valign, this.ellipsis, outer, inner));
+    }
+  }
+
+  private resizeVertical(outer: HTMLElement) {
+    let child = outer.firstChild as HTMLElement;
+    let newHeight = `${child.offsetHeight}px`;
+    if (this.height != newHeight) {
+      this.height = newHeight;
+      if (this.parent != null) {
+        this.parent.onLayoutChanged();
+      }
     }
   }
 
@@ -249,38 +281,6 @@ export class UiTextNode extends UiNode implements HasSetter<UiTextNodeSetter> {
       }
       let str = text.substring(0, mid) + ellipsis;
       inner.innerText = str;
-    }
-  }
-
-  addPaddingForRadius(style: CSSStyleDeclaration, uiStyle: UiStyle) {
-    let rect = this.getRect();
-    let topLeftW = uiStyle.borderRadiusTopLeftAsLength.toPixel(() => rect.width);
-    let topLeftH = uiStyle.borderRadiusTopLeftAsLength.toPixel(() => rect.height);
-    let bottomLeftW = uiStyle.borderRadiusBottomLeftAsLength.toPixel(() => rect.width);
-    let bottomLeftH = uiStyle.borderRadiusBottomLeftAsLength.toPixel(() => rect.height);
-    let topRightW = uiStyle.borderRadiusTopRightAsLength.toPixel(() => rect.width);
-    let topRightH = uiStyle.borderRadiusTopRightAsLength.toPixel(() => rect.height);
-    let bottomRightW = uiStyle.borderRadiusBottomRightAsLength.toPixel(() => rect.width);
-    let bottomRightH = uiStyle.borderRadiusBottomRightAsLength.toPixel(() => rect.height);
-    if (rect.width > rect.height * 2) {
-      //横長矩形の場合
-      style.paddingLeft = `${Math.max(topLeftW, bottomLeftW)}px`;
-      style.paddingRight = `${Math.max(topRightW, bottomRightW)}px`;
-      style.paddingTop = '0px';
-      style.paddingBottom = '0px';
-    } else if (rect.height > rect.width * 2) {
-      //縦長矩形の場合
-      style.paddingLeft = '0px';
-      style.paddingRight = '0px';
-      style.paddingTop = `${Math.max(topLeftH, topRightH)}px`;
-      style.paddingBottom = `${Math.max(bottomLeftH, bottomRightH)}px`;
-    } else {
-      //一般矩形の場合
-      let ratio = 1.0 - 1 / Math.sqrt(2);
-      style.paddingLeft = `${Math.max(topLeftW, bottomLeftW) * ratio}px`;
-      style.paddingRight = `${Math.max(topRightW, bottomRightW) * ratio}px`;
-      style.paddingTop = `${Math.max(topLeftH, topRightH) * ratio}px`;
-      style.paddingBottom = `${Math.max(bottomLeftH, bottomRightH) * ratio}px`;
     }
   }
 

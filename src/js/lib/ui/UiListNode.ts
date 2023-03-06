@@ -400,7 +400,7 @@ export class UiListNode extends UiScrollNode implements HasSetter<UiListNodeSett
     if (this.count() < 0) {
       //最初の通知
       this._dataSource = ds;
-      let attention = ds.attention();
+      let attention = Math.max(0, ds.attention());
       this._pageTopIndex = this.validateIndex(attention);
       this.adjustScroll();
       this.renumberRecs(true);

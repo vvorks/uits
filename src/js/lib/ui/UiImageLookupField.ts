@@ -86,6 +86,8 @@ export class UiImageLookupField extends UiImageNode implements HasSetter<UiImage
       } else {
         this.imageContent = null;
       }
+    } else {
+      this.imageContent = null;
     }
     return result;
   }

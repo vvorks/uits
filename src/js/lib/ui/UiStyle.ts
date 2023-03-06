@@ -1,6 +1,7 @@
 import { CssLength } from '~/lib/ui/CssLength';
 import { Color, Colors } from '~/lib/ui/Colors';
 import { UiNode } from '~/lib/ui/UiNode';
+import { Rect } from './Rect';
 
 export type UiStyleCondition =
   | 'NAMED'
@@ -12,6 +13,7 @@ export type UiStyleCondition =
   | 'OTHERWISE';
 export type TextAlign = 'left' | 'right' | 'center' | 'justify';
 export type VerticalAlign = 'top' | 'bottom' | 'middle';
+export type Visibility = 'visible' | 'hidden';
 
 /**
  * UiStyle
@@ -32,7 +34,7 @@ export class UiStyle {
 
   private static readonly CONDITION_FUNCS: ((node: UiNode, param: string | null) => boolean)[] = [
     (node: UiNode, param: string | null) => false, //BASED
-    (node: UiNode, param: string | null) => node.name == param, //NAMED
+    (node: UiNode, param: string | null) => node.dataFieldName == param, //NAMED
     (node: UiNode, param: string | null) => node.clicking, //CLICKING
     (node: UiNode, param: string | null) => node.hasFocus(), //FOCUS
     (node: UiNode, param: string | null) => node.emphasis, //EMPHASIS
@@ -64,6 +66,9 @@ export class UiStyle {
   private _conditionName: UiStyleCondition | null;
 
   private _conditionParam: string | null;
+
+  /** visibility */
+  private _visibility: Visibility | null;
 
   /** 前景色 */
   private _textColor: Color | null;
@@ -104,6 +109,18 @@ export class UiStyle {
   /** ボーダー画像URL */
   private _borderImage: string | null;
 
+  /** パディングサイズ(Length)（左） */
+  private _paddingLeft: CssLength | null;
+
+  /** パディングサイズ(Length)（上） */
+  private _paddingTop: CssLength | null;
+
+  /** パディングサイズ(Length)（右） */
+  private _paddingRight: CssLength | null;
+
+  /** パディングサイズ(Length)（下） */
+  private _paddingBottom: CssLength | null;
+
   /** フォントサイズ(Length) */
   private _fontSize: CssLength | null;
 
@@ -132,6 +149,7 @@ export class UiStyle {
       this._childrenOrdered = false;
       this._conditionName = null;
       this._conditionParam = null;
+      this._visibility = null;
       this._textColor = null;
       this._backgroundColor = null;
       this._backgroundImage = null;
@@ -145,6 +163,10 @@ export class UiStyle {
       this._borderRadiusBottomRight = null;
       this._borderColor = null;
       this._borderImage = null;
+      this._paddingLeft = null;
+      this._paddingTop = null;
+      this._paddingRight = null;
+      this._paddingBottom = null;
       this._fontSize = null;
       this._fontFamily = null;
       this._lineHeight = null;
@@ -158,6 +180,7 @@ export class UiStyle {
       this._childrenOrdered = false;
       this._conditionName = builder.getConditionName();
       this._conditionParam = builder.getConditionParam();
+      this._visibility = builder.getVisibility();
       this._textColor = builder.getTextColor();
       this._backgroundColor = builder.getBackgroundColor();
       this._backgroundImage = builder.getBackgroundImage();
@@ -171,6 +194,10 @@ export class UiStyle {
       this._borderRadiusBottomRight = builder.getBorderRadiusBottomRight();
       this._borderColor = builder.getBorderColor();
       this._borderImage = builder.getBorderImage();
+      this._paddingLeft = builder.getPaddingLeft();
+      this._paddingTop = builder.getPaddingTop();
+      this._paddingRight = builder.getPaddingRight();
+      this._paddingBottom = builder.getPaddingBottom();
       this._fontSize = builder.getFontSize();
       this._fontFamily = builder.getFontFamily();
       this._lineHeight = builder.getLineHeight();
@@ -276,6 +303,10 @@ export class UiStyle {
     return this._conditionParam;
   }
 
+  public get visibility(): Visibility {
+    return this.getProperty((s) => s._visibility, 'visible') as Visibility;
+  }
+
   public get textColor(): Color {
     return this.getProperty((s) => s._textColor, Colors.BLACK) as Color;
   }
@@ -360,6 +391,47 @@ export class UiStyle {
     return this.getProperty((s) => s._borderImage, null);
   }
 
+  public hasPadding(): boolean {
+    return (
+      this.getProperty((s) => s._paddingLeft, null) != null ||
+      this.getProperty((s) => s._paddingTop, null) != null ||
+      this.getProperty((s) => s._paddingRight, null) != null ||
+      this.getProperty((s) => s._paddingBottom, null) != null
+    );
+  }
+
+  public get paddingLeftAsLength(): CssLength {
+    return this.getProperty((s) => s._paddingLeft, CssLength.ZERO) as CssLength;
+  }
+
+  public get paddingLeft(): string {
+    return this.paddingLeftAsLength.toString();
+  }
+
+  public get paddingTopAsLength(): CssLength {
+    return this.getProperty((s) => s._paddingTop, CssLength.ZERO) as CssLength;
+  }
+
+  public get paddingTop(): string {
+    return this.paddingTopAsLength.toString();
+  }
+
+  public get paddingRightAsLength(): CssLength {
+    return this.getProperty((s) => s._paddingRight, CssLength.ZERO) as CssLength;
+  }
+
+  public get paddingRight(): string {
+    return this.paddingRightAsLength.toString();
+  }
+
+  public get paddingBottomAsLength(): CssLength {
+    return this.getProperty((s) => s._paddingBottom, CssLength.ZERO) as CssLength;
+  }
+
+  public get paddingBottom(): string {
+    return this.paddingBottomAsLength.toString();
+  }
+
   public get fontSizeAsLength(): CssLength {
     return this.getProperty((s) => s._fontSize, UiStyle.DEFAULT_FONT_SIZE) as CssLength;
   }
@@ -406,10 +478,10 @@ export class UiStyle {
     if (this._id == UiStyle.EMPTY_STYLE_ID) {
       return;
     }
-    let p = this.basedOn;
-    while (p != null) {
-      styles.add(p);
-      p = p.basedOn;
+    let parent = this.basedOn;
+    while (parent != null) {
+      styles.add(parent);
+      parent = parent.basedOn;
     }
     styles.add(this);
     for (let c of this._inherits) {
@@ -428,6 +500,7 @@ export class UiStyle {
   private makeFullStyle(): string {
     let sb = '';
     sb += '{';
+    sb += this.getStringProperty('visibility', this.visibility);
     sb += this.getColorProperty('color', this.textColor);
     sb += this.getColorProperty('background', this.backgroundColor);
     sb += this.getStringProperty('background-image', this.backgroundImage);
@@ -451,6 +524,9 @@ export class UiStyle {
   private makeDeltaStyle(): string {
     let sb = '';
     sb += '{';
+    if (this._visibility != null) {
+      sb += this.getStringProperty('visibility', this.visibility);
+    }
     if (this._textColor != null) {
       sb += this.getColorProperty('color', this.textColor);
     }
@@ -527,6 +603,49 @@ export class UiStyle {
     }
     return result;
   }
+
+  public static addPadding(
+    style: CSSStyleDeclaration,
+    uiStyle: UiStyle,
+    rect: Rect
+  ): CSSStyleDeclaration {
+    if (uiStyle.hasPadding()) {
+      style.paddingLeft = uiStyle.paddingLeft;
+      style.paddingTop = uiStyle.paddingTop;
+      style.paddingRight = uiStyle.paddingRight;
+      style.paddingBottom = uiStyle.paddingBottom;
+    } else {
+      let topLeftW = uiStyle.borderRadiusTopLeftAsLength.toPixel(() => rect.width);
+      let topLeftH = uiStyle.borderRadiusTopLeftAsLength.toPixel(() => rect.height);
+      let bottomLeftW = uiStyle.borderRadiusBottomLeftAsLength.toPixel(() => rect.width);
+      let bottomLeftH = uiStyle.borderRadiusBottomLeftAsLength.toPixel(() => rect.height);
+      let topRightW = uiStyle.borderRadiusTopRightAsLength.toPixel(() => rect.width);
+      let topRightH = uiStyle.borderRadiusTopRightAsLength.toPixel(() => rect.height);
+      let bottomRightW = uiStyle.borderRadiusBottomRightAsLength.toPixel(() => rect.width);
+      let bottomRightH = uiStyle.borderRadiusBottomRightAsLength.toPixel(() => rect.height);
+      if (rect.width > rect.height * 2) {
+        //横長矩形の場合
+        style.paddingLeft = `${Math.max(topLeftW, bottomLeftW)}px`;
+        style.paddingRight = `${Math.max(topRightW, bottomRightW)}px`;
+        style.paddingTop = '0px';
+        style.paddingBottom = '0px';
+      } else if (rect.height > rect.width * 2) {
+        //縦長矩形の場合
+        style.paddingLeft = '0px';
+        style.paddingRight = '0px';
+        style.paddingTop = `${Math.max(topLeftH, topRightH)}px`;
+        style.paddingBottom = `${Math.max(bottomLeftH, bottomRightH)}px`;
+      } else {
+        //一般矩形の場合
+        let ratio = 1.0 - 1 / Math.sqrt(2);
+        style.paddingLeft = `${Math.max(topLeftW, bottomLeftW) * ratio}px`;
+        style.paddingRight = `${Math.max(topRightW, bottomRightW) * ratio}px`;
+        style.paddingTop = `${Math.max(topLeftH, topRightH) * ratio}px`;
+        style.paddingBottom = `${Math.max(bottomLeftH, bottomRightH) * ratio}px`;
+      }
+    }
+    return style;
+  }
 }
 
 export class UiStyleBuilder {
@@ -538,6 +657,9 @@ export class UiStyleBuilder {
   private _conditionName: UiStyleCondition | null;
 
   private _conditionParam: string | null;
+
+  /** visibility */
+  private _visibility: Visibility | null;
 
   /** 前景色 */
   private _textColor: Color | null;
@@ -578,6 +700,18 @@ export class UiStyleBuilder {
   /** ボーダー画像URL */
   private _borderImage: string | null;
 
+  /** パディングサイズ(Length)（左） */
+  private _paddingLeft: CssLength | null;
+
+  /** パディングサイズ(Length)（上） */
+  private _paddingTop: CssLength | null;
+
+  /** パディングサイズ(Length)（右） */
+  private _paddingRight: CssLength | null;
+
+  /** パディングサイズ(Length)（下） */
+  private _paddingBottom: CssLength | null;
+
   /** フォントサイズ(Length) */
   private _fontSize: CssLength | null;
 
@@ -601,6 +735,7 @@ export class UiStyleBuilder {
       this._childrenOrdered = false;
       this._conditionName = null;
       this._conditionParam = null;
+      this._visibility = null;
       this._textColor = null;
       this._backgroundColor = null;
       this._backgroundImage = null;
@@ -614,6 +749,10 @@ export class UiStyleBuilder {
       this._borderRadiusBottomRight = null;
       this._borderColor = null;
       this._borderImage = null;
+      this._paddingLeft = null;
+      this._paddingTop = null;
+      this._paddingRight = null;
+      this._paddingBottom = null;
       this._fontSize = null;
       this._fontFamily = null;
       this._lineHeight = null;
@@ -624,6 +763,7 @@ export class UiStyleBuilder {
       this._childrenOrdered = false;
       this._conditionName = baseStyle.conditionName;
       this._conditionParam = baseStyle.conditionParam;
+      this._visibility = baseStyle.visibility;
       this._textColor = baseStyle.textColor;
       this._backgroundColor = baseStyle.backgroundColor;
       this._backgroundImage = baseStyle.backgroundImage;
@@ -637,6 +777,10 @@ export class UiStyleBuilder {
       this._borderRadiusBottomRight = baseStyle.borderRadiusBottomRightAsLength;
       this._borderColor = baseStyle.borderColor;
       this._borderImage = baseStyle.borderImage;
+      this._paddingLeft = baseStyle.paddingLeftAsLength;
+      this._paddingTop = baseStyle.paddingTopAsLength;
+      this._paddingRight = baseStyle.paddingRightAsLength;
+      this._paddingBottom = baseStyle.paddingBottomAsLength;
       this._fontSize = baseStyle.fontSizeAsLength;
       this._fontFamily = baseStyle.fontFamily;
       this._lineHeight = baseStyle.lineHeightAsLength;
@@ -653,6 +797,11 @@ export class UiStyleBuilder {
   public condition(name: UiStyleCondition | null, param: string | null = null): UiStyleBuilder {
     this._conditionName = name;
     this._conditionParam = param;
+    return this;
+  }
+
+  public visibility(value: Visibility | null): UiStyleBuilder {
+    this._visibility = value;
     return this;
   }
 
@@ -790,6 +939,26 @@ export class UiStyleBuilder {
     return this;
   }
 
+  public paddingLeft(str: string | null): UiStyleBuilder {
+    this._paddingLeft = str == null ? null : new CssLength(str);
+    return this;
+  }
+
+  public paddingTop(str: string | null): UiStyleBuilder {
+    this._paddingTop = str == null ? null : new CssLength(str);
+    return this;
+  }
+
+  public paddingRight(str: string | null): UiStyleBuilder {
+    this._paddingRight = str == null ? null : new CssLength(str);
+    return this;
+  }
+
+  public paddingBottom(str: string | null): UiStyleBuilder {
+    this._paddingBottom = str == null ? null : new CssLength(str);
+    return this;
+  }
+
   public fontSize(str: string | null): UiStyleBuilder {
     this._fontSize = str == null ? null : new CssLength(str);
     return this;
@@ -832,6 +1001,10 @@ export class UiStyleBuilder {
 
   public getConditionParam(): string | null {
     return this._conditionParam;
+  }
+
+  public getVisibility(): Visibility | null {
+    return this._visibility;
   }
 
   public getTextColor(): Color | null {
@@ -884,6 +1057,22 @@ export class UiStyleBuilder {
 
   public getBorderImage(): string | null {
     return this._borderImage;
+  }
+
+  public getPaddingLeft(): CssLength | null {
+    return this._paddingLeft;
+  }
+
+  public getPaddingTop(): CssLength | null {
+    return this._paddingTop;
+  }
+
+  public getPaddingRight(): CssLength | null {
+    return this._paddingRight;
+  }
+
+  public getPaddingBottom(): CssLength | null {
+    return this._paddingBottom;
   }
 
   public getFontSize(): CssLength | null {

@@ -353,6 +353,7 @@ class UiDatePopup extends UiPageNode {
     let result = UiResult.IGNORED;
     switch (key | (mod & KeyCodes.MOD_MACS)) {
       case KeyCodes.ESCAPE:
+      case KeyCodes.BACKSPACE:
         this.application.dispose(this);
         result |= UiResult.EATEN;
         break;
@@ -443,6 +444,8 @@ export class UiDateField extends UiNode {
     if (value != null && Types.isValueType(value)) {
       this.getTextNode().textContent = this.formatDate(this.toDate(value as Value));
       result |= UiResult.AFFECTED;
+    } else {
+      this.getTextNode().textContent = null;
     }
     return result;
   }

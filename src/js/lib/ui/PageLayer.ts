@@ -12,4 +12,7 @@ export class PageLayers {
 
   /** 優先度：高（通知等） */
   public static HIGH = 80;
+
+  /** 優先度：最高（待ち画面用） */
+  public static HIGHEST = 100;
 }

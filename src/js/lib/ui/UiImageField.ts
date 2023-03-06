@@ -54,6 +54,8 @@ export class UiImageField extends UiImageNode {
     if (value != null && Types.isValueType(value)) {
       this.imageContent = value;
       result |= UiResult.AFFECTED;
+    } else {
+      this.imageContent = null;
     }
     return result;
   }

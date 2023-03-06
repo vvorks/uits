@@ -55,6 +55,8 @@ export class UiEditField extends UiEditNode {
     if (value != null && Types.isValueType(value)) {
       this.textContent = Values.asString(value as Value);
       result |= UiResult.AFFECTED;
+    } else {
+      this.textContent = '';
     }
     return result;
   }

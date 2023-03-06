@@ -7,6 +7,9 @@ export { UiNode, UiResult };
 import { UiScrollNode } from '~/lib/ui/UiScrollNode';
 export { UiScrollNode };
 
+import { Scrollable as RawScrollable } from '~/lib/ui/Scrollable';
+export type Scrollable = RawScrollable;
+
 import { UiCompositeNode, UiCompositeNodeSetter } from '~/lib/ui/UiCompositeNode';
 export { UiCompositeNode, UiCompositeNodeSetter };
 
@@ -37,8 +40,14 @@ export { UiTextField };
 import { UiDateField } from '~/lib/ui/UiDateField';
 export { UiDateField };
 
+import { UiButton } from './ui/UiButton';
+export { UiButton };
+
 import { UiTextButton } from '~/lib/ui/UiTextButton';
 export { UiTextButton };
+
+import { UiImageButton } from './ui/UiImageButton';
+export { UiImageButton };
 
 import { UiImageField } from '~/lib/ui/UiImageField';
 export { UiImageField };
@@ -109,6 +118,9 @@ export type { DataRecord };
 import { LocalDataSource } from '~/lib/ui/LocalDataSource';
 export { LocalDataSource };
 
+import { TwoStepDataSource } from '~/lib/ui/TwoStepDataSource';
+export { TwoStepDataSource };
+
 import { UiStyleCondition as RawUiStyleCondition } from '~/lib/ui/UiStyle';
 export type UiStyleCondition = RawUiStyleCondition;
 
@@ -117,6 +129,9 @@ export type TextAlign = RawTextAlign;
 
 import { VerticalAlign as RawVertialAlign } from '~/lib/ui/UiStyle';
 export type VerticalAlign = RawVertialAlign;
+
+import { Visibility as RawVisibility } from '~/lib/ui/UiStyle';
+export type Visibility = RawVisibility;
 
 import { KeyCodes } from '~/lib/ui/KeyCodes';
 export { KeyCodes };
@@ -129,3 +144,9 @@ export type UiLocation = RawUiLocation;
 
 import { HistoryState } from '~/lib/ui/HistoryManager';
 export { HistoryState };
+import { UiHtmlNode } from './ui/UiHtmlNode';
+export { UiHtmlNode };
+
+import { UiArcIndicatorNode } from './ui/UiArcIndicatorNode';
+export { UiArcIndicatorNode };
+

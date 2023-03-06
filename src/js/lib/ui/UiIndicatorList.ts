@@ -178,11 +178,20 @@ export class UiIndicatorList extends UiNode {
       }
       this._previousIndex = logicalIndex;
       this._currentIndex = logicalIndex;
+      this.resetIndicator();
       this.onContentChanged();
     } else if (this._currentIndex != logicalIndex) {
       this._previousIndex = this._currentIndex;
       this._currentIndex = logicalIndex;
+      this.resetIndicator();
       this.onContentChanged();
+    }
+  }
+
+  private resetIndicator(): void {
+    for (let i = 0; i < this._children.length; i++) {
+      let c = this._children[i] as UiIndicatorNode;
+      c.onTScroll(c, 0, 0, 1);
     }
   }
 

@@ -60,6 +60,8 @@ export class UiTextField extends UiTextNode {
     if (value != null && Types.isValueType(value)) {
       this.textContent = value as Value;
       result |= UiResult.AFFECTED;
+    } else {
+      this.textContent = null;
     }
     return result;
   }

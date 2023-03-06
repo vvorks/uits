@@ -1,7 +1,7 @@
 import { CssLength } from '~/lib/ui/CssLength';
-import { Size, UiNode, UiNodeSetter } from '~/lib/ui/UiNode';
+import { Flags, Size, UiNode, UiNodeSetter } from '~/lib/ui/UiNode';
 import { TextAlign, VerticalAlign } from '~/lib/ui/UiStyle';
-import { Value } from '../lang';
+import { Logs, Value } from '../lang';
 import type { UiApplication } from '~/lib/ui/UiApplication';
 import { HasSetter } from '~/lib/ui/UiBuilder';
 import { UiCanvas } from './UiCanvas';
@@ -18,6 +18,12 @@ export class UiImageNodeSetter extends UiNodeSetter {
     let node = this.node as UiImageNode;
     node.imageWidth = width;
     node.imageHeight = height;
+    return this;
+  }
+
+  public variable(on: boolean): this {
+    let node = this.node as UiImageNode;
+    node.variable = on;
     return this;
   }
 }
@@ -73,7 +79,7 @@ export class UiImageNode extends UiNode implements HasSetter<UiImageNodeSetter> 
       super(param as UiApplication, name as string);
       this._imageContent = null;
       this._imageObject = null;
-      this._imageWidth = new CssLength('100%');
+      this._imageWidth = null;
       this._imageHeight = null;
     }
   }
@@ -119,36 +125,51 @@ export class UiImageNode extends UiNode implements HasSetter<UiImageNodeSetter> 
     this._imageHeight = size == null ? null : new CssLength(size);
   }
 
+  public get variable(): boolean {
+    return this.getFlag(Flags.VARIABLE);
+  }
+
+  public set variable(on: boolean) {
+    if (this.setFlag(Flags.VARIABLE, on)) {
+      //nop
+    }
+  }
+
   protected createDomElement(target: UiNode, tag: string): HTMLElement | null {
     let dom = super.createDomElement(target, tag);
     if (dom == null) {
-      return dom;
+      return null;
     }
     let img = document.createElement('img');
     let style = img.style;
     style.position = 'absolute';
     style.display = 'block';
     dom.appendChild(img);
+    img.addEventListener('load', () => this.onLoadImage());
     return dom;
   }
 
   protected renderContent(): void {
-    let dom = this.domElement as HTMLElement;
-    let img = dom.firstChild as HTMLImageElement;
+    const app = this.application;
+    const dom = this.domElement as HTMLElement;
+    const img = dom.firstChild as HTMLImageElement;
     if (this._imageContent === undefined || this._imageContent == null) {
       img.src = '';
       return;
     }
-    let cssStyle = img.style;
-    let uiStyle = this.style.getEffectiveStyle(this);
-    let align: TextAlign = uiStyle.textAlign;
-    let valign: VerticalAlign = uiStyle.verticalAlign;
-    if (this._imageWidth == null && this._imageHeight == null) {
-      cssStyle.width = '100%';
-      cssStyle.height = 'auto';
-    } else {
+    const cssStyle = img.style;
+    const uiStyle = this.style.getEffectiveStyle(this);
+    const align: TextAlign = uiStyle.textAlign;
+    const valign: VerticalAlign = uiStyle.verticalAlign;
+    if (this._imageWidth != null || this._imageHeight != null) {
       cssStyle.width = this._imageWidth != null ? this._imageWidth.toString() : 'auto';
       cssStyle.height = this._imageHeight != null ? this._imageHeight.toString() : 'auto';
+    } else if (this.variable) {
+      cssStyle.width = 'auto';
+      cssStyle.height = 'auto';
+    } else {
+      cssStyle.width = '100%';
+      cssStyle.height = 'auto';
     }
     if (align == 'left' || align == 'justify') {
       cssStyle.left = '0px';
@@ -164,10 +185,34 @@ export class UiImageNode extends UiNode implements HasSetter<UiImageNodeSetter> 
     } else if (valign == 'bottom') {
       cssStyle.bottom = '0px';
     } else {
-      cssStyle.top = '50%';
-      cssStyle.transform = 'translate(0,-50%)';
+      cssStyle.top = '0px'; //暫定値
     }
     img.src = this._imageContent;
+  }
+
+  private onLoadImage(): void {
+    const app = this.application;
+    const dom = this.domElement as HTMLElement;
+    const img = dom.firstChild as HTMLImageElement;
+    const cssStyle = img.style;
+    const uiStyle = this.style.getEffectiveStyle(this);
+    const valign: VerticalAlign = uiStyle.verticalAlign;
+    if (this.variable) {
+      this.width = `${img.clientWidth}px`;
+      this.height = `${img.clientHeight}px`;
+      cssStyle.left = '0px';
+      cssStyle.top = '0px';
+      cssStyle.width = `${img.clientWidth}px`;
+      cssStyle.height = `${img.clientHeight}px`;
+    } else if (valign == 'middle') {
+      cssStyle.height = `${img.clientHeight}px`;
+      cssStyle.top = '0px';
+      cssStyle.bottom = '0px';
+    }
+    if (this.parent != null) {
+      this.parent.onLayoutChanged();
+    }
+    app.syncAfterFinally();
   }
 
   protected paintContent(canvas: UiCanvas): void {
