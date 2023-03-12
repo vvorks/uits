@@ -59,20 +59,20 @@ export class GridCanvasPage extends UiPageNode {
     let app = this.application;
     const ROW = 100;
     const COL = 100;
-    let b = new UiBuilder('100px');
+    let b = new UiBuilder('32px');
     b.element(this).inset(0).style(GROUP_STYLE);
     b.belongs((b) => {
       b.element(new UiCanvas(app, 'canvas')).inset(0);
       b.belongs((b) => {
         //行ヘッダ
         b.element(new UiScrollNode(app, 'rowHeader'))
-          .position(1, 0, 1, null, null, 1)
+          .position(10, 0, 2, null, null, 1)
           .style(GROUP_STYLE)
           .hscroll('h');
         b.belongs((b) => {
           for (let col = 0; col < COL; col++) {
             b.element(new UiTextNode(app, 'rowHeaderColumn' + col))
-              .position(col, 0, null, 0, 1, null)
+              .position(col * 10, 0, null, 0, 10, null)
               .style(DEFAULT_STYLE)
               .textContent(`{{col.${col}}}`)
               .focusable(false);
@@ -80,7 +80,7 @@ export class GridCanvasPage extends UiPageNode {
         });
         //列ヘッダ
         b.element(new UiScrollNode(app, 'colHeader'))
-          .position(0, 1, null, 1, 1, null)
+          .position(0, 1, null, 1, 10, null)
           .style(GROUP_STYLE)
           .vscroll('v');
         b.belongs((b) => {
@@ -96,7 +96,7 @@ export class GridCanvasPage extends UiPageNode {
         });
         //グリッド
         b.element(new UiScrollNode(app, 'grid'))
-          .position(1, 1, 1, 1, null, null)
+          .position(10, 1, 2, 2, null, null)
           .style(GROUP_STYLE)
           //.focusLock(true)
           .hscroll('h')
@@ -105,7 +105,7 @@ export class GridCanvasPage extends UiPageNode {
           for (let row = 0; row < ROW; row++) {
             for (let col = 0; col < COL; col++) {
               b.element(new UiTextNode(app, 'cell' + row + '_' + col))
-                .bounds(col, row, 1, 1)
+                .bounds(col * 10, row, 10, 1)
                 .style(DEFAULT_STYLE)
                 .focusable(true)
                 .textContent(`ITEM[${row},${col}]`);
@@ -119,7 +119,7 @@ export class GridCanvasPage extends UiPageNode {
           .vscroll('v');
         //水平スクロールバー
         b.element(new UiScrollbar(app, 'hscroll'))
-          .position(1, null, 1, 0, null, 1)
+          .position(10, null, 1, 0, null, 1)
           .style(SB_STYLE)
           .hscroll('h');
       });

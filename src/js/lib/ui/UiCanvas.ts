@@ -100,6 +100,8 @@ export class UiCanvas extends UiNode {
 
   private _imageMap: LimitedCacheMap<any, ImageItem>;
 
+  private _dpr: number;
+
   /**
    * クローンメソッド
    *
@@ -137,11 +139,13 @@ export class UiCanvas extends UiNode {
       this._xOrigin = src._xOrigin;
       this._yOrigin = src._yOrigin;
       this._imageMap = src._imageMap;
+      this._dpr = src._dpr;
     } else {
       super(param as UiApplication, name as string);
       this._xOrigin = 0;
       this._yOrigin = 0;
       this._imageMap = new LimitedCacheMap<any, ImageItem>(256);
+      this._dpr = 1;
     }
   }
 
@@ -177,7 +181,9 @@ export class UiCanvas extends UiNode {
     style.height = `${r.height}px`;
     canvas.width = Math.floor(r.width * dpr);
     canvas.height = Math.floor(r.height * dpr);
+    this._dpr = dpr;
     let con = this.context2d;
+    Logs.debug('dpr %g', dpr);
     con.scale(dpr, dpr);
   }
 
@@ -234,12 +240,14 @@ export class UiCanvas extends UiNode {
     dy += this._yOrigin;
     let con = this.context2d;
     Logs.debug('copyRect %g, %g, %g, %g, %g, %g', sx, sy, w, h, dx, dy);
-    if (sy == 0) {
-      // con.fillStyle = '#808080';
-      // con.fillRect(dx, dy, w, h);
-      const imageData = con.getImageData(sx, sy, w, h);
-      con.putImageData(imageData, dx, dy);
-    }
+    let dpr = this._dpr;
+    const imageData = con.getImageData(
+      Math.round(sx * dpr),
+      Math.round(sy * dpr),
+      Math.round(w * dpr),
+      Math.round(h * dpr)
+    );
+    con.putImageData(imageData, Math.round(dx * dpr), Math.round(dy * dpr));
   }
 
   public drawBackground(x: number, y: number, w: number, h: number, s: UiStyle) {

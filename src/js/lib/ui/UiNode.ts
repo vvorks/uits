@@ -2256,6 +2256,10 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
       let classChanged = this.transferStyleClass();
       let canScroll =
         !classChanged && this.isChanged(Changed.SCROLL) && !this.isChanged(~Changed.SCROLL);
+      if (canScroll) {
+        Logs.debug('canScroll %s', this.getNodePath());
+      }
+      //canScroll = false;
       if (!canScroll) {
         let bitChanged = this.transferChanged(Changed.ALL);
         if (bitChanged || classChanged) {
@@ -2268,7 +2272,8 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
       canvas.moveOrigin(-vr.x, -vr.y);
       canvas.moveOrigin(+inside.left, +inside.top);
       if (this.isChanged(Changed.SCROLL)) {
-        this.scrollNode(canvas, dirtyRect, false);
+        this.scrollNode(canvas, dirtyRect);
+        this.setChanged(Changed.SCROLL, false);
       }
       this.dirtyChildren(canvas, dirtyRect, rVisible);
       canvas.moveOrigin(-inside.left, -inside.top);
@@ -2277,7 +2282,7 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
     }
   }
 
-  private scrollNode(canvas: UiCanvas, dirtyRect: Rect, go: boolean) {
+  private scrollNode(canvas: UiCanvas, dirtyRect: Rect) {
     let width = this.innerWidth;
     let height = this.innerHeight;
     let prevLeft = this._prevScrollLeft == null ? 0 : this._prevScrollLeft.toPixel(() => width);
@@ -2313,12 +2318,9 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
         ey += ady;
         dirtyYRect.height = ady;
       }
-      if (go) {
-        canvas.copyRect(sx, sy, width - adx, height - ady, ex, ey);
-      } else {
-        dirtyRect.union(dirtyXRect);
-        dirtyRect.union(dirtyYRect);
-      }
+      canvas.copyRect(sx, sy, width - adx, height - ady, ex, ey);
+      dirtyRect.union(dirtyXRect);
+      dirtyRect.union(dirtyYRect);
     }
   }
 
@@ -2341,10 +2343,6 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
       let inside = this.getBorderSize();
       canvas.moveOrigin(-vr.x, -vr.y);
       canvas.moveOrigin(+inside.left, +inside.top);
-      if (this.isChanged(Changed.SCROLL)) {
-        this.scrollNode(canvas, dirtyRect, true);
-        this.setChanged(Changed.SCROLL, false);
-      }
       this.paintContent(canvas);
       this.paintChildren(canvas, rVisible);
       canvas.moveOrigin(-inside.left, -inside.top);
@@ -2352,6 +2350,7 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
       //枠描画
       this.paintBorder(canvas);
       canvas.restoreContext();
+      this.setChanged(Changed.SCROLL, false);
     }
   }
 
