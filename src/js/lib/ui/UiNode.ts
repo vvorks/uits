@@ -44,12 +44,12 @@ export enum Flags {
   /** 初期化済みフラグ */       INITIALIZED         = 0x00001000,     //UiNode
   /** マウント済みフラグ */     MOUNTED             = 0x00002000,     //UiNode
   /** DOM接続済みフラグ */      BINDED              = 0x00004000,     //UiNode
-  /** 削除済みフラグ */         DELETED             = 0x00008000,     //UiNode
+  //                                                = 0x00008000,     //reserved
   /** クリック中フラグ */       CLICKING            = 0x00010000,     //UiNode
   /** フォーカス移動中フラグ */ FOCUSING            = 0x00020000,     //UiNode
   /** 編集中フラグ */           EDITING             = 0x00040000,     //UiNode
   /** 初期フラグ値 */           INITIAL             = ENABLE | VISIBLE,
-  /** クローン不要なフラグ */   NOT_CLONABLE_FLAGS  = CLICKING | DELETED | MOUNTED,
+  /** クローン不要なフラグ */   NOT_CLONABLE_FLAGS  = CLICKING | MOUNTED,
   /** UiListNode で使用 */      LIST_INITIAL        = VERTICAL | LOOP | OUTER_MARGIN,
 }
 
@@ -84,7 +84,7 @@ export enum Changed {
   STYLE = 0x00000040,
 
   /** 全更新フラグ */
-  ALL = CONTENT | LOCATION | DISPLAY | SCROLL | HIERARCHY | STYLE,
+  ALL = CONTENT | LOCATION | DISPLAY | SCROLL | LAYOUT | HIERARCHY | STYLE,
 }
 
 /**
@@ -325,6 +325,10 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
 
   private _scrollHeight: CssLength | null;
 
+  private _prevScrollLeft: CssLength | null;
+
+  private _prevScrollTop: CssLength | null;
+
   private _style: UiStyle;
 
   private _stylePrefix: string;
@@ -410,6 +414,8 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
       this._scrollTop = src._scrollTop;
       this._scrollWidth = src._scrollWidth;
       this._scrollHeight = src._scrollHeight;
+      this._prevScrollLeft = src._prevScrollLeft;
+      this._prevScrollTop = src._prevScrollTop;
       this._style = src._style;
       this._stylePrefix = src._stylePrefix;
       this._styleClassName = src._styleClassName;
@@ -445,6 +451,8 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
       this._scrollTop = null;
       this._scrollWidth = null;
       this._scrollHeight = null;
+      this._prevScrollLeft = null;
+      this._prevScrollTop = null;
       this._style = UiStyle.EMPTY;
       this._stylePrefix = '';
       this._styleClassName = '';
@@ -687,6 +695,10 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
   public set scrollLeft(str: string | null) {
     let value: CssLength | null = str == null ? null : new CssLength(str);
     if (!CssLength.equals(this._scrollLeft, value)) {
+      if (!this.isChanged(Changed.SCROLL)) {
+        this._prevScrollLeft = this._scrollLeft;
+        this._prevScrollTop = this._scrollTop;
+      }
       this._scrollLeft = value;
       this.fireHScroll();
       this.onScrollChanged();
@@ -700,6 +712,10 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
   public set scrollTop(str: string | null) {
     let value: CssLength | null = str == null ? null : new CssLength(str);
     if (!CssLength.equals(this._scrollTop, value)) {
+      if (!this.isChanged(Changed.SCROLL)) {
+        this._prevScrollLeft = this._scrollLeft;
+        this._prevScrollTop = this._scrollTop;
+      }
       this._scrollTop = value;
       this.fireVScroll();
       this.onScrollChanged();
@@ -1367,16 +1383,6 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
     this.setFlag(Flags.EDITING, on);
   }
 
-  public get deleted(): boolean {
-    return this.getFlag(Flags.DELETED);
-  }
-
-  public set deleted(on: boolean) {
-    if (this.setFlag(Flags.DELETED, on)) {
-      this.setChanged(Changed.DISPLAY, true);
-    }
-  }
-
   public get focusable(): boolean {
     return this.getFlag(Flags.FOCUSABLE);
   }
@@ -1598,7 +1604,7 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
     limit: number = Number.MAX_SAFE_INTEGER,
     list: UiNode[] = []
   ): UiNode[] {
-    if (!this.visible || this.deleted) {
+    if (!this.visible) {
       return list;
     }
     if (filter(this)) {
@@ -1746,7 +1752,7 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
   public getVisibleChildAt(x: number, y: number): UiNode | null {
     for (let i = this._children.length - 1; i >= 0; i--) {
       let child = this._children[i];
-      if (child.visible && !child.deleted) {
+      if (child.visible) {
         let cRect = child.getRect();
         if (cRect.containsPoint(x, y) && child.hitTest(x - cRect.x, y - cRect.y)) {
           return child;
@@ -1969,14 +1975,14 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
     return UiResult.IGNORED;
   }
 
-  protected syncImpl(rParentVisible: Rect, force: boolean): void {
+  protected syncImpl(rParentVisible: Rect): void {
     let dom = this.ensureDomElement();
     let rVisible = new Rect(rParentVisible).intersect(this.getRect());
     this.translate(rVisible, -1);
     //TODO 要調整。アニメ中の表示が追い付かないようなら投入
     //let animating = this.isAnimating();
     //force = force || animating;
-    let appeared = (this.visible && !this.deleted && (!rVisible.empty || force)) || this.floating;
+    let appeared = this.visible && (!rVisible.empty || this.floating);
     if (appeared) {
       this.syncLayout();
       if (dom != null) {
@@ -1986,7 +1992,7 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
         this.syncContent();
       }
       for (let c of this._children) {
-        c.syncImpl(rVisible, force);
+        c.syncImpl(rVisible);
       }
       if (dom != null) {
         this.syncHierarchy();
@@ -2232,32 +2238,135 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
     this.setChanged(Changed.HIERARCHY, false);
   }
 
-  protected paintNode(canvas: UiCanvas): void {
-    canvas.saveContext();
-    //クリッピング
-    let rect = new Rect(this.getRect()); //親座標系
-    let x = rect.x;
-    let y = rect.y;
-    if (this.parent != null) {
-      let parentRect = this.parent.getViewRect();
-      rect.intersect(parentRect);
+  protected dirtyChildren(canvas: UiCanvas, dirtyRect: Rect, rParentVisible: Rect): Rect {
+    for (let c of this._children) {
+      let rect = new Rect(c.getRect());
+      canvas.moveOrigin(+rect.x, +rect.y);
+      c.dirtyNode(canvas, dirtyRect, rParentVisible);
+      canvas.moveOrigin(-rect.x, -rect.y);
     }
-    rect.move(-x, -y); //親座標系→自座標系
-    canvas.clipRect(rect.x, rect.y, rect.width, rect.height);
-    //背景描画
-    this.paintBackground(canvas);
-    //子ノード・内容描画
-    let vr = this.getViewRect();
-    let inside = this.getBorderSize();
-    canvas.moveOrigin(-vr.x, -vr.y);
-    canvas.moveOrigin(+inside.left, +inside.top);
-    this.paintContent(canvas);
-    this.paintChildren(canvas);
-    canvas.moveOrigin(-inside.left, -inside.top);
-    canvas.moveOrigin(+vr.x, +vr.y);
-    //枠描画
-    this.paintBorder(canvas);
-    canvas.restoreContext();
+    return dirtyRect;
+  }
+
+  protected dirtyNode(canvas: UiCanvas, dirtyRect: Rect, rParentVisible: Rect): void {
+    let rVisible = new Rect(rParentVisible).intersect(this.getRect());
+    this.translate(rVisible, -1);
+    let appeared = (this.visible && !rVisible.empty) || this.floating;
+    if (appeared) {
+      let classChanged = this.transferStyleClass();
+      let canScroll =
+        !classChanged && this.isChanged(Changed.SCROLL) && !this.isChanged(~Changed.SCROLL);
+      if (!canScroll) {
+        let bitChanged = this.transferChanged(Changed.ALL);
+        if (bitChanged || classChanged) {
+          dirtyRect.union(this.getRect());
+        }
+      }
+      this.translate(dirtyRect, -1);
+      let vr = this.getViewRect();
+      let inside = this.getBorderSize();
+      canvas.moveOrigin(-vr.x, -vr.y);
+      canvas.moveOrigin(+inside.left, +inside.top);
+      if (this.isChanged(Changed.SCROLL)) {
+        this.scrollNode(canvas, dirtyRect, false);
+      }
+      this.dirtyChildren(canvas, dirtyRect, rVisible);
+      canvas.moveOrigin(-inside.left, -inside.top);
+      canvas.moveOrigin(+vr.x, +vr.y);
+      this.translate(dirtyRect, +1);
+    }
+  }
+
+  private scrollNode(canvas: UiCanvas, dirtyRect: Rect, go: boolean) {
+    let width = this.innerWidth;
+    let height = this.innerHeight;
+    let prevLeft = this._prevScrollLeft == null ? 0 : this._prevScrollLeft.toPixel(() => width);
+    let prevTop = this._prevScrollTop == null ? 0 : this._prevScrollTop.toPixel(() => height);
+    let currLeft = this._scrollLeft == null ? 0 : this._scrollLeft.toPixel(() => width);
+    let currTop = this._scrollTop == null ? 0 : this._scrollTop.toPixel(() => height);
+    let dx = currLeft - prevLeft;
+    let dy = currTop - prevTop;
+    let adx = Math.abs(dx);
+    let ady = Math.abs(dy);
+    if (adx >= width || ady >= height) {
+      dirtyRect.union(new Rect().locate(currLeft, currTop, width, height));
+    } else if (dx != 0 || dy != 0) {
+      let sx = currLeft;
+      let ex = currLeft;
+      let dirtyXRect = new Rect().locate(currLeft, currTop, 0, height);
+      if (dx > 0) {
+        sx += adx;
+        dirtyXRect.x = currLeft + width - adx;
+        dirtyXRect.width = adx;
+      } else if (dx < 0) {
+        ex += adx;
+        dirtyXRect.width = adx;
+      }
+      let sy = currTop;
+      let ey = currTop;
+      let dirtyYRect = new Rect().locate(currLeft, currTop, width, 0);
+      if (dy > 0) {
+        sy += ady;
+        dirtyYRect.y = currTop + height - ady;
+        dirtyYRect.height = ady;
+      } else if (dy < 0) {
+        ey += ady;
+        dirtyYRect.height = ady;
+      }
+      if (go) {
+        canvas.copyRect(sx, sy, width - adx, height - ady, ex, ey);
+      } else {
+        dirtyRect.union(dirtyXRect);
+        dirtyRect.union(dirtyYRect);
+      }
+    }
+  }
+
+  protected paintNode(canvas: UiCanvas, dirtyRect: Rect): void {
+    let rVisible = new Rect(dirtyRect).intersect(this.getRect());
+    this.translate(rVisible, -1);
+    if (!rVisible.empty) {
+      canvas.saveContext();
+      //クリッピング
+      let rect = new Rect(this.getRect()); //親座標系
+      let x = rect.x;
+      let y = rect.y;
+      rect.intersect(dirtyRect);
+      rect.move(-x, -y); //親座標系→自座標系
+      canvas.clipRect(rect.x, rect.y, rect.width, rect.height);
+      //背景描画
+      this.paintBackground(canvas);
+      //子ノード・内容描画
+      let vr = this.getViewRect();
+      let inside = this.getBorderSize();
+      canvas.moveOrigin(-vr.x, -vr.y);
+      canvas.moveOrigin(+inside.left, +inside.top);
+      if (this.isChanged(Changed.SCROLL)) {
+        this.scrollNode(canvas, dirtyRect, true);
+        this.setChanged(Changed.SCROLL, false);
+      }
+      this.paintContent(canvas);
+      this.paintChildren(canvas, rVisible);
+      canvas.moveOrigin(-inside.left, -inside.top);
+      canvas.moveOrigin(+vr.x, +vr.y);
+      //枠描画
+      this.paintBorder(canvas);
+      canvas.restoreContext();
+    }
+  }
+
+  protected transferChanged(bits: Changed): boolean {
+    let result = this.isChanged(bits);
+    this.setChanged(bits, false);
+    return result;
+  }
+
+  protected transferStyleClass(): boolean {
+    let s: UiStyle = this._style.getEffectiveStyle(this);
+    let styleClassName = this._stylePrefix + s.id;
+    let result = this._styleClassName != styleClassName;
+    this._styleClassName = styleClassName;
+    return result;
   }
 
   protected paintBackground(canvas: UiCanvas): void {
@@ -2276,11 +2385,11 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
     canvas.drawBorder(0, 0, rect.width, rect.height, style);
   }
 
-  protected paintChildren(canvas: UiCanvas): void {
+  protected paintChildren(canvas: UiCanvas, dirtyRect: Rect): void {
     for (let c of this._children) {
       let rect = new Rect(c.getRect());
       canvas.moveOrigin(+rect.x, +rect.y);
-      c.paintNode(canvas);
+      c.paintNode(canvas, dirtyRect);
       canvas.moveOrigin(-rect.x, -rect.y);
     }
   }

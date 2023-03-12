@@ -13,7 +13,6 @@ import { UiAxis } from '~/lib/ui/UiAxis';
 import { UiStyle, UiStyleBuilder } from './UiStyle';
 import { Colors } from './Colors';
 import { KeyLogger } from './KeyLogger';
-import { WaitingArc } from './WaitingArc';
 
 /** システムWheel調整比の既定値  */
 const DEFAULT_WHEEL_SCALE = 0.5;
@@ -22,7 +21,7 @@ const DEFAULT_WHEEL_SCALE = 0.5;
 const DEFAULT_INTERVAL_PRECISION = 500;
 
 /** アニメーション時間の既定値 */
-const DEFAULT_ANIMATION_TIME = 100;
+const DEFAULT_ANIMATION_TIME = 0; //100;
 
 /** キー長押し判定閾値の既定値 */
 const DEFAULT_LONG_PRESS_TIME = 1000;
@@ -73,6 +72,8 @@ type PageFactory = (tag: string) => UiPageNode;
 type Resource = Properties<Value | Resource>;
 
 type PurgePageFunc = () => void;
+
+type AsyncTask = (net: any) => Promise<UiResult>;
 
 /**
  * 表示中ページ情報
@@ -873,7 +874,7 @@ export class UiApplication {
     addWaiting: boolean = false,
     purgeFunc: PurgePageFunc = () => {}
   ): void {
-    if (addWaiting) {
+    if (false /*addWaiting*/) {
       let waitingNode = this.createWaitingPage();
       let waitingPage = this.pushPage(waitingNode, PageLayers.HIGHEST);
       this.mountPage(waitingNode, state, PageLayers.HIGHEST, waitingPage);
@@ -945,11 +946,11 @@ export class UiApplication {
   }
 
   protected createWaitingPage(): UiPageNode {
-    return new WaitingArc(this, '__waitingArc__');
+    return null as unknown as UiPageNode;
   }
 
   public isFocusable(e: UiNode): boolean {
-    return !e.deleted && e.visible && e.enable && e.focusable;
+    return e.visible && e.enable && e.focusable;
   }
 
   public isAppearedFocusable(e: UiNode): boolean {
@@ -962,7 +963,7 @@ export class UiApplication {
     }
     let node: UiNode | null = e.parent;
     while (node != null) {
-      if (!(!node.deleted && node.visible)) {
+      if (!node.visible) {
         return false;
       }
       node = node.parent;

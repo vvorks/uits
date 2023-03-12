@@ -69,7 +69,7 @@ export class UiRootNode extends UiNode {
   }
 
   public sync(): void {
-    this.syncImpl(this.getViewRect(), false);
+    this.syncImpl(this.getViewRect());
   }
 
   protected syncStyle(): void {

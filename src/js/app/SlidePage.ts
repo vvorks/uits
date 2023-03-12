@@ -13,7 +13,6 @@ import {
   UiStyle,
   Colors,
   UiIndicatorNode,
-  UiPlayList,
 } from '~/lib/ui';
 import { DEFAULT_STYLE, GROUP_STYLE, IMAGE_STYLE, LIST_STYLE } from '~/app/TestApplication';
 import { UiArcIndicatorNode } from '~/lib/ui/UiArcIndicatorNode';
@@ -63,11 +62,6 @@ export class SlidePage extends UiPageNode {
         .style(DEFAULT_STYLE)
         .focusable(true)
         .textContent('自動的にスライドします');
-      b.element(new UiPlayList(app, 'player'))
-        .position(1, 4, 1, 1, null, null)
-        .dataSource('playlist')
-        .hscroll('content')
-        .tscroll('playing');
       b.element(new UiListNode(app, 'list'))
         .position(1, 4, 1, 1, null, null)
         .style(LIST_STYLE)

@@ -1,8 +1,10 @@
 import { Asserts, Logs } from '../lang';
+import { LimitedCacheMap } from '../util';
 import { Colors } from './Colors';
 import { CssLength } from './CssLength';
 import { Rect } from './Rect';
 import type { UiApplication } from './UiApplication';
+import { UiImageNode } from './UiImageNode';
 import { UiNode, UiResult } from './UiNode';
 import { TextAlign, UiStyle, VerticalAlign } from './UiStyle';
 
@@ -25,9 +27,79 @@ const NO_HEAD =
 /** 行末禁則文字 */
 const NO_TAIL = '«(（[｛〔〈《「『【〘〖〝‘“｟';
 
+class ImageItem {
+  private _url: any;
+
+  private _imageElement: HTMLImageElement | null;
+
+  private _users: UiImageNode[];
+
+  /**
+   * イメージITEMを作成
+   *
+   * @param url イメージURL
+   */
+  public constructor(url: any) {
+    this._url = url;
+    this._imageElement = null;
+    this._users = [];
+  }
+
+  public getImageElement(): HTMLImageElement | null {
+    return this._imageElement;
+  }
+
+  public setImageElement(image: HTMLImageElement | null): boolean {
+    if (this._imageElement == image) {
+      return false;
+    }
+    this._imageElement = image;
+    for (let u of this._users) {
+      u.repaintImage();
+    }
+    return true;
+  }
+
+  /**
+   * イメージ利用者を追加
+   *
+   * @param user イメージ利用者
+   * @returns 最初のイメージ利用者だった場合、真
+   */
+  public addImageUser(user: UiImageNode): boolean {
+    let oldCount = this._users.length;
+    let index = this._users.indexOf(user);
+    if (index == -1) {
+      this._users.push(user);
+    }
+    let newCount = this._users.length;
+    return oldCount == 0 && newCount > 0;
+  }
+
+  /**
+   * イメージ利用者を削除
+   *
+   * @param user イメージ利用者
+   * @returns 最後のイメージ利用者だった場合、真
+   */
+  public removeImageUser(user: UiImageNode): boolean {
+    let oldCount = this._users.length;
+    let index = this._users.indexOf(user);
+    if (index != -1) {
+      this._users.splice(index, 1);
+    }
+    let newCount = this._users.length;
+    return oldCount > 0 && newCount == 0;
+  }
+}
+
 export class UiCanvas extends UiNode {
   private _xOrigin: number;
+
   private _yOrigin: number;
+
+  private _imageMap: LimitedCacheMap<any, ImageItem>;
+
   /**
    * クローンメソッド
    *
@@ -64,12 +136,13 @@ export class UiCanvas extends UiNode {
       let src = param as UiCanvas;
       this._xOrigin = src._xOrigin;
       this._yOrigin = src._yOrigin;
+      this._imageMap = src._imageMap;
     } else {
       super(param as UiApplication, name as string);
       this._xOrigin = 0;
       this._yOrigin = 0;
+      this._imageMap = new LimitedCacheMap<any, ImageItem>(256);
     }
-    //TODO ここでフロート属性ON
   }
 
   protected initialize(): void {
@@ -115,11 +188,17 @@ export class UiCanvas extends UiNode {
     return UiResult.AFFECTED;
   }
 
-  protected syncImpl(rParentVisible: Rect, force: boolean): void {
-    Logs.debug('sync canvas');
+  protected syncImpl(rParentVisible: Rect): void {
     this.syncHierarchy();
-    this.paintChildren(this);
-    this.paintBorder(this);
+    let rVisible = new Rect(rParentVisible).intersect(this.getRect());
+    this.translate(rVisible, -1);
+    let appeared = this.visible && (!rVisible.empty || this.floating);
+    if (appeared) {
+      let dirtyRect = new Rect();
+      this.dirtyChildren(this, dirtyRect, rVisible);
+      this.paintChildren(this, dirtyRect);
+      this.paintBorder(this);
+    }
   }
 
   public saveContext(): void {
@@ -147,6 +226,22 @@ export class UiCanvas extends UiNode {
     con.closePath();
     con.clip();
   }
+
+  public copyRect(sx: number, sy: number, w: number, h: number, dx: number, dy: number): void {
+    sx += this._xOrigin;
+    sy += this._yOrigin;
+    dx += this._xOrigin;
+    dy += this._yOrigin;
+    let con = this.context2d;
+    Logs.debug('copyRect %g, %g, %g, %g, %g, %g', sx, sy, w, h, dx, dy);
+    if (sy == 0) {
+      // con.fillStyle = '#808080';
+      // con.fillRect(dx, dy, w, h);
+      const imageData = con.getImageData(sx, sy, w, h);
+      con.putImageData(imageData, dx, dy);
+    }
+  }
+
   public drawBackground(x: number, y: number, w: number, h: number, s: UiStyle) {
     x += this._xOrigin;
     y += this._yOrigin;
@@ -161,16 +256,11 @@ export class UiCanvas extends UiNode {
     this.drawBorderColor(x, y, w, h, s);
   }
 
-  public drawImage(
-    image: HTMLImageElement,
-    imageWidth: CssLength | null,
-    imageHeight: CssLength | null,
-    x: number,
-    y: number,
-    w: number,
-    h: number,
-    s: UiStyle
-  ) {
+  public drawImage(user: UiImageNode, x: number, y: number, w: number, h: number, s: UiStyle) {
+    let image = this.loadImage(user);
+    if (image == null) {
+      return;
+    }
     x += this._xOrigin;
     y += this._yOrigin;
     let con = this.context2d;
@@ -180,6 +270,8 @@ export class UiCanvas extends UiNode {
     let dy;
     let dw;
     let dh;
+    let imageWidth = user.imageWidthAsLength;
+    let imageHeight = user.imageHeightAsLength;
     if (imageWidth != null && imageHeight != null) {
       dw = imageWidth.toPixel(() => w);
       dh = imageHeight.toPixel(() => h);
@@ -210,6 +302,30 @@ export class UiCanvas extends UiNode {
       dy = y + (h - dh) / 2;
     }
     con.drawImage(image, 0, 0, sw, sh, dx, dy, dw, dh);
+  }
+
+  private loadImage(user: UiImageNode): HTMLImageElement | null {
+    let url = user.imageContent;
+    if (this._imageMap.get(url) === undefined) {
+      this._imageMap.put(url, new ImageItem(url));
+    }
+    const item = this._imageMap.get(url) as ImageItem;
+    if (item.addImageUser(user)) {
+      let img = new Image();
+      if ((url as string).startsWith('data:')) {
+        img.src = url;
+        item.setImageElement(img);
+      } else {
+        img.addEventListener('load', (e) => {
+          if (item.setImageElement(img)) {
+            this.application.sync();
+          }
+        });
+        img.src = url;
+      }
+    }
+    let result = item.getImageElement();
+    return result;
   }
 
   public drawText(

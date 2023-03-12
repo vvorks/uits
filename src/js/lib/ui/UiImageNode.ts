@@ -31,8 +31,6 @@ export class UiImageNodeSetter extends UiNodeSetter {
 export class UiImageNode extends UiNode implements HasSetter<UiImageNodeSetter> {
   private _imageContent: any;
 
-  private _imageObject: HTMLImageElement | null;
-
   private _imageWidth: CssLength | null;
 
   private _imageHeight: CssLength | null;
@@ -72,13 +70,11 @@ export class UiImageNode extends UiNode implements HasSetter<UiImageNodeSetter> 
       super(param as UiImageNode);
       let src = param as UiImageNode;
       this._imageContent = src._imageContent;
-      this._imageObject = src._imageObject;
       this._imageWidth = src._imageWidth;
       this._imageHeight = src._imageHeight;
     } else {
       super(param as UiApplication, name as string);
       this._imageContent = null;
-      this._imageObject = null;
       this._imageWidth = null;
       this._imageHeight = null;
     }
@@ -95,16 +91,6 @@ export class UiImageNode extends UiNode implements HasSetter<UiImageNodeSetter> 
   public set imageContent(value: any) {
     if (this._imageContent != value) {
       this._imageContent = value;
-      let dom = this.ensureDomElement();
-      if (dom == null) {
-        const img = new Image();
-        img.addEventListener('load', () => {
-          this._imageObject = img;
-          this.onContentChanged();
-          this.application.sync(); //TODO 暫定
-        });
-        img.src = this._imageContent;
-      }
       this.onContentChanged();
     }
   }
@@ -113,12 +99,20 @@ export class UiImageNode extends UiNode implements HasSetter<UiImageNodeSetter> 
     return this._imageWidth == null ? null : this._imageWidth.toString();
   }
 
+  public get imageWidthAsLength(): CssLength | null {
+    return this._imageWidth == null ? null : this._imageWidth;
+  }
+
   public set imageWidth(size: Size | null) {
     this._imageWidth = size == null ? null : new CssLength(size);
   }
 
   public get imageHeight(): Size | null {
     return this._imageHeight == null ? null : this._imageHeight.toString();
+  }
+
+  public get imageHeightAsLength(): CssLength | null {
+    return this._imageHeight == null ? null : this._imageHeight;
   }
 
   public set imageHeight(size: Size | null) {
@@ -151,6 +145,9 @@ export class UiImageNode extends UiNode implements HasSetter<UiImageNodeSetter> 
 
   protected renderContent(): void {
     const app = this.application;
+    if (this.domElement == null) {
+      return;
+    }
     const dom = this.domElement as HTMLElement;
     const img = dom.firstChild as HTMLImageElement;
     if (this._imageContent === undefined || this._imageContent == null) {
@@ -215,12 +212,14 @@ export class UiImageNode extends UiNode implements HasSetter<UiImageNodeSetter> 
     app.syncAfterFinally();
   }
 
+  public repaintImage(): void {
+    this.onContentChanged();
+  }
+
   protected paintContent(canvas: UiCanvas): void {
     let style = this.style.getEffectiveStyle(this);
     let w = this.innerWidth;
     let h = this.innerHeight;
-    if (this._imageObject != null) {
-      canvas.drawImage(this._imageObject, this._imageWidth, this._imageHeight, 0, 0, w, h, style);
-    }
+    canvas.drawImage(this, 0, 0, w, h, style);
   }
 }

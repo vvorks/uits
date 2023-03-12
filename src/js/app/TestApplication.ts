@@ -18,7 +18,6 @@ import { SlidePage } from '~/app/SlidePage';
 import { TestDataSource } from '~/app/TestDataSource';
 import { VerticalListPage } from '~/app/VerticalListPage';
 import { PaneTestPage } from '~/app/PaneTestPage';
-import { MenuTestPage } from '~/app/MenuTestPage';
 import { MenuDataSource } from '~/app/MenuDataSource';
 import { VolumeToast } from '~/app/VolumeToast';
 import { UiApplication } from '~/lib/ui/UiApplication';
@@ -183,7 +182,6 @@ export class TestApplication extends UiApplication {
     this.addPageFactory('grid', (tag) => new GridPage(this, tag));
     this.addPageFactory('slide', (tag) => new SlidePage(this, tag));
     this.addPageFactory('pane', (tag) => new PaneTestPage(this, tag));
-    this.addPageFactory('menu', (tag) => new MenuTestPage(this, tag));
     this.addPageFactory('volume', (tag) => new VolumeToast(this, tag));
 
     this.addDataSource(
