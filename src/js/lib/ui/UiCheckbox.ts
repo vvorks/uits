@@ -1,9 +1,9 @@
-import { UiNode, UiResult } from '~/lib/ui/UiNode';
-import { RecordHolder } from '~/lib/ui/RecordHolder';
-import { KeyCodes } from '~/lib/ui/KeyCodes';
-import { UiImageNode, UiImageNodeSetter } from '~/lib/ui/UiImageNode';
-import type { UiApplication } from '~/lib/ui/UiApplication';
 import { Logs } from '../lang';
+import { KeyCodes } from '~/lib/ui/KeyCodes';
+import { RecordHolder } from '~/lib/ui/RecordHolder';
+import type { UiApplication } from '~/lib/ui/UiApplication';
+import { UiImageNode, UiImageNodeSetter } from '~/lib/ui/UiImageNode';
+import { UiNode, UiResult } from '~/lib/ui/UiNode';
 
 export class UiCheckboxSetter extends UiImageNodeSetter {
   public static readonly INSTANCE = new UiCheckboxSetter();
@@ -99,6 +99,9 @@ export class UiCheckbox extends UiImageNode {
   public onRecordHolderChanged(holder: RecordHolder): UiResult {
     this._recordHolder = holder;
     this.value = !!this._recordHolder.getValue(this.dataFieldName);
+    if (this.qualifierFieldName != null) {
+      this.qualifier = this._recordHolder.getValue(this.qualifierFieldName) as string;
+    }
     return UiResult.AFFECTED;
   }
 

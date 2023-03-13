@@ -143,11 +143,18 @@ export class UiArcIndicatorNode extends UiHtmlNode {
    * 対象コンテンツのシーク位置変更通知
    *
    * @param source コンテンツリスト
-   * @param offset シーク位置（ミリ秒単位）
-   * @param limit 未使用
+   * @param current シーク位置（ミリ秒単位）
+   * @param offset バッファ開始位置（ミリ秒単位）
+   * @param limit バッファ量（ミリ秒単位）
    * @param count コンテンツ時間（ミリ秒単位）
    */
-  public onTScroll(source: Scrollable, offset: number, limit: number, count: number): void {
-    this.indicatorValue = offset / count;
+  public onTScroll(
+    source: Scrollable,
+    current: number,
+    offset: number,
+    limit: number,
+    count: number
+  ): void {
+    this.indicatorValue = current / count;
   }
 }

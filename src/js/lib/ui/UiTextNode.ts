@@ -1,8 +1,8 @@
 import { Logs, Strings, Value, Values } from '~/lib/lang';
 import { Color } from '~/lib/ui/Colors';
-import { Flags, UiNode, UiNodeSetter } from '~/lib/ui/UiNode';
 import type { UiApplication } from '~/lib/ui/UiApplication';
 import { HasSetter } from '~/lib/ui/UiBuilder';
+import { Flags, UiNode, UiNodeSetter } from '~/lib/ui/UiNode';
 import { UiStyle, VerticalAlign } from '~/lib/ui/UiStyle';
 import { UiCanvas } from './UiCanvas';
 

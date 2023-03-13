@@ -1,6 +1,6 @@
+import { Asserts, Properties, Value } from '~/lib/lang';
 import { Strings } from '~/lib/lang/Strings';
 import { Types } from '~/lib/lang/Types';
-import { Asserts, Properties, Value } from '~/lib/lang';
 
 // prettier-ignore
 type PatternType = 'b'|'o'|'d'|'x'|'X'|'c'|'s'|'G'|'Y'|'m'|'D'|'A'|'P'|'H'|'M'|'S'|'L'|'Z'|'F'|'T'|'%'|'n';

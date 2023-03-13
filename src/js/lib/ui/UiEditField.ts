@@ -58,6 +58,9 @@ export class UiEditField extends UiEditNode {
     } else {
       this.textContent = '';
     }
+    if (this.qualifierFieldName != null) {
+      this.qualifier = this._recordHolder.getValue(this.qualifierFieldName) as string;
+    }
     return result;
   }
 

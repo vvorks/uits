@@ -1,8 +1,8 @@
-import type { UiApplication } from '~/lib/ui/UiApplication';
 import { Logs, Value } from '~/lib/lang';
-import { UiImageNode, UiImageNodeSetter } from '~/lib/ui/UiImageNode';
-import { RecordHolder } from '~/lib/ui/RecordHolder';
 import { KeyCodes } from '~/lib/ui/KeyCodes';
+import { RecordHolder } from '~/lib/ui/RecordHolder';
+import type { UiApplication } from '~/lib/ui/UiApplication';
+import { UiImageNode, UiImageNodeSetter } from '~/lib/ui/UiImageNode';
 import { UiNode, UiResult } from '~/lib/ui/UiNode';
 export class UiRadioSetter extends UiImageNodeSetter {
   public static readonly INSTANCE = new UiRadioSetter();
@@ -36,7 +36,6 @@ const RADIO_ON_DATA =
   'Q7Ppb2Stu0sSGwtl6HCEg0RHeX9dn757zXqgF078b19ZZpkGxblzra9spu5eZwGgMG4mD4ydDBws4T9wwN2wGAKLUO' +
   'CwMgqzRn3bMVPgjj26BoBRLMnGiCpvlAYojkEYs3UmnQM9JbAibQGjrryR4lRmwo472GnFbfG1HmgpR3gQGv4zq4FC' +
   'Wf+ZlVA7FZ9ZIyvv/fkuPbB3ZVsbnAM4EbO7Tf8B13TkMZ4GyP0AAAAASUVORK5CYII=';
-
 //
 //取得元 https://fonts.google.com/icons?utm_source=developers.google.com&utm_medium=referral
 //
@@ -55,18 +54,12 @@ const RADIO_OFF_DATA =
   'XQZRYq5kW9+shLrBKIDS7BLHRkKAWUJEG5j34/rw7DUKoGZOPLevLK1Tahhn5pqPbJpmr60AYBg14wcWnQwcUcJ/4C' +
   'B2E8Ugogg5BSnDMGfk0w72U7g1aXQOAAuxOBsr/9LSak4wjkBYzXlmLgBjEikiNZb/QBEBQW2D2TGDbWbcLlgKwDOK' +
   'eWAa/jOrgYJZ/5kVM7kQn1kjkt7rnjU1sFdGa4dfAugidnfpX3zXuDEwPejGAAAAAElFTkSuQmCC';
-
 export class UiRadio extends UiImageNode {
   private _recordHolder: RecordHolder;
-
   private _value: Value | null;
-
   private _specValue: Value;
-
   private _radiOnData: string;
-
   private _radioOffData: string;
-
   /**
    * クローンメソッド
    *
@@ -75,7 +68,6 @@ export class UiRadio extends UiImageNode {
   public clone(): UiRadio {
     return new UiRadio(this);
   }
-
   /**
    * 通常コンストラクタ
    *
@@ -83,14 +75,12 @@ export class UiRadio extends UiImageNode {
    * @param name ノード名
    */
   constructor(app: UiApplication, name: string, spec: Value);
-
   /**
    * コピーコンストラクタ
    *
    * @param src 複製元
    */
   constructor(src: UiRadio);
-
   /**
    * コンストラクタ実装
    *
@@ -115,17 +105,17 @@ export class UiRadio extends UiImageNode {
       this._radioOffData = RADIO_OFF_DATA;
     }
   }
-
   public onRecordHolderChanged(holder: RecordHolder): UiResult {
     this._recordHolder = holder;
     this.value = this._recordHolder.getValue(this.dataFieldName) as Value;
+    if (this.qualifierFieldName != null) {
+      this.qualifier = this._recordHolder.getValue(this.qualifierFieldName) as string;
+    }
     return UiResult.AFFECTED;
   }
-
   public get value(): Value {
     return this._value;
   }
-
   public set value(v: Value) {
     if (this._value != v) {
       this._value = v;
@@ -141,11 +131,9 @@ export class UiRadio extends UiImageNode {
       this.onContentChanged();
     }
   }
-
   private get matched(): boolean {
     return this._value == this._specValue;
   }
-
   public onKeyDown(target: UiNode, key: number, ch: number, mod: number, at: number): UiResult {
     let result = UiResult.IGNORED;
     switch (key | (mod & KeyCodes.MOD_MACS)) {
@@ -168,11 +156,9 @@ export class UiRadio extends UiImageNode {
     //Drag And Drop 動作を禁止させるためイベントを消費する
     return UiResult.CONSUMED;
   }
-
   public onMouseClick(target: UiNode, x: number, y: number, mod: number, at: number): UiResult {
     return this.doChange();
   }
-
   private doChange(): UiResult {
     let result = UiResult.IGNORED;
     if (this.enable && !this.matched) {

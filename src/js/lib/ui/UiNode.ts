@@ -1,16 +1,16 @@
-import type { UiApplication } from '~/lib/ui/UiApplication';
-import { Asserts, Clonable, Logs, Predicate, UnsupportedError, Value } from '~/lib/lang';
-import { Rect } from '~/lib/ui/Rect';
-import { CssLength } from '~/lib/ui/CssLength';
-import { UiStyle } from '~/lib/ui/UiStyle';
-import { DataRecord, DataSource } from '~/lib/ui/DataSource';
-import { RecordHolder } from '~/lib/ui/RecordHolder';
-import { Scrollable } from '~/lib/ui/Scrollable';
-import { UiPageNode } from '~/lib/ui/UiPageNode';
-import { KeyCodes } from '~/lib/ui/KeyCodes';
-import { Inset } from '~/lib/ui/Inset';
-import { UiSetter, HasSetter } from '~/lib/ui/UiBuilder';
 import { LayoutManager } from './LayoutManager';
+import { Asserts, Clonable, Logs, Predicate, UnsupportedError, Value } from '~/lib/lang';
+import { CssLength } from '~/lib/ui/CssLength';
+import { DataRecord, DataSource } from '~/lib/ui/DataSource';
+import { Inset } from '~/lib/ui/Inset';
+import { KeyCodes } from '~/lib/ui/KeyCodes';
+import { RecordHolder } from '~/lib/ui/RecordHolder';
+import { Rect } from '~/lib/ui/Rect';
+import { Scrollable } from '~/lib/ui/Scrollable';
+import type { UiApplication } from '~/lib/ui/UiApplication';
+import { UiSetter, HasSetter } from '~/lib/ui/UiBuilder';
+import { UiPageNode } from '~/lib/ui/UiPageNode';
+import { UiStyle } from '~/lib/ui/UiStyle';
 import { UiCanvas } from './UiCanvas';
 
 /**
@@ -25,12 +25,12 @@ export type Size = string | number;
  */
 // prettier-ignore
 export enum Flags {
-  /** フォーカス可能フラグ */   FOCUSABLE           = 0x00000001,     //UiNode
-  /** 有効フラグ */             ENABLE              = 0x00000002,     //UiNode
-  /** 表示フラグ */             VISIBLE             = 0x00000004,     //UiNode
-  /** 強調フラグ */             EMPHASIS            = 0x00000008,     //UiNode
-  /** DOM削除対象外フラグ */     FLOATING           = 0x00000010,     //UiSpanList
-  //                                                  0x00000020,     //reserved
+  /** フォーカス可能フラグ */   FOCUSABLE           = 0x00000001,     //Common
+  /** 有効フラグ */             ENABLE              = 0x00000002,     //Common
+  /** 表示フラグ */             VISIBLE             = 0x00000004,     //Common
+  /** 強調フラグ */             EMPHASIS            = 0x00000008,     //Common
+  /** DOM削除対象外フラグ */    FLOATING            = 0x00000010,     //Common(UiSpanList)
+  //																								= 0x00000020,     //reserved
   //                                                  0x00000040,     //reserved
   //                                                  0x00000080,     //reserved
   /** 項目上にPOPUP */          POPUP_OVER          = 0x00000100,     //UiLookupField
@@ -141,8 +141,14 @@ export type ActionListener = (source: UiNode, action: string, param?: any) => Ui
  */
 export type UiLocation = 'top' | 'left' | 'right' | 'bottom' | 'center';
 
+/**
+ * フォーカス設定ポリシー
+ */
+export type FocusingPolicy = 'distance' | 'direction';
+
 export class UiNodeSetter extends UiSetter {
   public static readonly INSTANCE = new UiNodeSetter();
+
   public position(
     left: Size | null,
     top: Size | null,
@@ -234,11 +240,19 @@ export class UiNodeSetter extends UiSetter {
     node.emphasis = value;
     return this;
   }
+
   public floating(value: boolean): this {
     let node = this.node as UiNode;
     node.floating = value;
     return this;
   }
+
+  public focusingPolicy(policy: FocusingPolicy | null): this {
+    let node = this.node as UiNode;
+    node.focusingPolicy = policy;
+    return this;
+  }
+
   public dataSource(name: string): this {
     let node = this.node as UiNode;
     node.dataSourceName = name;
@@ -248,6 +262,12 @@ export class UiNodeSetter extends UiSetter {
   public dataField(name: string): this {
     let node = this.node as UiNode;
     node.dataFieldName = name;
+    return this;
+  }
+
+  public qualifierField(name: string): this {
+    let node = this.node as UiNode;
+    node.qualifierFieldName = name;
     return this;
   }
 
@@ -299,6 +319,10 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
 
   private _dataFieldName: string | null;
 
+  private _qualifierFieldName: string | null;
+
+  private _qualifier: string | null;
+
   private _hScrollName: string | null;
 
   private _vScrollName: string | null;
@@ -344,6 +368,8 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
   protected _children: UiNode[];
 
   private _actionListeners: ActionListener[];
+
+  private _focusingPolicy: FocusingPolicy | null;
 
   private _flags: Flags;
 
@@ -401,6 +427,8 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
       this._name = src._name;
       this._dataSourceName = src._dataSourceName;
       this._dataFieldName = src._dataFieldName;
+      this._qualifierFieldName = src._qualifierFieldName;
+      this._qualifier = src._qualifier;
       this._hScrollName = src._hScrollName;
       this._vScrollName = src._vScrollName;
       this._tScrollName = src._tScrollName;
@@ -427,6 +455,7 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
         this.appendChild(c.clone());
       }
       this._actionListeners = src._actionListeners.slice();
+      this._focusingPolicy = src._focusingPolicy;
       this._flags = src._flags & ~Flags.NOT_CLONABLE_FLAGS;
       this._changed = src._changed;
       this._domElement = null;
@@ -438,6 +467,8 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
       this._name = name as string;
       this._dataSourceName = null;
       this._dataFieldName = null;
+      this._qualifierFieldName = null;
+      this._qualifier = null;
       this._hScrollName = null;
       this._vScrollName = null;
       this._tScrollName = null;
@@ -461,6 +492,7 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
       this._parent = null;
       this._children = [];
       this._actionListeners = [];
+      this._focusingPolicy = null;
       this._flags = 0;
       this.initFlags(Flags.INITIAL);
       this._changed = Changed.ALL;
@@ -524,6 +556,24 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
 
   public set dataFieldName(name: string | null) {
     this._dataFieldName = name;
+  }
+
+  public get qualifierFieldName(): string | null {
+    return this._qualifierFieldName;
+  }
+
+  public set qualifierFieldName(name: string | null) {
+    Logs.debug('qualifierFieldName %s', name);
+    this._qualifierFieldName = name;
+  }
+
+  public get qualifier(): string | null {
+    return this._qualifier;
+  }
+
+  public set qualifier(value: string | null) {
+    Logs.debug('qualifier %s', value);
+    this._qualifier = value;
   }
 
   public get hScrollName(): string | null {
@@ -990,7 +1040,13 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
     }
   }
 
-  public onTScroll(source: Scrollable, offset: number, limit: number, count: number): void {}
+  public onTScroll(
+    source: Scrollable,
+    current: number,
+    offset: number,
+    limit: number,
+    count: number
+  ): void {}
 
   public fireHScroll(): void {
     let page = this.getPageNode() as UiPageNode;
@@ -1335,7 +1391,6 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
 
   public set enable(on: boolean) {
     if (this.setFlag(Flags.ENABLE, on)) {
-      this.notifyChanged(Flags.ENABLE, on);
       this.setChanged(Changed.DISPLAY, true);
     }
   }
@@ -1346,10 +1401,10 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
 
   public set emphasis(on: boolean) {
     if (this.setFlag(Flags.EMPHASIS, on)) {
-      this.notifyChanged(Flags.EMPHASIS, on);
       this.setChanged(Changed.DISPLAY, true);
     }
   }
+
   public get floating(): boolean {
     return this.getFlag(Flags.FLOATING);
   }
@@ -1357,6 +1412,24 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
   public set floating(on: boolean) {
     this.setFlag(Flags.FLOATING, on);
   }
+
+  public get focusingPolicy(): FocusingPolicy | null {
+    return this._focusingPolicy;
+  }
+
+  public set focusingPolicy(policy: FocusingPolicy | null) {
+    this._focusingPolicy = policy;
+  }
+
+  public getFocusingPolicy(): FocusingPolicy {
+    if (this.focusingPolicy != null) {
+      return this.focusingPolicy;
+    } else if (this.parent != null) {
+      return this.parent.getFocusingPolicy();
+    }
+    return 'distance';
+  }
+
   public get clicking(): boolean {
     return this.getFlag(Flags.CLICKING);
   }
@@ -1680,7 +1753,7 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
    * @param prev フォーカス移動元
    * @returns
    */
-  public adjustFocus(prev: UiNode): UiNode {
+  public adjustFocus(prev: UiNode, key: number): UiNode {
     return this;
   }
 
@@ -2050,11 +2123,11 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
     return styles;
   }
 
-  protected syncStyleClass(): void {
+  protected syncStyleClass(): boolean {
     let s: UiStyle = this._style.getEffectiveStyle(this);
     let styleClassName = this._stylePrefix + s.id;
     if (this._styleClassName == styleClassName) {
-      return;
+      return false;
     }
     let dom = this._domElement as HTMLElement;
     const newClassList = s.getClassList(this._stylePrefix);
@@ -2064,6 +2137,7 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
     onlyOldClassList.forEach((e) => dom.classList.remove(e)); //old browser can not remove multiple
     onlyNewClassList.forEach((e) => dom.classList.add(e)); //old browser can not add multiple
     this._styleClassName = styleClassName;
+    return true;
   }
 
   private getClassListOf(dom: HTMLElement): string[] {

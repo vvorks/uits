@@ -1,9 +1,9 @@
-import type { UiApplication } from './UiApplication';
 import { Value } from '../lang';
 import { DataRecord } from './DataSource';
 import { RecordHolder } from './RecordHolder';
-import { UiScrollNode, UiScrollNodeSetter } from './UiScrollNode';
+import type { UiApplication } from './UiApplication';
 import { HasSetter } from './UiBuilder';
+import { UiScrollNode, UiScrollNodeSetter } from './UiScrollNode';
 
 export class UiFormNodeSetter extends UiScrollNodeSetter {
   public static readonly INSTANCE = new UiFormNodeSetter();

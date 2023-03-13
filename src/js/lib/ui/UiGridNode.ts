@@ -1,18 +1,19 @@
-import type { UiApplication } from '~/lib/ui/UiApplication';
-import { Asserts, Logs, Predicate, Value } from '~/lib/lang';
-import { Colors } from '~/lib/ui/Colors';
-import { RecordHolder } from '~/lib/ui/RecordHolder';
-import { DataRecord, DataSource } from '~/lib/ui/DataSource';
-import { KeyCodes } from '~/lib/ui/KeyCodes';
-import { Rect } from '~/lib/ui/Rect';
-import { Scrollable } from '~/lib/ui/Scrollable';
-import { Flags, UiNode, UiResult } from '~/lib/ui/UiNode';
-import { UiPageNode } from '~/lib/ui/UiPageNode';
-import { UiStyle, UiStyleBuilder } from '~/lib/ui/UiStyle';
-import { HasSetter } from '~/lib/ui/UiBuilder';
-import { UiScrollNode, UiScrollNodeSetter } from '~/lib/ui/UiScrollNode';
 import { UiAxis } from './UiAxis';
 import { UiButton } from './UiButton';
+import { Asserts, Logs, Predicate, Value } from '~/lib/lang';
+import { Colors } from '~/lib/ui/Colors';
+import { DataRecord, DataSource } from '~/lib/ui/DataSource';
+import { KeyCodes } from '~/lib/ui/KeyCodes';
+import { RecordHolder } from '~/lib/ui/RecordHolder';
+import { Rect } from '~/lib/ui/Rect';
+import { Scrollable } from '~/lib/ui/Scrollable';
+import type { UiApplication } from '~/lib/ui/UiApplication';
+import { HasSetter } from '~/lib/ui/UiBuilder';
+import { Flags, UiNode, UiResult } from '~/lib/ui/UiNode';
+import { UiPageNode } from '~/lib/ui/UiPageNode';
+import { UiScrollNode, UiScrollNodeSetter } from '~/lib/ui/UiScrollNode';
+import { UiStyle, UiStyleBuilder } from '~/lib/ui/UiStyle';
+import { FIELD_SELECTED, SelectionManager } from './SelectionManager';
 
 /**
  * レコードノード用スタイル
@@ -175,6 +176,12 @@ class UiRecord extends UiButton implements RecordHolder {
     return new Rect(this.getRect());
   }
 
+  public flushRecordHolderChanged(): void {
+    for (let c of this.getDescendants()) {
+      c.onRecordHolderChanged(this);
+    }
+  }
+
   public onFocus(target: UiNode, gained: boolean, other: UiNode | null): UiResult {
     if (gained && this._record != null) {
       return this.owner.onRecordSelected(this._record);
@@ -216,6 +223,12 @@ export class UiGridNodeSetter extends UiScrollNodeSetter {
     node.outerMargin = value;
     return this;
   }
+
+  public selectionManager(manager: SelectionManager<string>): this {
+    let node = this.node as UiGridNode;
+    node.selectionManager = manager;
+    return this;
+  }
 }
 
 /**
@@ -247,6 +260,8 @@ export class UiGridNode extends UiScrollNode implements HasSetter<UiGridNodeSett
   private _pageTopIndex: number;
 
   private _dataSource: DataSource | null;
+
+  private _selectionManager: SelectionManager<string> | null;
 
   /**
    * クローンメソッド
@@ -292,6 +307,7 @@ export class UiGridNode extends UiScrollNode implements HasSetter<UiGridNodeSett
       this._linesPerPage = src._linesPerPage;
       this._pageTopIndex = src._pageTopIndex;
       this._dataSource = src._dataSource;
+      this._selectionManager = src._selectionManager;
     } else {
       super(param as UiApplication, name as string);
       this.initFlags(Flags.LIST_INITIAL);
@@ -306,6 +322,7 @@ export class UiGridNode extends UiScrollNode implements HasSetter<UiGridNodeSett
       this._linesPerPage = 0;
       this._pageTopIndex = 0;
       this._dataSource = null;
+      this._selectionManager = null;
     }
   }
 
@@ -337,6 +354,14 @@ export class UiGridNode extends UiScrollNode implements HasSetter<UiGridNodeSett
     this.setFlag(Flags.OUTER_MARGIN, on);
   }
 
+  public get selectionManager(): SelectionManager<string> | null {
+    return this._selectionManager;
+  }
+
+  public set selectionManager(manager: SelectionManager<string> | null) {
+    this._selectionManager = manager;
+  }
+
   private itemFocusable(): boolean {
     if (this._template != null) {
       let app = this.application;
@@ -351,7 +376,15 @@ export class UiGridNode extends UiScrollNode implements HasSetter<UiGridNodeSett
   }
 
   public getRecord(index: number): DataRecord | null {
-    return this._dataSource != null ? this._dataSource.getRecord(index) : null;
+    if (this._dataSource == null) {
+      return null;
+    }
+    let rec = this._dataSource.getRecord(index);
+    if (rec != null && this._selectionManager != null) {
+      let key = this._dataSource.getKeyOf(rec);
+      rec[FIELD_SELECTED] = this._selectionManager.isSelected(key);
+    }
+    return rec;
   }
 
   public setRecord(rec: DataRecord): void {
@@ -397,28 +430,34 @@ export class UiGridNode extends UiScrollNode implements HasSetter<UiGridNodeSett
       return UiResult.IGNORED;
     }
     let app = this.application;
+    let info: FocusInfo | null;
     if (this.count() < 0) {
       //最初の通知
       this._dataSource = ds;
+      info = null;
       let attention = Math.max(0, ds.attention());
       this._pageTopIndex = this.validateIndex(attention);
-      this.adjustScroll();
-      this.renumberRecs(true);
-      this.setRecsVisiblity();
-      if (this.focusable && app.getFocusOf(this) == this) {
+    } else {
+      //二回目以降の通知
+      info = this.saveFocus();
+      this._pageTopIndex = this.validateIndex(this._pageTopIndex);
+    }
+    this.adjustScroll();
+    this.renumberRecs(true);
+    this.setRecsVisiblity();
+    //フォーカス処理
+    if (this.focusable && app.getFocusOf(this) == this) {
+      //リスト表示前の処理
+      if (ds.getRecord(this._pageTopIndex) != null) {
+        //データ到着時、フォーカスを設定
+        let attention = Math.max(0, ds.attention());
         let delta = attention - this._pageTopIndex;
         let rec = this._children[LINE_MARGIN * this._columnCount + delta];
         let field = this.findFirstField(rec);
         app.resetFocus(field != null ? field : rec);
       }
-      (this.getPageNode() as UiPageNode).setHistoryStateAgain();
     } else {
-      //２回目以降の通知
-      let info = this.saveFocus();
-      this._pageTopIndex = this.validateIndex(this._pageTopIndex);
-      this.adjustScroll();
-      this.renumberRecs(true);
-      this.setRecsVisiblity();
+      //リスト表示後の処理（フォーカスリカバリ）
       this.restoreFocus(info);
     }
     this.fireHScroll();
@@ -429,7 +468,7 @@ export class UiGridNode extends UiScrollNode implements HasSetter<UiGridNodeSett
   private saveFocus(): FocusInfo | null {
     let app = this.application;
     let focus = app.getFocusOf(this);
-    if (focus != null && this.isAncestorOf(focus)) {
+    if (focus != null && focus != this && this.isAncestorOf(focus)) {
       let rec = this.getUiRecordOf(focus);
       if (rec != null) {
         let recIndex = this._children.indexOf(rec);
@@ -685,13 +724,16 @@ export class UiGridNode extends UiScrollNode implements HasSetter<UiGridNodeSett
     list: UiNode[]
   ): UiNode[] {
     if (!(this.hasFocus() || this.focusing)) {
+      if (filter(this)) {
+        list.push(this);
+      }
       return list;
     } else {
       return super.getFocusableChildrenIf(filter, limit, list);
     }
   }
 
-  public adjustFocus(prev: UiNode): UiNode {
+  public adjustFocus(prev: UiNode, key: number): UiNode {
     let app = this.application;
     if (this.focusLock || prev == this) {
       let firstRec = this._children[LINE_MARGIN];
@@ -700,7 +742,7 @@ export class UiGridNode extends UiScrollNode implements HasSetter<UiGridNodeSett
         return firstField;
       }
     } else {
-      let nearest = app.getNearestNode(prev, this, (e) => e != this);
+      let nearest = app.getNearestNode(prev, this, (e) => e != this, key);
       if (nearest != null) {
         Logs.debug('nearest from %s is %s', prev.getNodePath(), nearest.getNodePath());
         return nearest;
@@ -989,5 +1031,42 @@ export class UiGridNode extends UiScrollNode implements HasSetter<UiGridNodeSett
 
   public onRecordSelected(rec: DataRecord): UiResult {
     return this.fireActionEvent(UiGridNode.EVENT_TAG_SELECT, rec);
+  }
+
+  public isSelected(key: string): boolean {
+    return !!this._selectionManager?.isSelected(key);
+  }
+
+  public setSelected(rec: DataRecord): string | null {
+    let key = null;
+    if (this._dataSource != null && this._selectionManager != null) {
+      key = this._dataSource.getKeyOf(rec);
+      let selected = this.isSelected(key);
+      let keys = this._selectionManager.setSelected(key, !selected);
+      this.updateRecordHolder(keys);
+    }
+    return key;
+  }
+
+  private updateRecordHolder(keys: string[]) {
+    if (this._dataSource == null) {
+      return;
+    }
+    let n = this._children.length;
+    for (let i = 0; i < n; i++) {
+      let recNode = this._children[i] as UiRecord;
+      let rec = recNode.getRecord();
+      if (rec != null) {
+        let key = this._dataSource.getKeyOf(rec);
+        if (keys.includes(key)) {
+          this.getRecord(recNode.index);
+          recNode.flushRecordHolderChanged();
+        }
+      }
+    }
+  }
+
+  public getSelection(): string[] | undefined {
+    return this._selectionManager?.getSelection();
   }
 }

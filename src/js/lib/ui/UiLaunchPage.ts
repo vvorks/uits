@@ -1,5 +1,5 @@
-import { UiNode, UiBuilder, UiPageNode, UiTextButton } from '~/lib/ui';
 import { FIELD_STYLE, GROUP_STYLE, UiApplication } from './UiApplication';
+import { UiNode, UiBuilder, UiPageNode, UiTextButton } from '~/lib/ui';
 
 export class UiLaunchPage extends UiPageNode {
   /**
@@ -48,11 +48,14 @@ export class UiLaunchPage extends UiPageNode {
       //グリッド
       b.element(new UiNode(app, 'group')).position(1, 1, 1, 1, null, null).style(GROUP_STYLE);
       b.belongs((b) => {
+        let cols = 5;
         const entries = Object.entries(this.application.getPageFactries());
         for (let i = 0; i < entries.length; i++) {
           const [key, value] = entries[i];
+          let r = Math.floor(i / cols);
+          let c = Math.floor(i % cols);
           b.element(new UiTextButton(app, 'button' + i))
-            .bounds(0, i * 3, 10, 3)
+            .bounds(c * 10, r * 3, 10, 3)
             .style(FIELD_STYLE)
             .focusable(true)
             .textContent(key)

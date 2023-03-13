@@ -5,7 +5,7 @@ import { UiNode, UiResult } from '~/lib/ui/UiNode';
 export class UiDeckNode extends UiNode {
   private _selected: string | null;
   private _selectedBefore: string | null;
-  private _selectedBeforeOwner: UiNode | null;
+  private _backNode: UiNode | null;
   private _savedFocusNodes: Properties<UiNode>;
 
   /**
@@ -44,13 +44,13 @@ export class UiDeckNode extends UiNode {
       let src = param as UiDeckNode;
       this._selected = src._selected;
       this._selectedBefore = src._selectedBefore;
-      this._selectedBeforeOwner = src._selectedBeforeOwner;
+      this._backNode = src._backNode;
       this._savedFocusNodes = {};
     } else {
       super(param as UiApplication, name as string);
       this._selected = null;
       this._selectedBefore = null;
-      this._selectedBeforeOwner = null;
+      this._backNode = null;
       this._savedFocusNodes = {};
     }
   }
@@ -105,13 +105,21 @@ export class UiDeckNode extends UiNode {
     this._selected = name;
   }
 
+  public selectWithBack(name: string, backNode: UiNode | null): void {
+    if (this._selected == name) {
+      return;
+    }
+    this.select(name);
+    this._backNode = backNode;
+  }
+
   /**
    * このDeckNodeにFocusが当たる場合の処理
    *
    * @param prev 以前のfocus node
    * @returns 補正されたフォーカス候補ノード
    */
-  public adjustFocus(prev: UiNode): UiNode {
+  public adjustFocus(prev: UiNode, key: number): UiNode {
     Logs.debug('adjustFocus');
     Asserts.assume(this._selected != null);
     {
@@ -137,7 +145,6 @@ export class UiDeckNode extends UiNode {
       let piece = Arrays.first(target.getAncestorsIf((e) => e.parent == this, 1));
       if (piece != null) {
         this._selectedBefore = this._selected;
-        this._selectedBeforeOwner = other;
         if (piece.name != this._selected) {
           this.select(piece.name);
         }
@@ -145,12 +152,15 @@ export class UiDeckNode extends UiNode {
       }
     } else {
       this.saveFocusInSelected();
-      if (this._selectedBefore != null) {
-        if (this._selectedBeforeOwner != null && this._selectedBeforeOwner != other) {
-          this.application.requestFocus(this._selectedBeforeOwner);
-        } else {
-          this.select(this._selectedBefore);
+      if (this._backNode != null) {
+        if (this._backNode != other) {
+          //TODO otherとbackNodeの方向まで確認するべき？
+          this.application.requestFocus(this._backNode);
         }
+        this._backNode = null;
+      }
+      if (this._selectedBefore != null) {
+        this.select(this._selectedBefore);
         this._selectedBefore = null;
         result |= UiResult.AFFECTED;
       }

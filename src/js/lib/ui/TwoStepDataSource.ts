@@ -1,6 +1,7 @@
+import { DataRecord, DataSource } from './DataSource';
 import { Asserts, Properties, UnsupportedError, Value } from '~/lib/lang';
 import { LimitedCacheMap } from '~/lib/util';
-import { DataRecord, DataSource } from './DataSource';
+import { KeyProvider } from './KeyProvider';
 
 /** デフォルトのブロック読み込みサイズ */
 const DEFAULT_READ_BLOCK_SIZE = 50;
@@ -42,9 +43,10 @@ export abstract class TwoStepDataSource<K, S, V> extends DataSource {
    */
   public constructor(
     entries: LimitedCacheMap<K, V>,
+    keyProvider: KeyProvider = DataSource.DEFAULT_KEY_PROVIDER,
     readBlockSize: number = DEFAULT_READ_BLOCK_SIZE
   ) {
-    super();
+    super(keyProvider);
     this._lastUpdateAt = 0;
     this._loaded = false;
     this._criteria = {};

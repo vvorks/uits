@@ -1,10 +1,10 @@
-import type { UiApplication } from './UiApplication';
 import { Properties } from '../lang';
-import { UiNode, UiNodeSetter, UiResult } from './UiNode';
 import { Colors } from './Colors';
 import { HistoryState } from './HistoryManager';
-import { UiKeyboard } from './UiKeyboard';
 import { KeyCodes } from './KeyCodes';
+import type { UiApplication } from './UiApplication';
+import { UiKeyboard } from './UiKeyboard';
+import { UiNode, UiNodeSetter, UiResult } from './UiNode';
 
 const NBSP = '\u00A0';
 export class UiEditNodeSetter extends UiNodeSetter {

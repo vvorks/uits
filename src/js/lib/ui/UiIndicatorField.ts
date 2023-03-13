@@ -1,4 +1,4 @@
-import { Logs, Types } from '~/lib/lang';
+import { Types } from '~/lib/lang';
 import { RecordHolder } from '~/lib/ui/RecordHolder';
 import type { UiApplication } from '~/lib/ui/UiApplication';
 import { UiIndicatorNode } from '~/lib/ui/UiIndicatorNode';
@@ -72,6 +72,9 @@ export class UiIndicatorField extends UiIndicatorNode {
       result |= UiResult.AFFECTED;
     } else {
       this.indicatorValue = 0.0;
+    }
+    if (this.qualifierFieldName != null) {
+      this.qualifier = this._recordHolder.getValue(this.qualifierFieldName) as string;
     }
     return result;
   }

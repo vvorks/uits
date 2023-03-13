@@ -90,8 +90,8 @@ export class UiRootNode extends UiNode {
     this.setChanged(Changed.STYLE, false);
   }
 
-  protected syncStyleClass(): void {
-    return;
+  protected syncStyleClass(): boolean {
+    return false;
   }
 
   protected syncHierarchy(): void {

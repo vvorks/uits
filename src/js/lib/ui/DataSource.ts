@@ -1,5 +1,6 @@
 import { Properties, Value } from '~/lib/lang';
 import type { UiApplication } from '~/lib/ui/UiApplication';
+import { KeyProvider, SimpleKeyProvider } from './KeyProvider';
 
 export type DataRecord = Properties<Value | DataRecord>;
 
@@ -7,13 +8,21 @@ export type DataRecord = Properties<Value | DataRecord>;
  * データアクセスを実現する（抽象）クラス
  */
 export abstract class DataSource {
+  public static readonly DEFAULT_KEY_PROVIDER = new SimpleKeyProvider('key');
+
   /**
    * 通知先アプリケーションリスト
    */
   private _applications: UiApplication[];
 
-  protected constructor() {
+  /**
+   * キープロバイダ
+   */
+  private _keyProvider: KeyProvider;
+
+  protected constructor(keyProvider: KeyProvider = DataSource.DEFAULT_KEY_PROVIDER) {
     this._applications = [];
+    this._keyProvider = keyProvider;
   }
 
   /**
@@ -130,4 +139,8 @@ export abstract class DataSource {
    * @param rec 削除するデータ
    */
   public abstract remove(rec: DataRecord): void;
+
+  public getKeyOf(rec: DataRecord): string {
+    return this._keyProvider.getKey(rec);
+  }
 }

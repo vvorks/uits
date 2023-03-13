@@ -1,8 +1,8 @@
 import { Types, Value } from '~/lib/lang';
 import { RecordHolder } from '~/lib/ui/RecordHolder';
+import type { UiApplication } from '~/lib/ui/UiApplication';
 import { UiNode, UiResult } from '~/lib/ui/UiNode';
 import { UiTextNode } from '~/lib/ui/UiTextNode';
-import type { UiApplication } from '~/lib/ui/UiApplication';
 
 /**
  * テキスト入出力フィールド
@@ -62,6 +62,9 @@ export class UiTextField extends UiTextNode {
       result |= UiResult.AFFECTED;
     } else {
       this.textContent = null;
+    }
+    if (this.qualifierFieldName != null) {
+      this.qualifier = this._recordHolder.getValue(this.qualifierFieldName) as string;
     }
     return result;
   }

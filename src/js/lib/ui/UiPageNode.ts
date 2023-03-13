@@ -1,10 +1,10 @@
-import type { UiApplication } from '~/lib/ui/UiApplication';
 import { ErrorCode, Properties } from '~/lib/lang';
-import { Scrollable } from '~/lib/ui/Scrollable';
-import { Changed, UiNode, UiNodeSetter } from '~/lib/ui/UiNode';
-import { UiStyle } from '~/lib/ui/UiStyle';
 import { HistoryState } from '~/lib/ui/HistoryManager';
+import { Scrollable } from '~/lib/ui/Scrollable';
+import type { UiApplication } from '~/lib/ui/UiApplication';
 import { HasSetter } from '~/lib/ui/UiBuilder';
+import { Changed, UiNode, UiNodeSetter, UiResult } from '~/lib/ui/UiNode';
+import { UiStyle } from '~/lib/ui/UiStyle';
 
 const PARAM_SAVED_FOCUS = '__SAVED_FOCUS__';
 
@@ -245,6 +245,7 @@ export class UiPageNode extends UiNode implements HasSetter<UiPageNodeSetter> {
   public dispatchTScroll(
     name: string,
     source: Scrollable,
+    current: number,
     offset: number,
     limit: number,
     count: number
@@ -253,9 +254,20 @@ export class UiPageNode extends UiNode implements HasSetter<UiPageNodeSetter> {
     if (array !== undefined) {
       for (let s of array) {
         if (s != source) {
-          s.onTScroll(source, offset, limit, count);
+          s.onTScroll(source, current, offset, limit, count);
         }
       }
     }
+  }
+
+  /**
+   * 画面遷移時の受け渡し情報を受信する
+   *
+   * @param tag 情報タグ
+   * @param params 情報
+   * @returns UiResult情報
+   */
+  public onTransitMessage(tag: string, params: any): UiResult {
+    return UiResult.IGNORED;
   }
 }

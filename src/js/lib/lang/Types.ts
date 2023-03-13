@@ -1,5 +1,3 @@
-import { Value } from '../lang';
-
 export class Types {
   public static isUndefined(v: any): v is undefined {
     return typeof v === 'undefined';

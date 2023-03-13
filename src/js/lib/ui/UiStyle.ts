@@ -1,10 +1,11 @@
-import { CssLength } from '~/lib/ui/CssLength';
-import { Color, Colors } from '~/lib/ui/Colors';
-import { UiNode } from '~/lib/ui/UiNode';
 import { Rect } from './Rect';
+import { Color, Colors } from '~/lib/ui/Colors';
+import { CssLength } from '~/lib/ui/CssLength';
+import { UiNode } from '~/lib/ui/UiNode';
 
 export type UiStyleCondition =
   | 'NAMED'
+  | 'QUALIFIED'
   | 'CLICKING'
   | 'FOCUS'
   | 'EMPHASIS'
@@ -24,17 +25,19 @@ export class UiStyle {
   private static readonly CONDITION_ORDERS = {
     NONE: 0,
     NAMED: 1,
-    CLICKING: 2,
-    FOCUS: 3,
-    EMPHASIS: 4,
-    ENABLE: 5,
-    DISABLE: 6,
-    OTHERWISE: 7,
+    QUALIFIED: 2,
+    CLICKING: 3,
+    FOCUS: 4,
+    EMPHASIS: 5,
+    ENABLE: 6,
+    DISABLE: 7,
+    OTHERWISE: 8,
   };
 
   private static readonly CONDITION_FUNCS: ((node: UiNode, param: string | null) => boolean)[] = [
     (node: UiNode, param: string | null) => false, //BASED
     (node: UiNode, param: string | null) => node.dataFieldName == param, //NAMED
+    (node: UiNode, param: string | null) => node.qualifier == param, //QUALIFIED
     (node: UiNode, param: string | null) => node.clicking, //CLICKING
     (node: UiNode, param: string | null) => node.hasFocus(), //FOCUS
     (node: UiNode, param: string | null) => node.emphasis, //EMPHASIS
@@ -136,6 +139,9 @@ export class UiStyle {
   /** 縦方向の揃え位置 */
   private _verticalAlign: VerticalAlign | null;
 
+  /** ヒント文字列 */
+  private _hint: string | null;
+
   private static _counter: number = 0;
 
   /** 空スタイル */
@@ -172,6 +178,7 @@ export class UiStyle {
       this._lineHeight = null;
       this._textAlign = null;
       this._verticalAlign = null;
+      this._hint = null;
     } else {
       UiStyle._counter++;
       this._id = UiStyle._counter;
@@ -203,6 +210,7 @@ export class UiStyle {
       this._lineHeight = builder.getLineHeight();
       this._textAlign = builder.getTextAlign();
       this._verticalAlign = builder.getVerticalAlign();
+      this._hint = builder.getHint();
       this.setBasedOn(builder.getBasedOn());
     }
   }
@@ -462,6 +470,10 @@ export class UiStyle {
     return this.getProperty((s) => s._verticalAlign, 'top') as VerticalAlign;
   }
 
+  public get hint(): string {
+    return this.getProperty((s) => s._hint, '') as string;
+  }
+
   private getProperty<R>(func: (s: UiStyle) => R | null, defaultValue: R | null): R | null {
     let s: UiStyle | null = this;
     while (s != null) {
@@ -652,8 +664,6 @@ export class UiStyleBuilder {
   /** 基底スタイル */
   private _basedOn: UiStyle | null;
 
-  private _childrenOrdered: boolean;
-
   private _conditionName: UiStyleCondition | null;
 
   private _conditionParam: string | null;
@@ -727,12 +737,14 @@ export class UiStyleBuilder {
   /** 縦方向の揃え位置 */
   private _verticalAlign: VerticalAlign | null;
 
+  /** ヒント文字列 */
+  private _hint: string | null;
+
   private static _counter: number = 0;
 
   public constructor(baseStyle?: UiStyle) {
     if (baseStyle === undefined) {
       this._basedOn = null;
-      this._childrenOrdered = false;
       this._conditionName = null;
       this._conditionParam = null;
       this._visibility = null;
@@ -758,9 +770,9 @@ export class UiStyleBuilder {
       this._lineHeight = null;
       this._textAlign = null;
       this._verticalAlign = null;
+      this._hint = null;
     } else {
       this._basedOn = baseStyle.basedOn;
-      this._childrenOrdered = false;
       this._conditionName = baseStyle.conditionName;
       this._conditionParam = baseStyle.conditionParam;
       this._visibility = baseStyle.visibility;
@@ -786,6 +798,7 @@ export class UiStyleBuilder {
       this._lineHeight = baseStyle.lineHeightAsLength;
       this._textAlign = baseStyle.textAlign;
       this._verticalAlign = baseStyle.verticalAlign;
+      this._hint = baseStyle.hint;
     }
   }
 
@@ -987,6 +1000,11 @@ export class UiStyleBuilder {
     return this;
   }
 
+  public hint(value: string | null): UiStyleBuilder {
+    this._hint = value;
+    return this;
+  }
+
   public build(): UiStyle {
     return new UiStyle(this);
   }
@@ -1093,5 +1111,9 @@ export class UiStyleBuilder {
 
   public getVerticalAlign(): VerticalAlign | null {
     return this._verticalAlign;
+  }
+
+  public getHint(): string | null {
+    return this._hint;
   }
 }

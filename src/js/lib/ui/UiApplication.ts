@@ -1,19 +1,20 @@
+import { AsyncHelper } from '../lang/AsyncHelper';
+import { Colors } from './Colors';
+import { KeyLogger } from './KeyLogger';
+import { UiBlankPageNode } from './UiBlankPageNode';
+import { UiStyle, UiStyleBuilder } from './UiStyle';
 import { Asserts, Properties, Logs, Arrays, Value, Types, Predicate } from '~/lib/lang';
+import type { DataSource } from '~/lib/ui/DataSource';
+import { HistoryManager, HistoryState } from '~/lib/ui/HistoryManager';
+import { KeyCodes } from '~/lib/ui/KeyCodes';
 import { Metrics } from '~/lib/ui/Metrics';
+import { PageLayer, PageLayers } from '~/lib/ui/PageLayer';
+import { Rect } from '~/lib/ui/Rect';
+import { UiAxis } from '~/lib/ui/UiAxis';
 import { UiResult } from '~/lib/ui/UiNode';
 import { UiNode } from '~/lib/ui/UiNode';
 import { UiPageNode } from '~/lib/ui/UiPageNode';
 import { UiRootNode } from '~/lib/ui/UiRootNode';
-import { KeyCodes } from '~/lib/ui/KeyCodes';
-import { Rect } from '~/lib/ui/Rect';
-import type { DataSource } from '~/lib/ui/DataSource';
-import { HistoryManager, HistoryState } from '~/lib/ui/HistoryManager';
-import { PageLayer, PageLayers } from '~/lib/ui/PageLayer';
-import { UiAxis } from '~/lib/ui/UiAxis';
-import { UiStyle, UiStyleBuilder } from './UiStyle';
-import { Colors } from './Colors';
-import { KeyLogger } from './KeyLogger';
-
 /** システムWheel調整比の既定値  */
 const DEFAULT_WHEEL_SCALE = 0.5;
 
@@ -21,7 +22,7 @@ const DEFAULT_WHEEL_SCALE = 0.5;
 const DEFAULT_INTERVAL_PRECISION = 500;
 
 /** アニメーション時間の既定値 */
-const DEFAULT_ANIMATION_TIME = 0; //100;
+const DEFAULT_ANIMATION_TIME = 100;
 
 /** キー長押し判定閾値の既定値 */
 const DEFAULT_LONG_PRESS_TIME = 1000;
@@ -73,13 +74,13 @@ type Resource = Properties<Value | Resource>;
 
 type PurgePageFunc = () => void;
 
-type AsyncTask = (net: any) => Promise<UiResult>;
-
+type AsyncTask = (helper: AsyncHelper) => Promise<UiResult>;
 /**
  * 表示中ページ情報
  */
 class LivePage {
   private _pageNode: UiPageNode;
+  private _tag: string;
   private _layer: PageLayer;
   private _xAxis: number;
   private _yAxis: number;
@@ -87,8 +88,9 @@ class LivePage {
   private _clickNode: UiNode | null;
   private _lastAxis: UiAxis;
 
-  public constructor(pageNode: UiPageNode, layer: PageLayer) {
+  public constructor(pageNode: UiPageNode, tag: string, layer: PageLayer) {
     this._pageNode = pageNode;
+    this._tag = tag;
     this._layer = layer;
     this._xAxis = 0;
     this._yAxis = 0;
@@ -99,6 +101,10 @@ class LivePage {
 
   public get pageNode(): UiPageNode {
     return this._pageNode;
+  }
+
+  public get tag(): string {
+    return this._tag;
   }
 
   public get layer(): PageLayer {
@@ -403,6 +409,26 @@ class RunAnimationEntry extends RunEntry<AnimationTask> {
   }
 }
 
+class TransitMessage {
+  private _tag: string;
+  private _content: any;
+  private _receiverHash: string | null;
+  public constructor(tag: string, content: any, receiverHash: string | null) {
+    this._tag = tag;
+    this._content = content;
+    this._receiverHash = receiverHash;
+  }
+  public get tag(): string {
+    return this._tag;
+  }
+  public get content(): any {
+    return this._content;
+  }
+  public get receiverHash(): string | null {
+    return this._receiverHash;
+  }
+}
+
 /**
  * UiApplication
  *
@@ -468,6 +494,9 @@ export class UiApplication {
   /** アニメーション用タスクのリスト */
   private _animationTasks: RunAnimationEntry[];
 
+  /** 画面遷移時の受け渡しメッセージリスト */
+  private _transitMessages: TransitMessage[];
+
   /** テキストリソースURL */
   private _textResourceUrl: string | null;
 
@@ -483,7 +512,11 @@ export class UiApplication {
   /** resetFocus要求リスト */
   private _requestResetFocusList: UiNode[];
 
+  /** asyncヘルパークラス */
+  private _asyncHelper: AsyncHelper;
+
   private static _launchCounter: number = 0;
+
   public constructor(selector: string) {
     Logs.info('UiApplication start');
     this._selector = selector;
@@ -506,11 +539,13 @@ export class UiApplication {
     this._afterTasks = [];
     this._intervalTasks = [];
     this._animationTasks = [];
+    this._transitMessages = [];
     this._textResourceUrl = null;
     this._textResource = {};
     this._history = new HistoryManager();
     this._keyLogger = new KeyLogger();
     this._requestResetFocusList = [];
+    this._asyncHelper = new AsyncHelper();
     if (UiApplication._launchCounter > 0) {
       return;
     }
@@ -656,6 +691,7 @@ export class UiApplication {
     if (this._textResourceUrl != null) {
       this._textResource = await this.loadTextResource(this._textResourceUrl);
     }
+    Logs.info('browser %s', window.navigator.userAgent);
     //初回のロード処理
     this.processHashChanged();
   }
@@ -874,31 +910,36 @@ export class UiApplication {
     addWaiting: boolean = false,
     purgeFunc: PurgePageFunc = () => {}
   ): void {
-    if (false /*addWaiting*/) {
+    if (addWaiting) {
       let waitingNode = this.createWaitingPage();
-      let waitingPage = this.pushPage(waitingNode, PageLayers.HIGHEST);
+      let waitingPage = this.pushPage(waitingNode, state, PageLayers.HIGHEST, false);
       this.mountPage(waitingNode, state, PageLayers.HIGHEST, waitingPage);
       pageNode.preInitialize().then((errorCode) => {
-        this.dispose(waitingNode);
+        this.disposeImpl(waitingNode, false);
         purgeFunc();
         if (errorCode == null) {
-          let page = this.pushPage(pageNode, layer);
+          let page = this.pushPage(pageNode, state, layer, true);
           this.mountPage(pageNode, state, layer, page);
         } else {
-          this.dispose(pageNode);
+          this.disposeImpl(pageNode, false);
           Logs.error('FATAL PAGE LOADING ERROR');
         }
         this.sync();
       });
     } else {
       purgeFunc();
-      let page = this.pushPage(pageNode, layer);
+      let page = this.pushPage(pageNode, state, layer, true);
       this.mountPage(pageNode, state, layer, page);
     }
   }
 
-  private pushPage(pageNode: UiPageNode, layer: PageLayer): LivePage {
-    let page = new LivePage(pageNode, layer);
+  private pushPage(
+    pageNode: UiPageNode,
+    state: HistoryState,
+    layer: PageLayer,
+    callPageChanged: boolean
+  ): LivePage {
+    let page = new LivePage(pageNode, state.tag, layer);
     let biggerIndex = this._pageStack.findIndex((e) => e.layer > layer);
     if (biggerIndex >= 0) {
       let afterNode = this._pageStack[biggerIndex].pageNode;
@@ -907,6 +948,9 @@ export class UiApplication {
     } else {
       this._pageStack.push(page);
       this.rootNode.appendChild(pageNode);
+    }
+    if (callPageChanged) {
+      this.onPageChanged(layer);
     }
     return page;
   }
@@ -928,13 +972,72 @@ export class UiApplication {
     }
   }
 
+  private onPageChanged(layer: PageLayer): UiResult {
+    let result = UiResult.IGNORED;
+    let lastPage = this.getLastPage(layer);
+    if (lastPage != null) {
+      Logs.warn('OnPageChanged [%s]', lastPage.tag);
+      let firstPage = this.getFirstPage(layer);
+      let isFirstPage = lastPage == firstPage;
+      result |= this.dispatchTransitMessage(lastPage.tag, lastPage.pageNode, isFirstPage);
+    }
+    return result;
+  }
+
+  /**
+   * 画面遷移時に受け渡しを行う情報を登録する
+   *
+   * @param tag 情報タグ
+   * @param params 情報引数
+   * @param receiverHash 受け取り先画面ハッシュ名（無指定の場合、次の遷移先画面）
+   */
+  public addTransitMessage(tag: string, params?: any, receiverHash?: string): void {
+    let content: any;
+    if (params !== undefined) {
+      Asserts.require(JSON.stringify(params).length > 0);
+      content = params;
+    } else {
+      content = null;
+    }
+    let receiver = receiverHash !== undefined ? receiverHash : null;
+    this._transitMessages.push(new TransitMessage(tag, content, receiver));
+  }
+
+  private dispatchTransitMessage(
+    hash: string,
+    pageNode: UiPageNode,
+    isFirstPage: boolean
+  ): UiResult {
+    let result = UiResult.IGNORED;
+    let [matched, another] = Arrays.divide(
+      this._transitMessages,
+      (e) => e.receiverHash == null || e.receiverHash == hash
+    );
+    for (let m of matched) {
+      result |= pageNode.onTransitMessage(m.tag, m.content);
+    }
+    this._transitMessages.splice(0);
+    if (!isFirstPage && another.length > 0) {
+      another.forEach((e) => this._transitMessages.push(e));
+    }
+    return result;
+  }
+
   public dispose(pageNode: UiPageNode): void {
+    this.disposeImpl(pageNode, true);
+  }
+
+  private disposeImpl(pageNode: UiPageNode, callPageChanged: boolean): void {
     let index = this.getLivePageIndex(pageNode);
     if (index < 0) {
       return;
     }
+    let layer = this._pageStack[index].layer;
     this.unmountPage(pageNode);
     this._pageStack.splice(index, 1);
+    if (callPageChanged) {
+      this.onPageChanged(layer);
+    }
   }
 
   private unmountPage(pageNode: UiPageNode): void {
@@ -946,7 +1049,7 @@ export class UiApplication {
   }
 
   protected createWaitingPage(): UiPageNode {
-    return null as unknown as UiPageNode;
+    return new UiBlankPageNode(this, '__blank__');
   }
 
   public isFocusable(e: UiNode): boolean {
@@ -978,7 +1081,7 @@ export class UiApplication {
       node.getFocusableDescendantsIf((e) => this.isAppearedFocusable(e), 1)
     );
     if (newFocus != null) {
-      newFocus = newFocus.adjustFocus(newFocus);
+      newFocus = newFocus.adjustFocus(newFocus, 0);
       page.doFocus(newFocus);
     }
     return newFocus != null;
@@ -1006,6 +1109,14 @@ export class UiApplication {
       result |= UiResult.AFFECTED;
     }
     return result;
+  }
+
+  private getFirstPage(layer: PageLayer): LivePage | null {
+    let firstIndex = this._pageStack.findIndex((e) => e.layer == layer);
+    if (firstIndex == -1) {
+      return null;
+    }
+    return this._pageStack[firstIndex];
   }
 
   private getLastPage(layer: PageLayer): LivePage | null {
@@ -1095,6 +1206,16 @@ export class UiApplication {
 
   public runFinally(task: RunFinallyTask): void {
     this._finallyTasks.push(task);
+  }
+
+  public runAsync(func: AsyncTask) {
+    func(this._asyncHelper)
+      .then((result) => {
+        this.postProcessEvent(null, result);
+      })
+      .catch((error) => {
+        Logs.error(JSON.stringify(error));
+      });
   }
 
   public syncAfterFinally() {
@@ -1781,19 +1902,19 @@ export class UiApplication {
     let from = page.pageNode;
     switch (key | (mod & KeyCodes.MOD_MACS)) {
       case KeyCodes.LEFT:
-        next = this.getNearestNode(curr, from, (c) => c.getRectOnRoot().right <= tRect.left);
+        next = this.getNearestNode(curr, from, (c) => c.getRectOnRoot().right <= tRect.left, key);
         axis = UiAxis.X;
         break;
       case KeyCodes.RIGHT:
-        next = this.getNearestNode(curr, from, (c) => c.getRectOnRoot().left >= tRect.right);
+        next = this.getNearestNode(curr, from, (c) => c.getRectOnRoot().left >= tRect.right, key);
         axis = UiAxis.X;
         break;
       case KeyCodes.UP:
-        next = this.getNearestNode(curr, from, (c) => c.getRectOnRoot().bottom <= tRect.top);
+        next = this.getNearestNode(curr, from, (c) => c.getRectOnRoot().bottom <= tRect.top, key);
         axis = UiAxis.Y;
         break;
       case KeyCodes.DOWN:
-        next = this.getNearestNode(curr, from, (c) => c.getRectOnRoot().top >= tRect.bottom);
+        next = this.getNearestNode(curr, from, (c) => c.getRectOnRoot().top >= tRect.bottom, key);
         axis = UiAxis.Y;
         break;
       case KeyCodes.TAB:
@@ -1809,32 +1930,15 @@ export class UiApplication {
       case KeyCodes.ENTER:
         result |= (this.getLivePageOf(curr) as LivePage).click(curr);
         break;
-      case KeyCodes.KEY_Q | KeyCodes.MOD_CTRL:
-        //debug print
-        let met = Metrics.getInstance();
-        Logs.debug('emSize %d exSize %d inSize %d', met.emSize, met.exSize, met.inSize);
-        let nodes = this.rootNode.getDescendantsIf(() => true);
-        for (let node of nodes) {
-          let rect = node.getRect();
-          let dom = node.domElement;
-          Logs.debug('%s rect %4d,%4d,%4d,%4d', node.name, rect.x, rect.y, rect.width, rect.height);
-          if (dom != null) {
-            Logs.debug(
-              '%s dom  %4d,%4d,%4d,%4d',
-              node.name,
-              dom.offsetLeft,
-              dom.offsetTop,
-              dom.offsetWidth,
-              dom.offsetHeight
-            );
-          }
-        }
+      case KeyCodes.BACKSPACE:
+        result |= this.disposePopup(curr);
+        break;
       default:
         break;
     }
     if (next != null) {
       next.focusing = true;
-      let adjusted = next.adjustFocus(curr);
+      let adjusted = next.adjustFocus(curr, key);
       if (next != adjusted) {
         next.focusing = false;
         next = adjusted;
@@ -1860,6 +1964,19 @@ export class UiApplication {
     return result;
   }
 
+  private disposePopup(curr: UiNode): UiResult {
+    let page = this.getLivePageOf(curr);
+    let result = UiResult.IGNORED;
+    if (page != null) {
+      let firstPage = this.getFirstPage(page.layer);
+      if (page != firstPage) {
+        this.disposeImpl(page.pageNode, true);
+        result = UiResult.EATEN;
+      }
+    }
+    return result;
+  }
+
   protected onKeyPress(target: UiNode, key: number, ch: number, mod: number, at: number): UiResult {
     let result = UiResult.IGNORED;
     return result;
@@ -1875,11 +1992,12 @@ export class UiApplication {
     return result;
   }
 
-  public getNearestNode(curr: UiNode, from: UiNode, filter: Predicate<UiNode>): UiNode | null {
-    let page = this.getLivePageOf(curr) as LivePage;
-    let next: UiNode | null = null;
-    let minDegree = 0;
-    let minDistance = 0;
+  public getNearestNode(
+    curr: UiNode,
+    from: UiNode,
+    filter: Predicate<UiNode>,
+    key: number
+  ): UiNode | null {
     let candidates = from.getFocusableDescendantsIf((c) => {
       let result = false;
       if (c != curr && this.isFocusable(c) && filter(c) && curr.canMoveFocus(c)) {
@@ -1889,11 +2007,33 @@ export class UiApplication {
       }
       return result;
     });
+    let page = this.getLivePageOf(curr) as LivePage;
+    let policy = curr.getFocusingPolicy();
+    if (policy == 'direction' && KeyCodes.isArrowKey(key)) {
+      let weight = key == KeyCodes.LEFT || key == KeyCodes.RIGHT ? [65536, 1] : [1, 65536];
+      return this.getNearestBy(
+        curr,
+        candidates,
+        (r) => r.distance(page.xAxis, r.y) * weight[0] + r.distance(r.x, page.yAxis) * weight[1]
+      );
+    } else {
+      return this.getNearestBy(curr, candidates, (r) => r.distance(page.xAxis, page.yAxis));
+    }
+  }
+  private getNearestBy(
+    curr: UiNode,
+    candidates: UiNode[],
+    distanceFunc: (r: Rect) => number
+  ): UiNode | null {
+    let page = this.getLivePageOf(curr) as LivePage;
+    let next: UiNode | null = null;
+    let minDegree = 0;
+    let minDistance = 0;
     for (let c of candidates) {
       let luca = c.getLucaNodeWith(curr);
       let degree: number = curr.getDegree(luca);
       let cRect = c.getRectOnRoot();
-      let distance = cRect.distance(page.xAxis, page.yAxis);
+      let distance = distanceFunc(cRect);
       if (next == null || degree < minDegree || (degree == minDegree && distance < minDistance)) {
         next = c;
         minDegree = degree;

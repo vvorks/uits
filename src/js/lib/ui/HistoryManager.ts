@@ -33,11 +33,11 @@ export class HistoryState {
     for (let param of str.split('&')) {
       let pair = param.split('=');
       if (pair.length == 1) {
-        let key = pair[0];
+        let key = decodeURIComponent(pair[0]);
         result[key] = '';
       } else {
-        let key = pair[0];
-        let value = pair[1];
+        let key = decodeURIComponent(pair[0]);
+        let value = decodeURIComponent(pair[1]);
         result[key] = value;
       }
     }
@@ -48,10 +48,10 @@ export class HistoryState {
     let b = '';
     let sep = '';
     for (const [key, value] of Object.entries(props)) {
-      if (value != '') {
-        b += sep + key + '=' + value;
+      if (value !== undefined && value != '') {
+        b += sep + encodeURIComponent(key) + '=' + encodeURIComponent(value);
       } else {
-        b += sep + key;
+        b += sep + encodeURIComponent(key);
       }
       sep = '&';
     }

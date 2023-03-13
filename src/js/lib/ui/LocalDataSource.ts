@@ -1,9 +1,6 @@
 import { Asserts, Logs, ParamError, Properties, UnsupportedError, Value } from '../lang';
 import { DataRecord, DataSource } from './DataSource';
-
-export type RecordComparator = (a: DataRecord, b: DataRecord) => boolean;
-
-const KEY_COMPARATOR = (a: DataRecord, b: DataRecord) => a['key'] == b['key'];
+import { KeyProvider, SimpleKeyProvider } from './KeyProvider';
 
 /**
  * データ配列をDataSourceとして扱うクラス
@@ -24,8 +21,6 @@ export class LocalDataSource extends DataSource {
 
   private _criteria: Properties<Value>;
 
-  private _comparator: RecordComparator;
-
   /**
    * 指定されたデータ配列からDataSourceを作成する
    *
@@ -35,8 +30,11 @@ export class LocalDataSource extends DataSource {
    *  オプション、配列の各レコードに"key"フィールドが存在しない場合、別の手段で
    *  レコードの同一性を判定するヘルパー関数を指定する。
    */
-  public constructor(records: DataRecord[], comparator?: RecordComparator) {
-    super();
+  public constructor(
+    records: DataRecord[],
+    keyProvider: KeyProvider = DataSource.DEFAULT_KEY_PROVIDER
+  ) {
+    super(keyProvider);
     this._loaded = false;
     this._dataSet = records;
     for (let i = 0; i < records.length; i++) {
@@ -44,7 +42,6 @@ export class LocalDataSource extends DataSource {
     }
     this._lastUpdateAt = 0;
     this._criteria = {};
-    this._comparator = comparator !== undefined ? comparator : KEY_COMPARATOR;
   }
 
   public getDataSet(): DataRecord[] {
@@ -153,6 +150,6 @@ export class LocalDataSource extends DataSource {
   }
 
   private indexOf(rec: DataRecord): number {
-    return this._dataSet.findIndex((e) => this._comparator(e, rec));
+    return this._dataSet.findIndex((e) => this.getKeyOf(e) == this.getKeyOf(rec));
   }
 }

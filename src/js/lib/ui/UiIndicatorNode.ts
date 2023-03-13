@@ -1,6 +1,6 @@
+import { Scrollable } from './Scrollable';
 import type { UiApplication } from '~/lib/ui/UiApplication';
 import { UiNode } from '~/lib/ui/UiNode';
-import { Scrollable } from './Scrollable';
 
 /**
  * UiIndicatorNode 値（0.0～1.0）をバーチャートのように表示するUIコンポーネント
@@ -133,7 +133,13 @@ export class UiIndicatorNode extends UiNode {
    * @param limit 未使用
    * @param count コンテンツ時間（ミリ秒単位）
    */
-  public onTScroll(source: Scrollable, offset: number, limit: number, count: number): void {
-    this.indicatorValue = offset / count;
+  public onTScroll(
+    source: Scrollable,
+    current: number,
+    offset: number,
+    limit: number,
+    count: number
+  ): void {
+    this.indicatorValue = current / count;
   }
 }

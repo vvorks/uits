@@ -8,7 +8,6 @@ import {
   Colors,
   KeyCodes,
   DataRecord,
-  UiLaunchPage,
   HistoryState,
   PageLayers,
 } from '~/lib/ui';
@@ -26,6 +25,7 @@ import { LottieTestPage } from './LottieTestPage';
 import { TextTestPage } from './TextTestPage';
 import { SvgTestPage } from './SvgTestPage';
 import { GridCanvasPage } from './GridCanvasPage';
+import { UiLaunchPage } from '~/lib/ui/UiLaunchPage';
 
 export const DEFAULT_STYLE: UiStyle = new UiStyleBuilder()
   .textColor(Colors.BLACK)

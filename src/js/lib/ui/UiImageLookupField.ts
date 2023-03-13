@@ -1,9 +1,9 @@
 import { Properties, Types } from '~/lib/lang';
 import { RecordHolder } from '~/lib/ui/RecordHolder';
-import { UiImageNode, UiImageNodeSetter } from '~/lib/ui/UiImageNode';
-import { UiNode, UiResult } from '~/lib/ui/UiNode';
 import type { UiApplication } from '~/lib/ui/UiApplication';
 import { HasSetter } from '~/lib/ui/UiBuilder';
+import { UiImageNode, UiImageNodeSetter } from '~/lib/ui/UiImageNode';
+import { UiNode, UiResult } from '~/lib/ui/UiNode';
 
 export class UiImageLookupFieldSetter extends UiImageNodeSetter {
   public static readonly INSTANCE = new UiImageLookupFieldSetter();
@@ -88,6 +88,9 @@ export class UiImageLookupField extends UiImageNode implements HasSetter<UiImage
       }
     } else {
       this.imageContent = null;
+    }
+    if (this.qualifierFieldName != null) {
+      this.qualifier = this._recordHolder.getValue(this.qualifierFieldName) as string;
     }
     return result;
   }

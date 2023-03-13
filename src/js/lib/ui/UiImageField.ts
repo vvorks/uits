@@ -1,8 +1,8 @@
 import { Types } from '~/lib/lang';
 import { RecordHolder } from '~/lib/ui/RecordHolder';
+import type { UiApplication } from '~/lib/ui/UiApplication';
 import { UiImageNode } from '~/lib/ui/UiImageNode';
 import { UiNode, UiResult } from '~/lib/ui/UiNode';
-import type { UiApplication } from '~/lib/ui/UiApplication';
 
 export class UiImageField extends UiImageNode {
   private _recordHolder: RecordHolder;
@@ -56,6 +56,9 @@ export class UiImageField extends UiImageNode {
       result |= UiResult.AFFECTED;
     } else {
       this.imageContent = null;
+    }
+    if (this.qualifierFieldName != null) {
+      this.qualifier = this._recordHolder.getValue(this.qualifierFieldName) as string;
     }
     return result;
   }

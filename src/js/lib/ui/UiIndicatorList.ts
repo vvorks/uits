@@ -191,7 +191,7 @@ export class UiIndicatorList extends UiNode {
   private resetIndicator(): void {
     for (let i = 0; i < this._children.length; i++) {
       let c = this._children[i] as UiIndicatorNode;
-      c.onTScroll(c, 0, 0, 1);
+      c.onTScroll(c, 0, 0, 0, 1);
     }
   }
 
@@ -203,15 +203,21 @@ export class UiIndicatorList extends UiNode {
    * @param limit 未使用
    * @param count コンテンツ時間（ミリ秒単位）
    */
-  public onTScroll(source: Scrollable, offset: number, limit: number, count: number): void {
-    if (this._currentTime != offset) {
-      this._currentTime = offset;
+  public onTScroll(
+    source: Scrollable,
+    current: number,
+    offset: number,
+    limit: number,
+    count: number
+  ): void {
+    if (this._currentTime != current) {
+      this._currentTime = current;
       for (let i = 0; i < this._children.length; i++) {
         let c = this._children[i] as UiIndicatorNode;
         if (i == this._currentIndex) {
-          c.onTScroll(source, offset, limit, count);
+          c.onTScroll(source, current, offset, limit, count);
         } else {
-          c.onTScroll(source, 0, 0, 1);
+          c.onTScroll(source, 0, 0, 0, 1);
         }
       }
     }

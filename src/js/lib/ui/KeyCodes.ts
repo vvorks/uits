@@ -168,4 +168,10 @@ export class KeyCodes {
   public static readonly MOD_MACS = KeyCodes.MOD_MAC | KeyCodes.MOD_SHIFT;
   public static readonly MOD_BUTTONS =
     KeyCodes.MOD_LBUTTON | KeyCodes.MOD_MBUTTON | KeyCodes.MOD_RBUTTON;
+
+  private static ARROW_KEYS = [KeyCodes.UP, KeyCodes.DOWN, KeyCodes.LEFT, KeyCodes.RIGHT];
+
+  public static isArrowKey(key: number): boolean {
+    return KeyCodes.ARROW_KEYS.indexOf(key) != -1;
+  }
 }

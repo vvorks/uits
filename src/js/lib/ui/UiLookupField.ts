@@ -1,19 +1,19 @@
-import { Logs, Properties } from '~/lib/lang';
-import { RecordHolder } from '~/lib/ui/RecordHolder';
+import { CssLength } from './CssLength';
+import { UiImageNode } from './UiImageNode';
+import { UiScrollbar } from './UiScrollbar';
+import { UiStyleBuilder } from './UiStyle';
+import { Properties } from '~/lib/lang';
 import { DataRecord, DataSource } from '~/lib/ui/DataSource';
+import { HistoryState } from '~/lib/ui/HistoryManager';
 import { KeyCodes } from '~/lib/ui/KeyCodes';
+import { RecordHolder } from '~/lib/ui/RecordHolder';
 import { Rect } from '~/lib/ui/Rect';
 import type { UiApplication } from '~/lib/ui/UiApplication';
+import { HasSetter, UiBuilder } from '~/lib/ui/UiBuilder';
 import { UiListNode } from '~/lib/ui/UiListNode';
 import { Flags, Size, UiNode, UiNodeSetter, UiResult } from '~/lib/ui/UiNode';
-import { HasSetter, UiBuilder } from '~/lib/ui/UiBuilder';
 import { UiPageNode } from '~/lib/ui/UiPageNode';
 import { UiTextNode } from '~/lib/ui/UiTextNode';
-import { HistoryState } from '~/lib/ui/HistoryManager';
-import { UiImageNode } from './UiImageNode';
-import { UiStyleBuilder } from './UiStyle';
-import { CssLength } from './CssLength';
-import { UiScrollbar } from './UiScrollbar';
 
 //
 //取得元 https://fonts.google.com/icons?utm_source=developers.google.com&utm_medium=referral
@@ -43,6 +43,7 @@ const SUBNAME_TITLE = 'title';
 
 const DEFAULT_POPUP_ROWS = 8;
 
+const VISIBLE_TIME = 2000;
 class UiLookupItem extends UiTextNode {
   private _owner: UiLookupField;
 
@@ -102,6 +103,9 @@ class UiLookupItem extends UiTextNode {
     } else {
       this.textContent = '';
     }
+    if (this.qualifierFieldName != null) {
+      this.qualifier = this._recordHolder.getValue(this.qualifierFieldName) as string;
+    }
     return result;
   }
 
@@ -112,12 +116,14 @@ class UiLookupItem extends UiTextNode {
         this.updateValue();
         this._owner.setLessArrow(false);
         this.application.dispose(this.getPageNode() as UiPageNode);
+        this._owner.onPopupDeleted();
         result |= UiResult.EATEN;
         break;
       case KeyCodes.ESCAPE:
       case KeyCodes.BACKSPACE:
         this._owner.setLessArrow(false);
         this.application.dispose(this.getPageNode() as UiPageNode);
+        this._owner.onPopupDeleted();
         result |= UiResult.EATEN;
         break;
     }
@@ -139,6 +145,7 @@ class UiLookupItem extends UiTextNode {
 
 export class UiLookupPopup extends UiPageNode {
   private _owner: UiLookupField;
+  private _scrollVisible: boolean;
 
   /**
    * クローンメソッド
@@ -175,9 +182,11 @@ export class UiLookupPopup extends UiPageNode {
       super(param as UiLookupPopup);
       let src = param as UiLookupPopup;
       this._owner = src._owner;
+      this._scrollVisible = src._scrollVisible;
     } else {
       super(param as UiApplication, name as string);
       this._owner = owner as UiLookupField;
+      this._scrollVisible = false;
     }
   }
 
@@ -230,6 +239,7 @@ export class UiLookupPopup extends UiPageNode {
         .vertical(true)
         .loop(false)
         .vscroll('sb')
+        .action((src, tag, arg) => this.moveItem(tag, arg))
         .focusable(true);
       b.belongs((b) => {
         b.element(new UiLookupItem(app, 'rec', this._owner))
@@ -248,6 +258,7 @@ export class UiLookupPopup extends UiPageNode {
         let c = b
           .element(new UiScrollbar(app, 'sb'))
           .position(null, sbMargin, sbMargin, sbMargin, sbWidth, null)
+          .visible(false)
           .vscroll('sb');
         if (sbStyle != null) {
           c.style(sbStyle);
@@ -261,6 +272,14 @@ export class UiLookupPopup extends UiPageNode {
     });
   }
 
+  private hideScrollbar(ms: number) {
+    let scrollbar = this.findNodeByPath('sb') as UiScrollbar;
+    this.application.runAfter(this, 1, ms, () => {
+      scrollbar.visible = false;
+      return UiResult.AFFECTED;
+    });
+  }
+
   protected afterMount(): void {
     let app = this.application;
     let dsName = this._owner.dataSourceName as string;
@@ -268,6 +287,27 @@ export class UiLookupPopup extends UiPageNode {
     let key = value['key'] as string;
     (app.getDataSource(dsName) as DataSource).select({ key: key });
     this._owner.setLessArrow(true);
+    this.hideScrollbar(VISIBLE_TIME);
+  }
+
+  public onDataSourceChanged(tag: string, ds: DataSource, at: number): UiResult {
+    if (this._owner.popupRows < ds.count()) {
+      this._scrollVisible = true;
+      (this.findNodeByPath('sb') as UiScrollbar).visible = true;
+    } else {
+      this._scrollVisible = false;
+    }
+    return UiResult.AFFECTED;
+  }
+
+  private moveItem(act: string, arg: any) {
+    let result = UiResult.CONSUMED;
+    if (this._scrollVisible) {
+      (this.findNodeByPath('sb') as UiScrollbar).visible = true;
+      this.hideScrollbar(VISIBLE_TIME);
+      result = UiResult.EATEN;
+    }
+    return result;
   }
 }
 
@@ -276,16 +316,19 @@ export class UiLookupPopup extends UiPageNode {
  */
 export class UiLookupFieldSetter extends UiNodeSetter {
   public static readonly INSTANCE = new UiLookupFieldSetter();
+
   public popupOver(on: boolean): this {
     let node = this.node as UiLookupField;
     node.popupOver = on;
     return this;
   }
+
   public arrowUrl(...value: string[]): this {
     let node = this.node as UiLookupField;
     node.arrowUrl = value;
     return this;
   }
+
   public popupRows(value: number): this {
     let node = this.node as UiLookupField;
     node.popupRows = value;
@@ -321,6 +364,7 @@ export class UiLookupField extends UiNode implements HasSetter<UiLookupFieldSett
 
   private _scrollbarMargin: CssLength;
 
+  private _popup: UiLookupPopup | null;
   /**
    * クローンメソッド
    *
@@ -361,6 +405,7 @@ export class UiLookupField extends UiNode implements HasSetter<UiLookupFieldSett
       this._popupRows = src._popupRows;
       this._scrollbarWidth = src._scrollbarWidth;
       this._scrollbarMargin = src._scrollbarMargin;
+      this._popup = src._popup;
     } else {
       super(param as UiApplication, name as string);
       let app = param as UiApplication;
@@ -372,6 +417,7 @@ export class UiLookupField extends UiNode implements HasSetter<UiLookupFieldSett
       this._popupRows = DEFAULT_POPUP_ROWS;
       this._scrollbarWidth = CssLength.ZERO;
       this._scrollbarMargin = CssLength.ZERO;
+      this._popup = null;
     }
   }
 
@@ -468,6 +514,9 @@ export class UiLookupField extends UiNode implements HasSetter<UiLookupFieldSett
     } else {
       this.getTextNode().textContent = '';
     }
+    if (this.qualifierFieldName != null) {
+      this.qualifier = this._recordHolder.getValue(this.qualifierFieldName) as string;
+    }
     return UiResult.AFFECTED;
   }
 
@@ -486,7 +535,8 @@ export class UiLookupField extends UiNode implements HasSetter<UiLookupFieldSett
   }
 
   public showPopup(args: Properties<string>): UiResult {
-    this.application.call(new UiLookupPopup(this.application, '', this), new HistoryState('', {}));
+    this._popup = new UiLookupPopup(this.application, '', this);
+    this.application.call(this._popup, new HistoryState('', {}));
     return UiResult.AFFECTED;
   }
 
@@ -501,5 +551,17 @@ export class UiLookupField extends UiNode implements HasSetter<UiLookupFieldSett
   public setLessArrow(on: boolean) {
     let image = this.getImageNode();
     image.imageContent = on ? this._lessUrl : this._moreUrl;
+  }
+
+  public onDataSourceChanged(tag: string, ds: DataSource, at: number): UiResult {
+    let result: UiResult = UiResult.IGNORED;
+    if (this._popup != null) {
+      result = this._popup?.onDataSourceChanged(tag, ds, at);
+    }
+    return result;
+  }
+
+  public onPopupDeleted() {
+    this._popup = null;
   }
 }

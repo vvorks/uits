@@ -1,17 +1,17 @@
+import { UiImageNode } from './UiImageNode';
+import { UiStyleBuilder } from './UiStyle';
 import { Dates, Types, Value } from '~/lib/lang';
 import { Colors } from '~/lib/ui/Colors';
-import { RecordHolder } from '~/lib/ui/RecordHolder';
+import { HistoryState } from '~/lib/ui/HistoryManager';
 import { KeyCodes } from '~/lib/ui/KeyCodes';
+import { RecordHolder } from '~/lib/ui/RecordHolder';
 import { Rect } from '~/lib/ui/Rect';
 import { FIELD_STYLE, GROUP_STYLE, UiApplication } from '~/lib/ui/UiApplication';
-import { UiNode, UiResult } from '~/lib/ui/UiNode';
 import { UiBuilder } from '~/lib/ui/UiBuilder';
+import { UiNode, UiResult } from '~/lib/ui/UiNode';
 import { UiPageNode } from '~/lib/ui/UiPageNode';
 import { UiTextButton } from '~/lib/ui/UiTextButton';
 import { UiTextNode } from '~/lib/ui/UiTextNode';
-import { HistoryState } from '~/lib/ui/HistoryManager';
-import { UiImageNode } from './UiImageNode';
-import { UiStyleBuilder } from './UiStyle';
 
 //
 //取得元 https://fonts.google.com/icons?utm_source=developers.google.com&utm_medium=referral
@@ -446,6 +446,9 @@ export class UiDateField extends UiNode {
       result |= UiResult.AFFECTED;
     } else {
       this.getTextNode().textContent = null;
+    }
+    if (this.qualifierFieldName != null) {
+      this.qualifier = this._recordHolder.getValue(this.qualifierFieldName) as string;
     }
     return result;
   }

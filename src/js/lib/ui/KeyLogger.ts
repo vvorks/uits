@@ -1,4 +1,4 @@
-import { Asserts, Logs } from '../lang';
+import { Asserts } from '../lang';
 
 /** バッファ容量既定値 */
 const DEFAULT_CAPACITY = 16;
