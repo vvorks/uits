@@ -301,8 +301,7 @@ export class UiCanvas extends UiNode {
     dx = Math.floor(dx * dpr);
     dy = Math.floor(dy * dpr);
     //Logs.debug('copyRect %g, %g, %g, %g, %g, %g dpr %g', sx, sy, w, h, dx, dy, dpr);
-    let imageData = con.getImageData(sx, sy, w, h);
-    con.putImageData(imageData, dx, dy);
+    con.drawImage(this.domElement as HTMLCanvasElement, sx, sy, w, h, dx, dy, w, h);
   }
 
   public drawBackground(x: number, y: number, w: number, h: number, s: UiStyle) {

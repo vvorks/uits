@@ -8,6 +8,7 @@ import {
   UiStyleBuilder,
   Colors,
   UiImageNode,
+  UiNode,
 } from '~/lib/ui';
 import { GROUP_STYLE, SB_STYLE } from '~/app/TestApplication';
 import { UiCanvas } from '~/lib/ui/UiCanvas';
@@ -112,7 +113,7 @@ export class GridCanvasPage extends UiPageNode {
                 .style(DEFAULT_STYLE)
                 .focusable(true)
                 .ellipsis('…')
-                .textContent(`ITEM[${row},${col}]`);
+                .textContent(`ITEM[${row},${col}]` + TEST_DATA);
             }
           }
         });
