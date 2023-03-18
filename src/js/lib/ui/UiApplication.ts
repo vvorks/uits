@@ -1,4 +1,3 @@
-import { AsyncHelper } from '../lang/AsyncHelper';
 import { Colors } from './Colors';
 import { KeyLogger } from './KeyLogger';
 import { UiBlankPageNode } from './UiBlankPageNode';
@@ -22,7 +21,7 @@ const DEFAULT_WHEEL_SCALE = 0.5;
 const DEFAULT_INTERVAL_PRECISION = 500;
 
 /** アニメーション時間の既定値 */
-const DEFAULT_ANIMATION_TIME = 100;
+const DEFAULT_ANIMATION_TIME = 0; //100;
 
 /** キー長押し判定閾値の既定値 */
 const DEFAULT_LONG_PRESS_TIME = 1000;
@@ -74,7 +73,6 @@ type Resource = Properties<Value | Resource>;
 
 type PurgePageFunc = () => void;
 
-type AsyncTask = (helper: AsyncHelper) => Promise<UiResult>;
 /**
  * 表示中ページ情報
  */
@@ -512,9 +510,6 @@ export class UiApplication {
   /** resetFocus要求リスト */
   private _requestResetFocusList: UiNode[];
 
-  /** asyncヘルパークラス */
-  private _asyncHelper: AsyncHelper;
-
   private static _launchCounter: number = 0;
 
   public constructor(selector: string) {
@@ -545,7 +540,6 @@ export class UiApplication {
     this._history = new HistoryManager();
     this._keyLogger = new KeyLogger();
     this._requestResetFocusList = [];
-    this._asyncHelper = new AsyncHelper();
     if (UiApplication._launchCounter > 0) {
       return;
     }
@@ -1206,16 +1200,6 @@ export class UiApplication {
 
   public runFinally(task: RunFinallyTask): void {
     this._finallyTasks.push(task);
-  }
-
-  public runAsync(func: AsyncTask) {
-    func(this._asyncHelper)
-      .then((result) => {
-        this.postProcessEvent(null, result);
-      })
-      .catch((error) => {
-        Logs.error(JSON.stringify(error));
-      });
   }
 
   public syncAfterFinally() {

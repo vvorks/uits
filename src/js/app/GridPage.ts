@@ -23,8 +23,8 @@ export const DEFAULT_STYLE: UiStyle = new UiStyleBuilder()
   // .borderRadiusBottomRight('16px')
   // .borderRadiusBottomLeft('4px')
   .borderColor(Colors.BLUE)
-  .fontSize('12pt')
-  .lineHeight('1.5')
+  .fontSize('8pt')
+  .lineHeight('1')
   .textAlign('center')
   .verticalAlign('middle')
   .build();
@@ -47,18 +47,21 @@ export class GridPage extends UiPageNode {
     let app = this.application;
     const ROW = 100;
     const COL = 100;
-    let b = new UiBuilder('100px');
+    const WIDTH = 320;
+    const HEIGHT = 32;
+    const SB = 16;
+    let b = new UiBuilder('1px');
     b.element(this).inset(0).style(GROUP_STYLE);
     b.belongs((b) => {
       //行ヘッダ
       b.element(new UiScrollNode(app, 'rowHeader'))
-        .position(10, 0, 1, null, null, 3)
+        .position(WIDTH, 0, SB, null, null, HEIGHT)
         .style(GROUP_STYLE)
         .hscroll('h');
       b.belongs((b) => {
         for (let col = 0; col < COL; col++) {
           b.element(new UiTextNode(app, 'rowHeaderColumn' + col))
-            .position(col, 0, null, 0, 1, null)
+            .position(col * WIDTH, 0, null, 0, WIDTH, null)
             .style(DEFAULT_STYLE)
             .textContent(`{{col.${col}}}`)
             .focusable(false);
@@ -66,13 +69,13 @@ export class GridPage extends UiPageNode {
       });
       //列ヘッダ
       b.element(new UiScrollNode(app, 'colHeader'))
-        .position(0, 1, null, 1, 1, null)
+        .position(0, HEIGHT, null, SB, WIDTH, null)
         .style(GROUP_STYLE)
         .vscroll('v');
       b.belongs((b) => {
         for (let row = 0; row < ROW; row++) {
           b.element(new UiTextNode(app, 'colHeaderRow' + row))
-            .position(0, row, 0, null, null, 1)
+            .position(0, row * HEIGHT, 0, null, null, HEIGHT)
             .style(DEFAULT_STYLE)
             .textContent(`{{row.${row}}}`)
             //.imageContent(TEST_DATA)
@@ -82,7 +85,7 @@ export class GridPage extends UiPageNode {
       });
       //グリッド
       b.element(new UiScrollNode(app, 'grid'))
-        .position(1, 1, 1, 1, null, null)
+        .position(WIDTH, HEIGHT, SB, SB, null, null)
         .style(GROUP_STYLE)
         //.focusLock(true)
         .hscroll('h')
@@ -91,21 +94,22 @@ export class GridPage extends UiPageNode {
         for (let row = 0; row < ROW; row++) {
           for (let col = 0; col < COL; col++) {
             b.element(new UiTextNode(app, 'cell' + row + '_' + col))
-              .bounds(col, row, 1, 1)
+              .bounds(col * WIDTH, row * HEIGHT, WIDTH, HEIGHT)
               .style(DEFAULT_STYLE)
               .focusable(true)
+              .ellipsis('…')
               .textContent(`ITEM[${row},${col}]`);
           }
         }
       });
       //垂直スクロールバー
       b.element(new UiScrollbar(app, 'vscroll'))
-        .position(null, 1, 0, 1, 1, null)
+        .position(null, HEIGHT, 0, SB, SB, null)
         .style(SB_STYLE)
         .vscroll('v');
       //水平スクロールバー
       b.element(new UiScrollbar(app, 'hscroll'))
-        .position(1, null, 1, 0, null, 1)
+        .position(WIDTH, null, SB, 0, null, SB)
         .style(SB_STYLE)
         .hscroll('h');
     });

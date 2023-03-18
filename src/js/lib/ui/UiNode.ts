@@ -11,7 +11,7 @@ import type { UiApplication } from '~/lib/ui/UiApplication';
 import { UiSetter, HasSetter } from '~/lib/ui/UiBuilder';
 import { UiPageNode } from '~/lib/ui/UiPageNode';
 import { UiStyle } from '~/lib/ui/UiStyle';
-import { UiCanvas } from './UiCanvas';
+import { DirtyList, UiCanvas } from './UiCanvas';
 
 /**
  * （外部からパラメータとして使用する）サイズ型
@@ -563,7 +563,6 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
   }
 
   public set qualifierFieldName(name: string | null) {
-    Logs.debug('qualifierFieldName %s', name);
     this._qualifierFieldName = name;
   }
 
@@ -572,7 +571,6 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
   }
 
   public set qualifier(value: string | null) {
-    Logs.debug('qualifier %s', value);
     this._qualifier = value;
   }
 
@@ -735,7 +733,10 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
     for (let c of this._children) {
       c.onLocationChanged();
     }
-    this.setChanged(Changed.CONTENT | Changed.LOCATION, true);
+    this.setChanged(Changed.LOCATION, true);
+    if (this.parent != null) {
+      this.parent.onContentChanged();
+    }
   }
 
   public get scrollLeft(): string | null {
@@ -1505,6 +1506,10 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
 
   protected isChanged(bit: Changed): boolean {
     return !!(this._changed & bit);
+  }
+
+  protected isChangedOnly(bit: Changed): boolean {
+    return this._changed == bit;
   }
 
   protected setChanged(bit: Changed, on: boolean): void {
@@ -2312,51 +2317,49 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
     this.setChanged(Changed.HIERARCHY, false);
   }
 
-  protected dirtyChildren(canvas: UiCanvas, dirtyRect: Rect, rParentVisible: Rect): Rect {
-    for (let c of this._children) {
-      let rect = new Rect(c.getRect());
-      canvas.moveOrigin(+rect.x, +rect.y);
-      c.dirtyNode(canvas, dirtyRect, rParentVisible);
-      canvas.moveOrigin(-rect.x, -rect.y);
-    }
-    return dirtyRect;
-  }
-
-  protected dirtyNode(canvas: UiCanvas, dirtyRect: Rect, rParentVisible: Rect): void {
+  protected dirtyNode(canvas: UiCanvas, rParentVisible: Rect, dirtyList: DirtyList): void {
     let rVisible = new Rect(rParentVisible).intersect(this.getRect());
     this.translate(rVisible, -1);
     let appeared = (this.visible && !rVisible.empty) || this.floating;
     if (appeared) {
       let classChanged = this.transferStyleClass();
-      let canScroll =
-        !classChanged && this.isChanged(Changed.SCROLL) && !this.isChanged(~Changed.SCROLL);
-      if (canScroll) {
-        Logs.debug('canScroll %s', this.getNodePath());
-      }
-      //canScroll = false;
+      let canScroll = !classChanged && this.isChangedOnly(Changed.SCROLL);
+      let bitChanged = this.transferChanged(Changed.ALL);
       if (!canScroll) {
-        let bitChanged = this.transferChanged(Changed.ALL);
         if (bitChanged || classChanged) {
-          dirtyRect.union(this.getRect());
+          dirtyList.add(this, this.getRect());
         }
       }
-      this.translate(dirtyRect, -1);
+      dirtyList.translate(this, -1);
       let vr = this.getViewRect();
       let inside = this.getBorderSize();
       canvas.moveOrigin(-vr.x, -vr.y);
       canvas.moveOrigin(+inside.left, +inside.top);
-      if (this.isChanged(Changed.SCROLL)) {
-        this.scrollNode(canvas, dirtyRect);
-        this.setChanged(Changed.SCROLL, false);
+      if (canScroll) {
+        this.scrollNode(canvas, dirtyList);
       }
-      this.dirtyChildren(canvas, dirtyRect, rVisible);
+      this.dirtyChildren(canvas, rVisible, dirtyList);
       canvas.moveOrigin(-inside.left, -inside.top);
       canvas.moveOrigin(+vr.x, +vr.y);
-      this.translate(dirtyRect, +1);
+      dirtyList.translate(this, +1);
     }
   }
 
-  private scrollNode(canvas: UiCanvas, dirtyRect: Rect) {
+  protected transferChanged(bits: Changed): boolean {
+    let result = this.isChanged(bits);
+    this.setChanged(bits, false);
+    return result;
+  }
+
+  protected transferStyleClass(): boolean {
+    let s: UiStyle = this._style.getEffectiveStyle(this);
+    let styleClassName = this._stylePrefix + s.id;
+    let result = this._styleClassName != styleClassName;
+    this._styleClassName = styleClassName;
+    return result;
+  }
+
+  private scrollNode(canvas: UiCanvas, dirtyList: DirtyList) {
     let width = this.innerWidth;
     let height = this.innerHeight;
     let prevLeft = this._prevScrollLeft == null ? 0 : this._prevScrollLeft.toPixel(() => width);
@@ -2368,7 +2371,8 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
     let adx = Math.abs(dx);
     let ady = Math.abs(dy);
     if (adx >= width || ady >= height) {
-      dirtyRect.union(new Rect().locate(currLeft, currTop, width, height));
+      let rect = new Rect().locate(currLeft, currTop, width, height);
+      dirtyList.add(this, rect);
     } else if (dx != 0 || dy != 0) {
       let sx = currLeft;
       let ex = currLeft;
@@ -2393,23 +2397,35 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
         dirtyYRect.height = ady;
       }
       canvas.copyRect(sx, sy, width - adx, height - ady, ex, ey);
-      dirtyRect.union(dirtyXRect);
-      dirtyRect.union(dirtyYRect);
+      if (!dirtyXRect.empty) {
+        dirtyList.add(this, dirtyXRect);
+      }
+      if (!dirtyYRect.empty) {
+        dirtyList.add(this, dirtyYRect);
+      }
     }
   }
 
-  protected paintNode(canvas: UiCanvas, dirtyRect: Rect): void {
-    let rVisible = new Rect(dirtyRect).intersect(this.getRect());
+  protected dirtyChildren(canvas: UiCanvas, rParentVisible: Rect, dirtyList: DirtyList): void {
+    for (let c of this._children) {
+      let rect = new Rect(c.getRect());
+      canvas.moveOrigin(+rect.x, +rect.y);
+      c.dirtyNode(canvas, rParentVisible, dirtyList);
+      canvas.moveOrigin(-rect.x, -rect.y);
+    }
+  }
+
+  protected paintNode(canvas: UiCanvas, rParentVisible: Rect, dirtyList: DirtyList): void {
+    let rVisible = new Rect(rParentVisible).intersect(this.getRect());
     this.translate(rVisible, -1);
-    if (!rVisible.empty) {
+    let appeared = (this.visible && !rVisible.empty) || this.floating;
+    let dirtyRects = dirtyList.getDirtyRects(this);
+    if (appeared && dirtyRects.length > 0) {
+      //開始処理
+      dirtyList.translate(this, -1);
       canvas.saveContext();
       //クリッピング
-      let rect = new Rect(this.getRect()); //親座標系
-      let x = rect.x;
-      let y = rect.y;
-      rect.intersect(dirtyRect);
-      rect.move(-x, -y); //親座標系→自座標系
-      canvas.clipRect(rect.x, rect.y, rect.width, rect.height);
+      canvas.clipAbsoluteRects(dirtyRects);
       //背景描画
       this.paintBackground(canvas);
       //子ノード・内容描画
@@ -2418,28 +2434,15 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
       canvas.moveOrigin(-vr.x, -vr.y);
       canvas.moveOrigin(+inside.left, +inside.top);
       this.paintContent(canvas);
-      this.paintChildren(canvas, rVisible);
+      this.paintChildren(canvas, rVisible, dirtyList);
       canvas.moveOrigin(-inside.left, -inside.top);
       canvas.moveOrigin(+vr.x, +vr.y);
       //枠描画
       this.paintBorder(canvas);
+      //終了処理
       canvas.restoreContext();
-      this.setChanged(Changed.SCROLL, false);
+      dirtyList.translate(this, +1);
     }
-  }
-
-  protected transferChanged(bits: Changed): boolean {
-    let result = this.isChanged(bits);
-    this.setChanged(bits, false);
-    return result;
-  }
-
-  protected transferStyleClass(): boolean {
-    let s: UiStyle = this._style.getEffectiveStyle(this);
-    let styleClassName = this._stylePrefix + s.id;
-    let result = this._styleClassName != styleClassName;
-    this._styleClassName = styleClassName;
-    return result;
   }
 
   protected paintBackground(canvas: UiCanvas): void {
@@ -2458,11 +2461,11 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
     canvas.drawBorder(0, 0, rect.width, rect.height, style);
   }
 
-  protected paintChildren(canvas: UiCanvas, dirtyRect: Rect): void {
+  protected paintChildren(canvas: UiCanvas, rParentVisible: Rect, dirtyList: DirtyList): void {
     for (let c of this._children) {
       let rect = new Rect(c.getRect());
       canvas.moveOrigin(+rect.x, +rect.y);
-      c.paintNode(canvas, dirtyRect);
+      c.paintNode(canvas, rParentVisible, dirtyList);
       canvas.moveOrigin(-rect.x, -rect.y);
     }
   }

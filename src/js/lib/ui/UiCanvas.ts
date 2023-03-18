@@ -1,4 +1,4 @@
-import { Asserts, Logs } from '../lang';
+import { Asserts, Logs, Strings } from '../lang';
 import { LimitedCacheMap } from '../util';
 import { Colors } from './Colors';
 import { CssLength } from './CssLength';
@@ -90,6 +90,43 @@ class ImageItem {
     }
     let newCount = this._users.length;
     return oldCount > 0 && newCount == 0;
+  }
+}
+
+type DirtyInfo = {
+  node: UiNode;
+  rect: Rect;
+};
+export class DirtyList {
+  private _items: DirtyInfo[];
+
+  private _origin: Rect;
+
+  public constructor() {
+    this._items = [];
+    this._origin = new Rect();
+  }
+
+  public translate(node: UiNode, dir: number) {
+    node.translate(this._origin, dir);
+  }
+
+  public add(node: UiNode, dirtyRect: Rect): void {
+    let rect = new Rect(dirtyRect);
+    rect.move(-this._origin.x, -this._origin.y);
+    this._items.push({ node: node, rect: rect });
+  }
+
+  public getDirtyRects(node: UiNode): Rect[] {
+    let nodeRect = new Rect(node.getRect());
+    nodeRect.move(-this._origin.x, -this._origin.y);
+    let dirtyRects = [];
+    for (let item of this._items) {
+      if (nodeRect.intersects(item.rect)) {
+        dirtyRects.push(item.rect);
+      }
+    }
+    return dirtyRects;
   }
 }
 
@@ -200,10 +237,9 @@ export class UiCanvas extends UiNode {
     this.translate(rVisible, -1);
     let appeared = this.visible && (!rVisible.empty || this.floating);
     if (appeared) {
-      let dirtyRect = new Rect();
-      this.dirtyChildren(this, dirtyRect, rVisible);
-      this.paintChildren(this, dirtyRect);
-      this.paintBorder(this);
+      let dirtyList = new DirtyList();
+      this.dirtyNode(this, rVisible, dirtyList);
+      this.paintNode(this, rVisible, dirtyList);
     }
   }
 
@@ -220,6 +256,10 @@ export class UiCanvas extends UiNode {
     this._yOrigin += dy;
   }
 
+  public getOrigin(): Rect {
+    return new Rect().position(this._xOrigin, this._yOrigin);
+  }
+
   public clipRect(x: number, y: number, w: number, h: number): void {
     x += this._xOrigin;
     y += this._yOrigin;
@@ -233,21 +273,36 @@ export class UiCanvas extends UiNode {
     con.clip();
   }
 
+  public clipAbsoluteRects(rects: Rect[]) {
+    let con = this.context2d;
+    con.beginPath();
+    for (let r of rects) {
+      con.moveTo(r.left, r.top);
+      con.lineTo(r.right, r.top);
+      con.lineTo(r.right, r.bottom);
+      con.lineTo(r.left, r.bottom);
+      con.lineTo(r.left, r.top);
+    }
+    con.closePath();
+    con.clip();
+  }
+
   public copyRect(sx: number, sy: number, w: number, h: number, dx: number, dy: number): void {
     sx += this._xOrigin;
     sy += this._yOrigin;
     dx += this._xOrigin;
     dy += this._yOrigin;
     let con = this.context2d;
-    Logs.debug('copyRect %g, %g, %g, %g, %g, %g', sx, sy, w, h, dx, dy);
     let dpr = this._dpr;
-    const imageData = con.getImageData(
-      Math.round(sx * dpr),
-      Math.round(sy * dpr),
-      Math.round(w * dpr),
-      Math.round(h * dpr)
-    );
-    con.putImageData(imageData, Math.round(dx * dpr), Math.round(dy * dpr));
+    sx = Math.floor(sx * dpr);
+    sy = Math.floor(sy * dpr);
+    w = Math.floor(w * dpr);
+    h = Math.floor(h * dpr);
+    dx = Math.floor(dx * dpr);
+    dy = Math.floor(dy * dpr);
+    //Logs.debug('copyRect %g, %g, %g, %g, %g, %g dpr %g', sx, sy, w, h, dx, dy, dpr);
+    let imageData = con.getImageData(sx, sy, w, h);
+    con.putImageData(imageData, dx, dy);
   }
 
   public drawBackground(x: number, y: number, w: number, h: number, s: UiStyle) {
@@ -399,7 +454,14 @@ export class UiCanvas extends UiNode {
         }
         let w = 0;
         let e = s;
-        let be = e;
+        let ww = this.measureText(para.substring(s, n)).width;
+        if (ww > width) {
+          e += Math.max(0, Math.floor((n - s) * (width / ww) * 0.9) - 2);
+        }
+        if (Strings.isHighSurrogate(para.charCodeAt(e - 1))) {
+          e--;
+        }
+        let be = s;
         let chPrev = '';
         while (e < n && w <= width) {
           let chCurr = para.charAt(e);
@@ -410,7 +472,7 @@ export class UiCanvas extends UiNode {
           ) {
             be = e;
           }
-          e = e + 1;
+          e = e + chCurr.length;
           w = this.measureText(para.substring(s, e)).width;
           chPrev = chCurr;
         }
@@ -568,12 +630,18 @@ export class UiCanvas extends UiNode {
       Math.min(hh, s.borderRadiusBottomRightAsLength.toPixel(() => h)),
       Math.min(hh, s.borderRadiusBottomLeftAsLength.toPixel(() => h))
     ];
+    //Logs.debug('paint background %d, %d, %d, %d, %s', x, y, w, h, s.backgroundColor);
     let con = this.context2d;
-    con.beginPath();
-    this.drawRoundRect(con, x, y, w, h, rx, ry);
-    con.closePath();
-    con.fillStyle = s.backgroundColor;
-    con.fill();
+    if (rx.findIndex((v) => v != 0) == -1 && ry.findIndex((v) => v != 0) == -1) {
+      con.fillStyle = s.backgroundColor;
+      con.fillRect(x, y, w, h);
+    } else {
+      con.beginPath();
+      this.drawRoundRect(con, x, y, w, h, rx, ry);
+      con.closePath();
+      con.fillStyle = s.backgroundColor;
+      con.fill();
+    }
   }
 
   private drawBorderColor(x: number, y: number, w: number, h: number, s: UiStyle) {
