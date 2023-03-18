@@ -2317,7 +2317,21 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
     this.setChanged(Changed.HIERARCHY, false);
   }
 
-  protected dirtyNode(canvas: UiCanvas, rParentVisible: Rect, dirtyList: DirtyList): void {
+  protected unsyncHierarchy(): void {
+    let dom = this._domElement as HTMLElement;
+    if (dom.parentElement != null) {
+      dom.parentElement.removeChild(dom);
+      this.setChanged(Changed.HIERARCHY, true);
+    }
+  }
+
+  protected unsyncScroll(): void {
+    for (let c of this.getDescendants()) {
+      c.onScrollChanged();
+    }
+  }
+
+  protected collectDirtyNode(canvas: UiCanvas, rParentVisible: Rect, dirtyList: DirtyList): void {
     let rVisible = new Rect(rParentVisible).intersect(this.getRect());
     this.translate(rVisible, -1);
     let appeared = (this.visible && !rVisible.empty) || this.floating;
@@ -2338,7 +2352,7 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
       if (canScroll) {
         this.scrollNode(canvas, dirtyList);
       }
-      this.dirtyChildren(canvas, rVisible, dirtyList);
+      this.collectDirtyChildren(canvas, rVisible, dirtyList);
       canvas.moveOrigin(-inside.left, -inside.top);
       canvas.moveOrigin(+vr.x, +vr.y);
       dirtyList.translate(this, +1);
@@ -2406,11 +2420,15 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
     }
   }
 
-  protected dirtyChildren(canvas: UiCanvas, rParentVisible: Rect, dirtyList: DirtyList): void {
+  protected collectDirtyChildren(
+    canvas: UiCanvas,
+    rParentVisible: Rect,
+    dirtyList: DirtyList
+  ): void {
     for (let c of this._children) {
       let rect = new Rect(c.getRect());
       canvas.moveOrigin(+rect.x, +rect.y);
-      c.dirtyNode(canvas, rParentVisible, dirtyList);
+      c.collectDirtyNode(canvas, rParentVisible, dirtyList);
       canvas.moveOrigin(-rect.x, -rect.y);
     }
   }
@@ -2467,20 +2485,6 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
       canvas.moveOrigin(+rect.x, +rect.y);
       c.paintNode(canvas, rParentVisible, dirtyList);
       canvas.moveOrigin(-rect.x, -rect.y);
-    }
-  }
-
-  protected unsyncHierarchy(): void {
-    let dom = this._domElement as HTMLElement;
-    if (dom.parentElement != null) {
-      dom.parentElement.removeChild(dom);
-      this.setChanged(Changed.HIERARCHY, true);
-    }
-  }
-
-  protected unsyncScroll(): void {
-    for (let c of this.getDescendants()) {
-      c.onScrollChanged();
     }
   }
 

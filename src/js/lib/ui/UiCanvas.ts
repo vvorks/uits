@@ -238,7 +238,7 @@ export class UiCanvas extends UiNode {
     let appeared = this.visible && (!rVisible.empty || this.floating);
     if (appeared) {
       let dirtyList = new DirtyList();
-      this.dirtyNode(this, rVisible, dirtyList);
+      this.collectDirtyNode(this, rVisible, dirtyList);
       this.paintNode(this, rVisible, dirtyList);
     }
   }
