@@ -123,7 +123,8 @@ export class DirtyList {
     let dirtyRects = [];
     for (let item of this._items) {
       if (nodeRect.intersects(item.rect)) {
-        dirtyRects.push(item.rect);
+        let r = new Rect(nodeRect).intersect(item.rect);
+        dirtyRects.push(r);
       }
     }
     return dirtyRects;
