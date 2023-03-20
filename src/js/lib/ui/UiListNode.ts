@@ -1,6 +1,7 @@
+import { FIELD_SELECTED, SelectionManager } from './SelectionManager';
 import { UiAxis } from './UiAxis';
 import { UiButton } from './UiButton';
-import { Asserts, Logs, Predicate, Value } from '~/lib/lang';
+import { Arrays, Asserts, Logs, ParamError, Predicate, Value } from '~/lib/lang';
 import { Colors } from '~/lib/ui/Colors';
 import { DataRecord, DataSource } from '~/lib/ui/DataSource';
 import { KeyCodes } from '~/lib/ui/KeyCodes';
@@ -13,7 +14,6 @@ import { Flags, UiNode, UiResult } from '~/lib/ui/UiNode';
 import { UiPageNode } from '~/lib/ui/UiPageNode';
 import { UiScrollNode, UiScrollNodeSetter } from '~/lib/ui/UiScrollNode';
 import { UiStyle, UiStyleBuilder } from '~/lib/ui/UiStyle';
-import { FIELD_SELECTED, SelectionManager } from './SelectionManager';
 
 /**
  * レコードノード用スタイル
@@ -38,9 +38,65 @@ class FocusInfo {
 }
 
 /**
- * レコードノード
+ * メッセージノード
  */
-class UiRecord extends UiButton implements RecordHolder {
+export class UiListMessage extends UiNode {
+  private _errorCode: number;
+
+  /**
+   * クローンメソッド
+   *
+   * @returns 複製
+   */
+  public clone(): UiListMessage {
+    return new UiListMessage(this);
+  }
+
+  /**
+   * 通常コンストラクタ
+   *
+   * @param app アプリケーション
+   * @param name ノード名
+   */
+  public constructor(app: UiApplication, name: string, errorCode?: number);
+
+  /**
+   * コピーコンストラクタ
+   *
+   * @param src 複製元
+   */
+  public constructor(src: UiListMessage);
+
+  /**
+   * コンストラクタ実装
+   *
+   * @param param 第一パラメータ
+   * @param name 第二パラメータ
+   */
+  public constructor(param: any, name?: string, errorCode?: number) {
+    if (param instanceof UiListMessage) {
+      super(param as UiListMessage);
+      let src = param as UiListMessage;
+      this._errorCode = src._errorCode;
+    } else {
+      super(param as UiApplication, name as string);
+      this._errorCode = errorCode !== undefined ? errorCode : 0;
+    }
+  }
+
+  public get errorCode(): number {
+    return this._errorCode;
+  }
+
+  protected get owner(): UiListNode {
+    return this.parent as UiListNode;
+  }
+}
+
+/**
+ * アイテムノード
+ */
+export class UiListItem extends UiButton implements RecordHolder {
   private _index: number;
 
   private _record: DataRecord | null;
@@ -52,8 +108,8 @@ class UiRecord extends UiButton implements RecordHolder {
    *
    * @returns 複製
    */
-  public clone(): UiRecord {
-    return new UiRecord(this);
+  public clone(): UiListItem {
+    return new UiListItem(this);
   }
 
   /**
@@ -69,7 +125,7 @@ class UiRecord extends UiButton implements RecordHolder {
    *
    * @param src 複製元
    */
-  public constructor(src: UiRecord);
+  public constructor(src: UiListItem);
 
   /**
    * コンストラクタ実装
@@ -78,9 +134,9 @@ class UiRecord extends UiButton implements RecordHolder {
    * @param name 第二パラメータ
    */
   public constructor(param: any, name?: string) {
-    if (param instanceof UiRecord) {
-      super(param as UiRecord);
-      let src = param as UiRecord;
+    if (param instanceof UiListItem) {
+      super(param as UiListItem);
+      let src = param as UiListItem;
       this._index = src._index;
       this._record = src._record;
       this._sharedNames = src._sharedNames;
@@ -92,8 +148,7 @@ class UiRecord extends UiButton implements RecordHolder {
     }
   }
 
-  public adoptChildren(other: UiNode): void {
-    super.adoptChildren(other);
+  public prepare(): void {
     this.collectSharedNames(this._sharedNames);
   }
 
@@ -120,9 +175,7 @@ class UiRecord extends UiButton implements RecordHolder {
     }
     this._index = newIndex;
     this._record = newIndex < 0 ? null : this.owner.getRecord(newIndex);
-    for (let c of this.getDescendants()) {
-      c.onRecordHolderChanged(this);
-    }
+    this.fireRecordHolderChanged();
   }
 
   public getValue(name: string): Value | DataRecord | null {
@@ -140,9 +193,7 @@ class UiRecord extends UiButton implements RecordHolder {
     if (this._record[name] != value) {
       this._record[name] = value;
       if (this._sharedNames.has(name)) {
-        for (let c of this.getDescendantsIf((e) => e.dataFieldName == name)) {
-          c.onRecordHolderChanged(this);
-        }
+        this.fireRecordHolderChanged((e) => e.dataFieldName == name);
       }
       this.owner.setRecord(this._record);
     }
@@ -176,8 +227,11 @@ class UiRecord extends UiButton implements RecordHolder {
     return new Rect(this.getRect());
   }
 
-  public flushRecordHolderChanged(): void {
-    for (let c of this.getDescendants()) {
+  public fireRecordHolderChanged(filter: Predicate<UiNode> = (e) => true): void {
+    if (this._record != null && this.owner.selectionManager != null) {
+      this._record[FIELD_SELECTED] = this.owner.isSelectedRecord(this._record);
+    }
+    for (let c of this.getDescendantsIf((e) => filter(e))) {
       c.onRecordHolderChanged(this);
     }
   }
@@ -235,19 +289,35 @@ export class UiListNodeSetter extends UiScrollNodeSetter {
  * 垂直及び水平の仮想データリストノード
  */
 export class UiListNode extends UiScrollNode implements HasSetter<UiListNodeSetter> {
+  /** 読み込み中状態名（兼メッセージテンプレート名） */
+  public static readonly STATE_LOADING = 'loading';
+
+  /** データ無し状態名（兼メッセージテンプレート名） */
+  public static readonly STATE_EMPTY = 'empty';
+
+  /** データ読み込みエラー状態名（兼メッセージテンプレート名） */
+  public static readonly STATE_ERROR = 'error';
+
+  /** 通常表示状態名 */
+  public static readonly STATE_LIST = 'list';
+
   /** 項目中で決定が押下された場合に送付されるアクションのタグ名 */
   public static readonly EVENT_TAG_CLICK = 'click';
 
   /** 項目が選択された場合に送付されるアクションのタグ名 */
   public static readonly EVENT_TAG_SELECT = 'select';
 
-  private _template: UiRecord | null;
+  private _state: string;
+
+  private _template: UiListItem | null;
 
   private _templateRect: Rect | null;
 
   private _templateBottom: number | null;
 
   private _templateRight: number | null;
+
+  private _messages: UiListMessage[];
 
   private _lineSize: number;
 
@@ -297,10 +367,12 @@ export class UiListNode extends UiScrollNode implements HasSetter<UiListNodeSett
     if (param instanceof UiListNode) {
       super(param as UiListNode);
       let src = param as UiListNode;
+      this._state = src._state;
       this._template = src._template;
       this._templateRect = src._templateRect;
       this._templateBottom = src._templateBottom;
       this._templateRight = src._templateRight;
+      this._messages = src._messages;
       this._lineSize = src._lineSize;
       this._pageSize = src._pageSize;
       this._columnCount = src._columnCount;
@@ -311,11 +383,13 @@ export class UiListNode extends UiScrollNode implements HasSetter<UiListNodeSett
     } else {
       super(param as UiApplication, name as string);
       this.initFlags(Flags.LIST_INITIAL);
+      this._state = '';
       this._template = null;
       this._templateRect = null;
       this._templateBottom = null;
       this._templateRight = null;
       this.vertical = true;
+      this._messages = [];
       this._lineSize = 0;
       this._pageSize = 0;
       this._columnCount = 1;
@@ -376,15 +450,7 @@ export class UiListNode extends UiScrollNode implements HasSetter<UiListNodeSett
   }
 
   public getRecord(index: number): DataRecord | null {
-    if (this._dataSource == null) {
-      return null;
-    }
-    let rec = this._dataSource.getRecord(index);
-    if (rec != null && this._selectionManager != null) {
-      let key = this._dataSource.getKeyOf(rec);
-      rec[FIELD_SELECTED] = this._selectionManager.isSelected(key);
-    }
-    return rec;
+    return this._dataSource != null ? this._dataSource.getRecord(index) : null;
   }
 
   public setRecord(rec: DataRecord): void {
@@ -396,15 +462,47 @@ export class UiListNode extends UiScrollNode implements HasSetter<UiListNodeSett
   protected initialize(): void {
     this._template = this.makeTemplate();
     this._template.focusable = !this.itemFocusable();
+    this.changeState(UiListNode.STATE_LOADING);
+  }
+
+  protected changeState(state: string, errorCode: number = 0): void {
+    if (this._state != state) {
+      this.removeChildren();
+      if (state == UiListNode.STATE_LIST) {
+        this.prepareArea();
+        this.prepareRecs();
+        this.relocateRecs();
+        this.renumberRecs(true);
+        this.setRecsVisiblity();
+        this._state = state;
+      } else {
+        this.scrollLeft = '0px';
+        this.scrollTop = '0px';
+        this.scrollWidth = null;
+        this.scrollHeight = null;
+        let t: UiListMessage | null = null;
+        if (state == UiListNode.STATE_ERROR) {
+          for (let c of this._messages.filter((e) => e.name == state)) {
+            if (c.errorCode == errorCode) {
+              t = c;
+              break;
+            } else if (c.errorCode == 0) {
+              t = c;
+            }
+          }
+        } else {
+          t = Arrays.first(this._messages.filter((e) => e.name == state));
+        }
+        if (t != null) {
+          this.appendChild(t.clone());
+          this._state = state;
+        }
+      }
+    }
   }
 
   public beforeMount(): void {
     this.measureSize();
-    this.prepareArea();
-    this.prepareRecs();
-    this.relocateRecs();
-    this.renumberRecs(true);
-    this.setRecsVisiblity();
   }
 
   public onResize(at: number): UiResult {
@@ -417,11 +515,6 @@ export class UiListNode extends UiScrollNode implements HasSetter<UiListNodeSett
       this._templateRect.height = this.innerHeight - this._templateBottom - this._templateRect.y;
     }
     this.measureSize();
-    this.prepareArea();
-    this.prepareRecs();
-    this.relocateRecs();
-    this.renumberRecs(true);
-    this.setRecsVisiblity();
     return UiResult.AFFECTED;
   }
 
@@ -433,12 +526,24 @@ export class UiListNode extends UiScrollNode implements HasSetter<UiListNodeSett
     let info: FocusInfo | null;
     if (this.count() < 0) {
       //最初の通知
-      this._dataSource = ds;
       info = null;
+      this._dataSource = ds;
+      if (ds.hasError()) {
+        this.changeState(UiListNode.STATE_ERROR, ds.getErrorCode());
+        return UiResult.EATEN;
+      }
+      if (ds.count() == 0) {
+        this.changeState(UiListNode.STATE_EMPTY);
+        return UiResult.EATEN;
+      }
       let attention = Math.max(0, ds.attention());
       this._pageTopIndex = this.validateIndex(attention);
+      this.changeState(UiListNode.STATE_LIST);
     } else {
       //二回目以降の通知
+      if (this._state != UiListNode.STATE_LIST) {
+        return UiResult.IGNORED;
+      }
       info = this.saveFocus();
       this._pageTopIndex = this.validateIndex(this._pageTopIndex);
     }
@@ -469,7 +574,7 @@ export class UiListNode extends UiScrollNode implements HasSetter<UiListNodeSett
     let app = this.application;
     let focus = app.getFocusOf(this);
     if (focus != null && focus != this && this.isAncestorOf(focus)) {
-      let rec = this.getUiRecordOf(focus);
+      let rec = this.getListItemOf(focus);
       if (rec != null) {
         let recIndex = this._children.indexOf(rec);
         let fldIndex = rec.getDescendantIndex(focus);
@@ -485,34 +590,62 @@ export class UiListNode extends UiScrollNode implements HasSetter<UiListNodeSett
     if (info == null) {
       return;
     }
-    if (this._children[info.recordIndex].visible) {
-      return;
-    }
-    for (let i = info.recordIndex - 1; i >= 0; i--) {
+    for (let i = info.recordIndex; i >= 0; i--) {
       let rec = this._children[i];
       if (rec.visible) {
         let restore = rec.getDescendantAt(info.fieldIndex);
         if (restore != null) {
-          this.application.setFocus(restore, this.vertical ? UiAxis.Y : UiAxis.X);
+          let axis = UiAxis.FORCE | (this.vertical ? UiAxis.Y : UiAxis.X);
+          this.application.setFocus(restore, axis);
         }
         break;
       }
     }
   }
 
-  private getUiRecordOf(node: UiNode): UiRecord | null {
+  public getListItemOf(node: UiNode): UiListItem | null {
     let e: UiNode | null = node;
-    while (e != null && !(e instanceof UiRecord)) {
+    while (e != null && !(e instanceof UiListItem)) {
       e = e.parent;
     }
-    return e != null ? (e as UiRecord) : null;
+    return e != null ? (e as UiListItem) : null;
   }
 
-  private makeTemplate(): UiRecord {
-    let rTemplate = this.getChildrenRect();
+  private makeTemplate(): UiListItem {
+    let items: UiListItem[] = [];
+    let messages: UiListMessage[] = [];
+    let legacyCount = 0;
+    for (let c of this._children) {
+      if (c instanceof UiListItem) {
+        items.push(c as UiListItem);
+      } else if (c instanceof UiListMessage) {
+        messages.push(c as UiListMessage);
+      } else {
+        legacyCount++;
+      }
+    }
+    let template: UiListItem;
+    if (legacyCount > 0 && items.length == 0 && messages.length == 0) {
+      template = new UiListItem(this.application, 'template');
+      this.buildTemplates(template, true);
+    } else if (legacyCount == 0 && items.length > 0) {
+      template = items[0];
+      this.buildTemplates(template, false);
+      this._messages = messages;
+    } else {
+      throw new ParamError('ILLEGAL LAYOUT');
+    }
+    template.prepare();
+    Asserts.ensure(this.getChildCount() == 0);
+    return template;
+  }
+
+  private buildTemplates(template: UiListItem, legacy: boolean): void {
+    let source = legacy ? this : template;
+    let rTemplate = source.getChildrenRect();
     let maxRight = 0;
     let maxBottom = 0;
-    for (let c of this._children) {
+    for (let c of source.getChildren()) {
       let r = c.getRect();
       if (c.right != null) {
         maxRight = Math.max(maxRight, r.right);
@@ -522,14 +655,13 @@ export class UiListNode extends UiScrollNode implements HasSetter<UiListNodeSett
       }
     }
     this._templateRect = rTemplate;
-    let template = new UiRecord(this.application, 'template');
     if (this.vertical) {
       this._templateBottom = rTemplate.bottom == maxBottom ? this.innerHeight - maxBottom : null;
       template.left = '0px';
       template.right = '0px';
       template.top = `${rTemplate.top}px`;
       template.height = `${rTemplate.height}px`;
-      for (let c of this._children) {
+      for (let c of source.getChildren()) {
         let rChild = c.getRect();
         if (c.top != null) {
           c.top = `${rChild.top - rTemplate.top}px`;
@@ -541,16 +673,18 @@ export class UiListNode extends UiScrollNode implements HasSetter<UiListNodeSett
       template.width = `${rTemplate.width}px`;
       template.top = '0px';
       template.bottom = '0px';
-      for (let c of this._children) {
+      for (let c of source.getChildren()) {
         let rChild = c.getRect();
         if (c.left != null) {
           c.left = `${rChild.left - rTemplate.left}px`;
         }
       }
     }
-    template.adoptChildren(this);
-    template.style = RECORD_STYLE;
-    return template;
+    if (legacy) {
+      template.adoptChildren(this);
+    } else {
+      this.removeChildren();
+    }
   }
 
   protected getTemplateRect(): Rect {
@@ -610,7 +744,7 @@ export class UiListNode extends UiScrollNode implements HasSetter<UiListNodeSett
     let r = this.getTemplateRect();
     if (this.vertical) {
       for (let i = 0; i < n; i++) {
-        let rec = this._children[i] as UiRecord;
+        let rec = this._children[i] as UiListItem;
         let y = r.top + i * (r.top + r.height);
         rec.top = `${y}px`;
         rec.bottom = null;
@@ -618,7 +752,7 @@ export class UiListNode extends UiScrollNode implements HasSetter<UiListNodeSett
       }
     } else {
       for (let i = 0; i < n; i++) {
-        let rec = this._children[i] as UiRecord;
+        let rec = this._children[i] as UiListItem;
         let x = r.left + i * (r.left + r.width);
         rec.left = `${x}px`;
         rec.right = null;
@@ -658,12 +792,12 @@ export class UiListNode extends UiScrollNode implements HasSetter<UiListNodeSett
     let count = this.count();
     if (count <= 0) {
       for (let i = 0; i < n; i++) {
-        let rec = this._children[i] as UiRecord;
+        let rec = this._children[i] as UiListItem;
         rec.setIndex(-1, forceReload);
       }
     } else {
       for (let i = 0; i < n; i++) {
-        let rec = this._children[i] as UiRecord;
+        let rec = this._children[i] as UiListItem;
         let index = (this._pageTopIndex - LINE_MARGIN * this._columnCount + i + count) % count;
         rec.setIndex(index, forceReload);
       }
@@ -676,7 +810,7 @@ export class UiListNode extends UiScrollNode implements HasSetter<UiListNodeSett
     if (this.loop && count >= this._linesPerPage * this._columnCount) {
       // ループスクロール時は全件表示
       for (let i = 0; i < n; i++) {
-        let rec = this._children[i] as UiRecord;
+        let rec = this._children[i] as UiListItem;
         rec.visible = true;
       }
     } else {
@@ -684,7 +818,7 @@ export class UiListNode extends UiScrollNode implements HasSetter<UiListNodeSett
       let sp = Math.max(0, LINE_MARGIN * this._columnCount - this._pageTopIndex);
       let ep = Math.min(n, LINE_MARGIN * this._columnCount - this._pageTopIndex + count);
       for (let i = 0; i < n; i++) {
-        let rec = this._children[i] as UiRecord;
+        let rec = this._children[i] as UiListItem;
         rec.visible = sp <= i && i < ep;
       }
     }
@@ -707,17 +841,19 @@ export class UiListNode extends UiScrollNode implements HasSetter<UiListNodeSett
 
   public adjustFocus(prev: UiNode, key: number): UiNode {
     let app = this.application;
-    if (this.focusLock || prev == this) {
-      let firstRec = this._children[LINE_MARGIN];
-      let firstField = this.findFirstField(firstRec);
-      if (firstField != null) {
-        return firstField;
-      }
-    } else {
-      let nearest = app.getNearestNode(prev, this, (e) => e != this, key);
-      if (nearest != null) {
-        Logs.debug('nearest from %s is %s', prev.getNodePath(), nearest.getNodePath());
-        return nearest;
+    if (this._state == UiListNode.STATE_LIST) {
+      if (this.focusLock || prev == this) {
+        let firstRec = this._children[LINE_MARGIN];
+        let firstField = this.findFirstField(firstRec);
+        if (firstField != null) {
+          return firstField;
+        }
+      } else {
+        let nearest = app.getNearestNode(prev, this, (e) => e != this, key);
+        if (nearest != null) {
+          Logs.debug('nearest from %s is %s', prev.getNodePath(), nearest.getNodePath());
+          return nearest;
+        }
       }
     }
     return this;
@@ -738,7 +874,7 @@ export class UiListNode extends UiScrollNode implements HasSetter<UiListNodeSett
     if (!this.focusLock || this._pageTopIndex >= this.count() - this._linesPerPage) {
       result = this.scrollIfNecessary(target, animationTime);
     } else {
-      let nextRec = this.getRecordOf(target) as UiRecord;
+      let nextRec = this.getListItemOf(target) as UiListItem;
       let delta = nextRec.index - this._pageTopIndex;
       let dx = this._lineSize * (this.vertical ? 0 : delta);
       let dy = this._lineSize * (this.vertical ? delta : 0);
@@ -747,17 +883,6 @@ export class UiListNode extends UiScrollNode implements HasSetter<UiListNodeSett
       }
     }
     return result;
-  }
-
-  protected getRecordOf(node: UiNode): UiRecord | null {
-    if (node instanceof UiRecord) {
-      return node as UiRecord;
-    }
-    let recs = node.getAncestorsIf((e) => e instanceof UiRecord, 1);
-    if (recs.length > 0) {
-      return recs[0] as UiRecord;
-    }
-    return null;
   }
 
   protected setScroll(x: number, y: number, step: number): void {
@@ -780,14 +905,14 @@ export class UiListNode extends UiScrollNode implements HasSetter<UiListNodeSett
     let index = this._pageTopIndex;
     while (y < margin) {
       for (let i = 0; i < this._columnCount; i++) {
-        this._children.unshift(this._children.pop() as UiNode);
+        this.rotateChildrenRight();
       }
       y += this._lineSize;
       index = (index - this._columnCount + count) % count;
     }
     while (scroll.height - (y + this._pageSize) < margin) {
       for (let i = 0; i < this._columnCount; i++) {
-        this._children.push(this._children.shift() as UiNode);
+        this.rotateChildrenLeft();
       }
       y -= this._lineSize;
       index = (index + this._columnCount + count) % count;
@@ -815,14 +940,14 @@ export class UiListNode extends UiScrollNode implements HasSetter<UiListNodeSett
     let index = this._pageTopIndex;
     while (x < margin) {
       for (let i = 0; i < this._columnCount; i++) {
-        this._children.unshift(this._children.pop() as UiNode);
+        this.rotateChildrenRight();
       }
       x += this._lineSize;
       index = (index - this._columnCount + count) % count;
     }
     while (scroll.width - (x + this._pageSize) < margin) {
       for (let i = 0; i < this._columnCount; i++) {
-        this._children.push(this._children.shift() as UiNode);
+        this.rotateChildrenLeft();
       }
       x -= this._lineSize;
       index = (index + this._columnCount + count) % count;
@@ -1006,14 +1131,22 @@ export class UiListNode extends UiScrollNode implements HasSetter<UiListNodeSett
   }
 
   public isSelected(key: string): boolean {
-    return !!this._selectionManager?.isSelected(key);
+    return this._selectionManager != null && this._selectionManager.isSelected(key);
+  }
+
+  public isSelectedRecord(rec: DataRecord) {
+    return (
+      this._dataSource != null &&
+      this._selectionManager != null &&
+      this._selectionManager.isSelected(this._dataSource.getKeyOf(rec))
+    );
   }
 
   public setSelected(rec: DataRecord): string | null {
     let key = null;
     if (this._dataSource != null && this._selectionManager != null) {
       key = this._dataSource.getKeyOf(rec);
-      let selected = this.isSelected(key);
+      let selected = this._selectionManager.isSelected(key);
       let keys = this._selectionManager.setSelected(key, !selected);
       this.updateRecordHolder(keys);
     }
@@ -1026,19 +1159,18 @@ export class UiListNode extends UiScrollNode implements HasSetter<UiListNodeSett
     }
     let n = this._children.length;
     for (let i = 0; i < n; i++) {
-      let recNode = this._children[i] as UiRecord;
+      let recNode = this._children[i] as UiListItem;
       let rec = recNode.getRecord();
       if (rec != null) {
         let key = this._dataSource.getKeyOf(rec);
         if (keys.includes(key)) {
-          this.getRecord(recNode.index);
-          recNode.flushRecordHolderChanged();
+          recNode.fireRecordHolderChanged();
         }
       }
     }
   }
 
-  public getSelection(): string[] | undefined {
-    return this._selectionManager?.getSelection();
+  public getSelection(): string[] {
+    return this._selectionManager != null ? this._selectionManager.getSelection() : [];
   }
 }

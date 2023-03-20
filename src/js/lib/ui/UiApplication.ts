@@ -3,15 +3,14 @@ import { KeyLogger } from './KeyLogger';
 import { UiBlankPageNode } from './UiBlankPageNode';
 import { UiStyle, UiStyleBuilder } from './UiStyle';
 import { Asserts, Properties, Logs, Arrays, Value, Types, Predicate } from '~/lib/lang';
-import type { DataSource } from '~/lib/ui/DataSource';
+import { DataSource } from '~/lib/ui/DataSource';
 import { HistoryManager, HistoryState } from '~/lib/ui/HistoryManager';
 import { KeyCodes } from '~/lib/ui/KeyCodes';
 import { Metrics } from '~/lib/ui/Metrics';
 import { PageLayer, PageLayers } from '~/lib/ui/PageLayer';
 import { Rect } from '~/lib/ui/Rect';
 import { UiAxis } from '~/lib/ui/UiAxis';
-import { UiResult } from '~/lib/ui/UiNode';
-import { UiNode } from '~/lib/ui/UiNode';
+import { UiResult, UiNode } from '~/lib/ui/UiNode';
 import { UiPageNode } from '~/lib/ui/UiPageNode';
 import { UiRootNode } from '~/lib/ui/UiRootNode';
 /** システムWheel調整比の既定値  */
@@ -21,7 +20,7 @@ const DEFAULT_WHEEL_SCALE = 0.5;
 const DEFAULT_INTERVAL_PRECISION = 500;
 
 /** アニメーション時間の既定値 */
-const DEFAULT_ANIMATION_TIME = 0; //100;
+const DEFAULT_ANIMATION_TIME = 100;
 
 /** キー長押し判定閾値の既定値 */
 const DEFAULT_LONG_PRESS_TIME = 1000;
@@ -72,6 +71,13 @@ type PageFactory = (tag: string) => UiPageNode;
 type Resource = Properties<Value | Resource>;
 
 type PurgePageFunc = () => void;
+
+type CallbackTask = () => UiResult;
+
+type FocusQueueItem = {
+  node: UiNode;
+  axis: UiAxis;
+};
 
 /**
  * 表示中ページ情報
@@ -135,14 +141,18 @@ class LivePage {
 
   public doFocus(newNode: UiNode, axis: UiAxis = UiAxis.XY): UiResult {
     let oldNode: UiNode | null = this._focusNode;
-    if (oldNode == newNode) {
+    let force = !!(axis & UiAxis.FORCE);
+    axis &= UiAxis.XY;
+    if (oldNode == newNode && !force) {
       return UiResult.IGNORED;
     }
     let result = UiResult.IGNORED;
-    let luca: UiNode | null =
-      oldNode != null && newNode != null ? oldNode.getLucaNodeWith(newNode) : null;
-    let lucaParent = luca != null ? luca.parent : null;
-
+    let luca: UiNode | null = null;
+    let lucaParent: UiNode | null = null;
+    if (oldNode != null && newNode != null && !force) {
+      luca = oldNode.getLucaNodeWith(newNode);
+      lucaParent = luca.parent;
+    }
     Logs.info(
       'FOCUS %s -> %s',
       oldNode != null ? oldNode.getNodePath() : 'null',
@@ -239,15 +249,27 @@ class DataSourceEntry {
     this._dataSource = ds;
   }
 
-  public attach(node: UiNode) {
+  /**
+   * アタッチする
+   * @param node 対象ノード
+   * @returns プッシュ後のアタッチされている数
+   */
+  public attach(node: UiNode): number {
     this._attaches.push(node);
+    return this._attaches.length;
   }
 
-  public detach(node: UiNode) {
+  /**
+   * デタッチする
+   * @param node 対象ノード
+   * @returns デタッチ後のアタッチされている数
+   */
+  public detach(node: UiNode): number {
     let index = this._attaches.indexOf(node);
     if (index >= 0) {
       this._attaches.splice(index, 1);
     }
+    return this._attaches.length;
   }
   public onDataSourceChanged(at: number): UiResult {
     let result: UiResult = UiResult.IGNORED;
@@ -386,7 +408,7 @@ class RunAnimationEntry extends RunEntry<AnimationTask> {
     if (this._baseTime == 0) {
       this._baseTime = now;
     }
-    let step = this.repeat ? now : (now - this._baseTime) / this._limit;
+    let step = (now - this._baseTime) / this._limit;
     let result = this.task(step);
     if (result & UiResult.EXIT || (!this.repeat && step >= 1.0)) {
       this._flags |= RunFlags.EXIT;
@@ -396,12 +418,10 @@ class RunAnimationEntry extends RunEntry<AnimationTask> {
   }
 
   public flush(now: number): UiResult {
-    let step = this.repeat ? now : 1;
+    let step = 1.0;
     let result = this.task(step);
-    if (result & UiResult.EXIT || (!this.repeat && step >= 1.0)) {
-      this._flags |= RunFlags.EXIT;
-      result |= UiResult.AFFECTED;
-    }
+    this._flags |= RunFlags.EXIT;
+    result |= UiResult.AFFECTED;
     result &= ~UiResult.EXIT;
     return result;
   }
@@ -507,10 +527,15 @@ export class UiApplication {
   /** キー履歴 */
   private _keyLogger: KeyLogger;
 
+
   /** resetFocus要求リスト */
-  private _requestResetFocusList: UiNode[];
+  private _resetFocusQueue: UiNode[];
 
   private static _launchCounter: number = 0;
+
+  private _flushingFocusRequest: boolean = false;
+  
+  private _focusQueue: FocusQueueItem[];
 
   public constructor(selector: string) {
     Logs.info('UiApplication start');
@@ -539,7 +564,8 @@ export class UiApplication {
     this._textResource = {};
     this._history = new HistoryManager();
     this._keyLogger = new KeyLogger();
-    this._requestResetFocusList = [];
+    this._resetFocusQueue = [];
+    this._focusQueue = [];
     if (UiApplication._launchCounter > 0) {
       return;
     }
@@ -757,13 +783,23 @@ export class UiApplication {
       entry = new DataSourceEntry(tag);
       this._dataSources[tag] = entry;
     }
-    entry.attach(node);
+    //初めてアタッチされたとき
+    if (entry.attach(node) == 1) {
+      if (entry.dataSource != undefined) {
+        entry.dataSource.attach();
+      }
+    }
   }
 
   public detachFromDataSource(tag: string, node: UiNode) {
     let entry = this._dataSources[tag];
     if (entry !== undefined) {
-      entry.detach(node);
+      //誰からもアタッチされていない時
+      if (entry.detach(node) == 0) {
+        if (entry.dataSource != undefined) {
+          entry.dataSource.detach();
+        }
+      }
     }
   }
 
@@ -908,7 +944,7 @@ export class UiApplication {
       let waitingNode = this.createWaitingPage();
       let waitingPage = this.pushPage(waitingNode, state, PageLayers.HIGHEST, false);
       this.mountPage(waitingNode, state, PageLayers.HIGHEST, waitingPage);
-      pageNode.preInitialize().then((errorCode) => {
+      pageNode.preInitialize(state).then((errorCode) => {
         this.disposeImpl(waitingNode, false);
         purgeFunc();
         if (errorCode == null) {
@@ -1085,14 +1121,28 @@ export class UiApplication {
     let page = this.getLivePageOf(node);
     let result = UiResult.IGNORED;
     if (page != null) {
-      page.doFocus(node, axis);
-      result |= UiResult.AFFECTED;
+      this._focusQueue.push({
+        node: node,
+        axis: axis,
+      });
+      if (!this._flushingFocusRequest) {
+        this._flushingFocusRequest = true;
+        while (this._focusQueue.length > 0) {
+          let que = this._focusQueue;
+          this._focusQueue = [];
+          for (let item of que) {
+            page.doFocus(item.node, item.axis);
+          }
+        }
+        this._flushingFocusRequest = false;
+        result |= UiResult.AFFECTED;
+      }
     }
     return result;
   }
 
-  public requestFocus(node: UiNode) {
-    this._requestResetFocusList.push(node);
+  public postResetFocus(node: UiNode) {
+    this._resetFocusQueue.push(node);
   }
 
   public updateAxis(node: UiNode): UiResult {
@@ -1184,12 +1234,12 @@ export class UiApplication {
     return result;
   }
 
-  private flushResetFocus() {
-    if (this._requestResetFocusList.length > 0) {
-      for (let node of this._requestResetFocusList) {
+  private flushPostedResetFocus() {
+    if (this._resetFocusQueue.length > 0) {
+      for (let node of this._resetFocusQueue) {
         this.resetFocus(node);
       }
-      this._requestResetFocusList.splice(0);
+      this._resetFocusQueue.splice(0);
     }
   }
 
@@ -1200,6 +1250,11 @@ export class UiApplication {
 
   public runFinally(task: RunFinallyTask): void {
     this._finallyTasks.push(task);
+  }
+
+  public runCallback(func: CallbackTask) {
+    let result = func();
+    this.postProcessEvent(null, result);
   }
 
   public syncAfterFinally() {
@@ -1337,7 +1392,7 @@ export class UiApplication {
   private flushAnimationTask(): UiResult {
     let result: UiResult = UiResult.IGNORED;
     let at: number = this.newTimestamp();
-    for (let e of this._animationTasks) {
+    for (let e of this._animationTasks.filter((e) => !e.repeat)) {
       result |= e.flush(at);
     }
     this.cancelAnimationTasksIfExit();
@@ -1418,7 +1473,7 @@ export class UiApplication {
         }
       }
       // フォーカス処理
-      this.flushResetFocus();
+      this.flushPostedResetFocus();
       //後処理
       this.postProcessEvent(evt, result);
     } finally {
@@ -1461,7 +1516,7 @@ export class UiApplication {
         }
       }
       // フォーカス処理
-      this.flushResetFocus();
+      this.flushPostedResetFocus();
       //後処理
       this.postProcessEvent(evt, result);
     } finally {
@@ -1505,7 +1560,7 @@ export class UiApplication {
         }
       }
       // フォーカス処理
-      this.flushResetFocus();
+      this.flushPostedResetFocus();
       //後処理
       this.postProcessEvent(evt, result);
     } finally {
@@ -1560,7 +1615,7 @@ export class UiApplication {
         result |= this.onMouseMove(target, pt.x, pt.y, mod, at);
       }
       // フォーカス処理
-      this.flushResetFocus();
+      this.flushPostedResetFocus();
       //後処理
       this.postProcessEvent(evt, result);
     } finally {
@@ -1597,7 +1652,7 @@ export class UiApplication {
         result |= this.onMouseDown(target, pt.x, pt.y, mod, at);
       }
       // フォーカス処理
-      this.flushResetFocus();
+      this.flushPostedResetFocus();
       //後処理
       this.postProcessEvent(evt, result);
     } finally {
@@ -1625,7 +1680,7 @@ export class UiApplication {
         result |= this.onMouseUp(target, pt.x, pt.y, mod, at);
       }
       // フォーカス処理
-      this.flushResetFocus();
+      this.flushPostedResetFocus();
       //後処理
       this.postProcessEvent(evt, result);
     } finally {
@@ -1653,7 +1708,7 @@ export class UiApplication {
         result |= this.onMouseClick(target, pt.x, pt.y, mod, at);
       }
       // フォーカス処理
-      this.flushResetFocus();
+      this.flushPostedResetFocus();
       //後処理
       this.postProcessEvent(evt, result);
     } finally {
@@ -1681,7 +1736,7 @@ export class UiApplication {
         result |= this.onMouseDoubleClick(target, pt.x, pt.y, mod, at);
       }
       // フォーカス処理
-      this.flushResetFocus();
+      this.flushPostedResetFocus();
       //後処理
       this.postProcessEvent(evt, result);
     } finally {
@@ -1711,7 +1766,7 @@ export class UiApplication {
         result |= this.onMouseWheel(target, pt.x, pt.y, dx, dy, mod, at);
       }
       // フォーカス処理
-      this.flushResetFocus();
+      this.flushPostedResetFocus();
       //後処理
       this.postProcessEvent(evt, result);
     } finally {
@@ -1873,7 +1928,7 @@ export class UiApplication {
     }
   }
 
-  private newTimestamp(): number {
+  public newTimestamp(): number {
     return document.createEvent('Event').timeStamp;
   }
 
@@ -2092,4 +2147,5 @@ export class UiApplication {
   ): UiResult {
     return UiResult.IGNORED;
   }
+
 }

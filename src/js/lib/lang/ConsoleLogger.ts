@@ -17,7 +17,7 @@ export class ConsoleLogger implements Logger {
   public log(level: LogLevel, msg: string): void {
     //this._funcs[level](msg);
     let func = this._funcs[level];
-    func(msg);
-    //window.setTimeout(func, 0, msg);
+    //func(msg);
+    window.setTimeout(func, 0, msg);
   }
 }

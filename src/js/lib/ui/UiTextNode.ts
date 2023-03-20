@@ -1,10 +1,10 @@
+import { UiCanvas } from './UiCanvas';
 import { Logs, Strings, Value, Values } from '~/lib/lang';
 import { Color } from '~/lib/ui/Colors';
 import type { UiApplication } from '~/lib/ui/UiApplication';
 import { HasSetter } from '~/lib/ui/UiBuilder';
 import { Flags, UiNode, UiNodeSetter } from '~/lib/ui/UiNode';
 import { UiStyle, VerticalAlign } from '~/lib/ui/UiStyle';
-import { UiCanvas } from './UiCanvas';
 
 const RESOURCE_HEAD_MARKER = '{{';
 const RESOURCE_TAIL_MARKER = '}}';
@@ -36,6 +36,9 @@ export class UiTextNode extends UiNode implements HasSetter<UiTextNodeSetter> {
   private _textColor: Color | null;
 
   private _isHtmlContent: boolean;
+
+  private _preferredWidth: number;
+
   /**
    * クローンメソッド
    *
@@ -74,12 +77,14 @@ export class UiTextNode extends UiNode implements HasSetter<UiTextNodeSetter> {
       this._textColor = src._textColor;
       this._ellipsis = src._ellipsis;
       this._isHtmlContent = src._isHtmlContent;
+      this._preferredWidth = src._preferredWidth;
     } else {
       super(param as UiApplication, name as string);
       this._textContent = null;
       this._textColor = null;
       this._ellipsis = null;
       this._isHtmlContent = false;
+      this._preferredWidth = -1;
     }
   }
 
@@ -124,21 +129,24 @@ export class UiTextNode extends UiNode implements HasSetter<UiTextNodeSetter> {
       this.onContentChanged();
     }
   }
+
   public get variable(): boolean {
     return this.getFlag(Flags.VARIABLE);
   }
 
   public set variable(on: boolean) {
     if (this.setFlag(Flags.VARIABLE, on)) {
-      //nop
+      this.floating = on;
     }
   }
+
   protected set htmlContent(text: string) {
     if (text != '') {
       this._isHtmlContent = true;
       this._textContent = text;
     }
   }
+
   protected get htmlContent() {
     let str = '';
     if (this._isHtmlContent) {
@@ -164,6 +172,9 @@ export class UiTextNode extends UiNode implements HasSetter<UiTextNodeSetter> {
   }
 
   protected renderContent(): void {
+    if (this._preferredWidth == -1) {
+      this._preferredWidth = this.innerWidth;
+    }
     let app = this.application;
     let border = this.getBorderSize();
     let dom = this.domElement as HTMLElement;
@@ -207,23 +218,38 @@ export class UiTextNode extends UiNode implements HasSetter<UiTextNodeSetter> {
       inner.innerText = text;
     }
     if (this.variable) {
+      innerStyle.left = '0px';
+      innerStyle.removeProperty('right');
+      innerStyle.width = `${this._preferredWidth}px`;
       app.runFinally(() => {
-        this.resizeVertical(outer);
+        this.resizeTextOrHtml(text, outer);
       });
-    } else if (valign == 'middle' || this._ellipsis != null) {
+    } else if (valign == 'middle' || (!this._isHtmlContent && this._ellipsis != null)) {
       app.runFinally(() => this.adjustVertical(text, valign, this.ellipsis, outer, inner));
     }
   }
 
-  private resizeVertical(outer: HTMLElement) {
+  private resizeTextOrHtml(text: string, outer: HTMLElement) {
     let child = outer.firstChild as HTMLElement;
-    let newHeight = `${child.offsetHeight}px`;
-    if (this.height != newHeight) {
-      this.height = newHeight;
-      if (this.parent != null) {
-        this.parent.onLayoutChanged();
+    let bs = this.getBorderSize();
+    if (child.offsetHeight <= outer.offsetHeight) {
+      //最小幅を調査
+      let style = child.style;
+      style.left = '0px';
+      style.removeProperty('right');
+      style.removeProperty('width');
+      if (this._isHtmlContent) {
+        child.innerHTML = text;
+      } else {
+        child.innerText = text;
       }
+      this.width = `${bs.left + child.offsetWidth + bs.right}px`;
     }
+    this.height = `${bs.top + child.offsetHeight + bs.bottom}px`;
+    if (this.parent != null) {
+      this.parent.onLayoutChanged();
+    }
+    this.application.syncAfterFinally();
   }
 
   private adjustVertical(

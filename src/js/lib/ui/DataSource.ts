@@ -1,8 +1,13 @@
-import { Properties, Value } from '~/lib/lang';
-import type { UiApplication } from '~/lib/ui/UiApplication';
 import { KeyProvider, SimpleKeyProvider } from './KeyProvider';
+import { Logs, Properties, Value } from '~/lib/lang';
+import type { UiApplication } from '~/lib/ui/UiApplication';
 
 export type DataRecord = Properties<Value | DataRecord>;
+
+enum Flags {
+  NONE = 0,
+  LAZY = 1,
+}
 
 /**
  * データアクセスを実現する（抽象）クラス
@@ -16,13 +21,22 @@ export abstract class DataSource {
   private _applications: UiApplication[];
 
   /**
+   * 動作条件フラグ
+   */
+  private _flags: Flags;
+
+  /**
    * キープロバイダ
    */
   private _keyProvider: KeyProvider;
 
+  private _errorCode: number;
+
   protected constructor(keyProvider: KeyProvider = DataSource.DEFAULT_KEY_PROVIDER) {
     this._applications = [];
+    this._flags = Flags.NONE;
     this._keyProvider = keyProvider;
+    this._errorCode = 0;
   }
 
   /**
@@ -44,6 +58,14 @@ export abstract class DataSource {
     if (index >= 0) {
       this._applications.splice(index, 1);
     }
+  }
+
+  /**誰からもアタッチされていない状態でアタッチされたときに呼ばれる */
+  public attach() {}
+
+  /**誰からもアタッチされなくなった時に呼ばれる */
+  public detach() {
+    this.doCancel();
   }
 
   /**
@@ -120,6 +142,53 @@ export abstract class DataSource {
   public abstract select(criteria: Properties<Value>): void;
 
   /**
+   * lazyモードの取得
+   */
+  public get lazy(): boolean {
+    return this.getFlags(Flags.LAZY);
+  }
+
+  /**
+   * lazyモードの設定
+   */
+  public set lazy(on: boolean) {
+    this.setFlags(Flags.LAZY, on);
+  }
+
+  /**
+   * lazyモードの時、実検索処理をスタートさせる。
+   */
+  public wake(): void {}
+
+  protected getFlags(bits: Flags): boolean {
+    return !!(this._flags & bits);
+  }
+
+  protected setFlags(bit: Flags, on: boolean): void {
+    if (on) {
+      this._flags |= bit;
+    } else {
+      this._flags &= ~bit;
+    }
+  }
+
+  public hasError(): boolean {
+    return this._errorCode != 0;
+  }
+
+  protected clearError(): void {
+    this._errorCode = 0;
+  }
+
+  public getErrorCode(): number {
+    return this._errorCode;
+  }
+
+  protected setErrorCode(errorCode: number): void {
+    this._errorCode = errorCode;
+  }
+
+  /**
    * データを挿入する
    *
    * @param rec 挿入するデータ
@@ -142,5 +211,8 @@ export abstract class DataSource {
 
   public getKeyOf(rec: DataRecord): string {
     return this._keyProvider.getKey(rec);
+  }
+
+  private doCancel() {
   }
 }

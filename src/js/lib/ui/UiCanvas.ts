@@ -257,10 +257,6 @@ export class UiCanvas extends UiNode {
     this._yOrigin += dy;
   }
 
-  public getOrigin(): Rect {
-    return new Rect().position(this._xOrigin, this._yOrigin);
-  }
-
   public clipRect(x: number, y: number, w: number, h: number): void {
     x += this._xOrigin;
     y += this._yOrigin;

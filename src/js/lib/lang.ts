@@ -29,10 +29,8 @@ export { Strings };
 import { Types } from '~/lib/lang/Types';
 export { Types };
 
-import { Value as RawValue } from '~/lib/lang/Values';
+import { Value as RawValue, Values } from '~/lib/lang/Values';
 export type Value = RawValue;
-
-import { Values } from '~/lib/lang/Values';
 export { Values };
 
 export interface Properties<T> {

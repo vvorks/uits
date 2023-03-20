@@ -13,6 +13,8 @@ import { KeyProvider, SimpleKeyProvider } from './KeyProvider';
  * の、いずれかの措置が必要である。
  */
 export class LocalDataSource extends DataSource {
+  private _delay: number;
+
   private _loaded: boolean;
 
   private _dataSet: DataRecord[];
@@ -32,7 +34,8 @@ export class LocalDataSource extends DataSource {
    */
   public constructor(
     records: DataRecord[],
-    keyProvider: KeyProvider = DataSource.DEFAULT_KEY_PROVIDER
+    keyProvider: KeyProvider = DataSource.DEFAULT_KEY_PROVIDER,
+    delay: number = 0
   ) {
     super(keyProvider);
     this._loaded = false;
@@ -41,6 +44,7 @@ export class LocalDataSource extends DataSource {
       records[i]['__index__'] = i;
     }
     this._lastUpdateAt = 0;
+    this._delay = delay;
     this._criteria = {};
   }
 
@@ -103,7 +107,7 @@ export class LocalDataSource extends DataSource {
   }
 
   public select(criteria: Properties<Value>): void {
-    window.setTimeout(() => this.load(criteria), 0);
+    window.setTimeout(() => this.load(criteria), this._delay);
   }
 
   private load(criteria: Properties<Value>): void {

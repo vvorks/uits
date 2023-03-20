@@ -28,6 +28,7 @@ export class BoxLayout implements LayoutManager {
       }
       y += rect.height;
     }
+    node.scrollHeight = `${y}px`;
     return result;
   }
 
@@ -43,6 +44,7 @@ export class BoxLayout implements LayoutManager {
       }
       x += rect.width;
     }
+    node.scrollWidth = `${x}px`;
     return result;
   }
 }

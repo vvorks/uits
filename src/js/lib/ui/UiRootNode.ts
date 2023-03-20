@@ -1,7 +1,7 @@
 import { Rect } from '~/lib/ui/Rect';
+import type { UiApplication } from '~/lib/ui/UiApplication';
 import { Changed, UiNode } from '~/lib/ui/UiNode';
 import { UiPageNode } from '~/lib/ui/UiPageNode';
-import type { UiApplication } from '~/lib/ui/UiApplication';
 
 export class UiRootNode extends UiNode {
   /**

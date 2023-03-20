@@ -58,6 +58,7 @@ export class UiDeckNode extends UiNode {
   protected afterMount(): void {
     this.initSavedFocusNodes();
     if (this._selected == null && this._children.length > 0) {
+      this.hidePieces();
       let piece = this._children[0];
       this.select(piece.name);
     }
@@ -70,6 +71,12 @@ export class UiDeckNode extends UiNode {
       if (list.length > 0) {
         this._savedFocusNodes[piece.name] = list[0];
       }
+    }
+  }
+
+  private hidePieces(): void {
+    for (let piece of this._children) {
+      piece.visible = false;
     }
   }
 
@@ -144,8 +151,13 @@ export class UiDeckNode extends UiNode {
     if (gained) {
       let piece = Arrays.first(target.getAncestorsIf((e) => e.parent == this, 1));
       if (piece != null) {
-        this._selectedBefore = this._selected;
-        if (piece.name != this._selected) {
+        //TODO 様子見。問題なければ _selectedBeforeフィールドを削除
+        //this._selectedBefore = this._selected;
+        // DeckNode内子ノードでの画面切り替え時は select()を実行しない
+        if (
+          piece.name != this._selected &&
+          (other == null || other.getLucaNodeWith(target) != this)
+        ) {
           this.select(piece.name);
         }
         result |= UiResult.AFFECTED;
@@ -153,11 +165,12 @@ export class UiDeckNode extends UiNode {
     } else {
       this.saveFocusInSelected();
       if (this._backNode != null) {
-        if (this._backNode != other) {
+        // DeckNode内子ノードでの画面切り替え時は フォーカス処理をしない
+        if (this._backNode != other && (other == null || other.getLucaNodeWith(target) != this)) {
           //TODO otherとbackNodeの方向まで確認するべき？
-          this.application.requestFocus(this._backNode);
+          this.application.postResetFocus(this._backNode);
+          this._backNode = null;
         }
-        this._backNode = null;
       }
       if (this._selectedBefore != null) {
         this.select(this._selectedBefore);

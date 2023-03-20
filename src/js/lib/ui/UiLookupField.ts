@@ -196,6 +196,7 @@ export class UiLookupPopup extends UiPageNode {
     //Popupの表示位置設定
     let rOwner = this._owner.getRectOnRoot();
     let unitHeight = rOwner.height;
+    let imageHeight = Math.min(Math.max(0, this._owner.innerHeight), 32);
     let clientHeight = app.clientHeight;
     let recsPerPage = Math.min(this._owner.popupRows, Math.floor(clientHeight / unitHeight));
     let height = unitHeight * recsPerPage;
@@ -250,6 +251,11 @@ export class UiLookupPopup extends UiPageNode {
       });
       let sbWidth = this._owner.scrollbarWidthAsLength().toPixel(() => rPopup.width);
       let sbMargin = this._owner.scrollbarMarginAsLength().toPixel(() => rPopup.width);
+      let sbTop = sbMargin;
+      if (this._owner.popupOver) {
+        //ポップアップオーバー時には一番上のコンテンツにスクロールバーを表示させないため、1コンテンツの高さをtopに加算
+        sbTop += unitHeight;
+      }
       if (sbWidth > 0) {
         let sbStyle = this._owner.style.getConditionalStyle(
           'NAMED',
@@ -257,7 +263,7 @@ export class UiLookupPopup extends UiPageNode {
         );
         let c = b
           .element(new UiScrollbar(app, 'sb'))
-          .position(null, sbMargin, sbMargin, sbMargin, sbWidth, null)
+          .position(null, sbTop, sbMargin, sbMargin, sbWidth, null)
           .visible(false)
           .vscroll('sb');
         if (sbStyle != null) {
@@ -265,9 +271,21 @@ export class UiLookupPopup extends UiPageNode {
         }
       }
       if (this._owner.popupOver) {
-        b.element(new UiImageNode(app, 'overArrow'))
-          .position(null, 0, 0, null, unitHeight, unitHeight)
-          .imageContent(this._owner.arrowUrl[1]);
+        let imageStyle = new UiStyleBuilder(this._owner.style)
+          .borderSize('0px')
+          .textAlign('center')
+          .verticalAlign('middle')
+          .build();
+        b.element(new UiNode(app, 'node'))
+          .bounds(0, 0, rOwner.width, rOwner.height)
+          .focusable(true)
+          .style(this._owner.style);
+        b.belongs((b) => {
+          b.element(new UiImageNode(app, 'overArrow'))
+            .position(null, 0, 0, 0, imageHeight, null)
+            .style(imageStyle)
+            .imageContent(this._owner.arrowUrl[1]);
+        });
       }
     });
   }

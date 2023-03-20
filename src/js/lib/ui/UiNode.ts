@@ -1,4 +1,5 @@
 import { LayoutManager } from './LayoutManager';
+import { DirtyList, UiCanvas } from './UiCanvas';
 import { Asserts, Clonable, Logs, Predicate, UnsupportedError, Value } from '~/lib/lang';
 import { CssLength } from '~/lib/ui/CssLength';
 import { DataRecord, DataSource } from '~/lib/ui/DataSource';
@@ -11,7 +12,6 @@ import type { UiApplication } from '~/lib/ui/UiApplication';
 import { UiSetter, HasSetter } from '~/lib/ui/UiBuilder';
 import { UiPageNode } from '~/lib/ui/UiPageNode';
 import { UiStyle } from '~/lib/ui/UiStyle';
-import { DirtyList, UiCanvas } from './UiCanvas';
 
 /**
  * （外部からパラメータとして使用する）サイズ型
@@ -846,6 +846,14 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
     return result !== undefined ? result : null;
   }
 
+  public rotateChildrenRight(): void {
+    this._children.unshift(this._children.pop() as UiNode);
+  }
+
+  public rotateChildrenLeft(): void {
+    this._children.push(this._children.shift() as UiNode);
+  }
+
   public appendChild(child: UiNode): void {
     this.insertChild(child, null);
   }
@@ -1598,7 +1606,9 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
     }
   }
 
-  protected beforeUnmount(): void {}
+  protected beforeUnmount(): void {
+    this.doCancel();
+  }
 
   protected afterUnmount(): void {}
 
@@ -1692,6 +1702,10 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
       }
     }
     return this.getFocusableChildrenIf(filter, limit, list);
+  }
+
+  public getChildren(): UiNode[] {
+    return this._children.slice(0);
   }
 
   /**
@@ -1852,6 +1866,9 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
 
   public onFocus(target: UiNode, gained: boolean, other: UiNode | null): UiResult {
     return this == target ? UiResult.AFFECTED : UiResult.IGNORED;
+  }
+
+  private doCancel() {
   }
 
   /**
@@ -2062,6 +2079,7 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
     //force = force || animating;
     let appeared = this.visible && (!rVisible.empty || this.floating);
     if (appeared) {
+      this.wakeDataSource();
       this.syncLayout();
       if (dom != null) {
         this.syncStyle();
@@ -2080,6 +2098,15 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
       if (dom != null) {
         this.unsyncHierarchy();
         this.unsyncScroll();
+      }
+    }
+  }
+
+  private wakeDataSource(): void {
+    if (this.dataSourceName != null) {
+      let ds = this.application.getDataSource(this.dataSourceName);
+      if (ds != null) {
+        ds.wake();
       }
     }
   }
@@ -2197,7 +2224,7 @@ export class UiNode implements Clonable<UiNode>, Scrollable, HasSetter<UiNodeSet
     this.setChanged(Changed.SCROLL, false);
   }
 
-  protected getChildrenRect(): Rect {
+  public getChildrenRect(): Rect {
     let childrenRect = new Rect();
     for (let c of this._children) {
       childrenRect = childrenRect.union(c.getRect());

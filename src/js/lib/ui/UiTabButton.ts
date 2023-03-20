@@ -98,7 +98,7 @@ export class UiTabButton extends UiTextButton implements HasSetter<UiTabButtonSe
       ) {
         let piece = this.findNodeByPath(this._selectNode);
         if (piece != null) {
-          this.application.requestFocus(piece);
+          this.application.postResetFocus(piece);
         }
       }
     }

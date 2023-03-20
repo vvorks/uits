@@ -73,6 +73,25 @@ export class LimitedCacheMap<K, V> {
   }
 
   /**
+   * 有効期限が切れていない値を取得
+   * @param key キー
+   * @param time 指定した時間で有効期限判定　ミリ秒で指定　規定値は現在時間
+   * @returns 値又はundefined
+   */
+  public getNotExpired(key: K, time: number = Date.now()): V | undefined {
+    if (!this._values.has(key)) {
+      return undefined;
+    }
+    let entry = this._values.get(key) as LimitedEntry<V>;
+    this._values.delete(key);
+    if (entry.limit < time) {
+      return undefined;
+    }
+    this._values.set(key, entry);
+    return entry.value;
+  }
+
+  /**
    * 項目を設定
    *
    * @param key キー

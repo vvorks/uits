@@ -1,7 +1,7 @@
 import { DataRecord, DataSource } from './DataSource';
-import { Asserts, Properties, UnsupportedError, Value } from '~/lib/lang';
-import { LimitedCacheMap } from '~/lib/util';
 import { KeyProvider } from './KeyProvider';
+import { Asserts, Logs, Properties, UnsupportedError, Value } from '~/lib/lang';
+import { LimitedCacheMap } from '~/lib/util';
 
 /** デフォルトのブロック読み込みサイズ */
 const DEFAULT_READ_BLOCK_SIZE = 50;
@@ -9,6 +9,8 @@ const DEFAULT_READ_BLOCK_SIZE = 50;
 /** 想定データ処理時間／件 */
 const ESTIMATED_PROC_TIME_PER_REC = 10;
 
+/**取得中オブジェクト */
+const AQUIRED = {};
 /**
  * インデックス取得、値取得の二段階構成のデータ取得APIを想定したデータソース
  *
@@ -16,7 +18,7 @@ const ESTIMATED_PROC_TIME_PER_REC = 10;
  * @param <S> インデックス情報型
  * @param <V> 値情報型
  */
-export abstract class TwoStepDataSource<K, S, V> extends DataSource {
+export abstract class TwoStepDataSource<K, S, V extends object> extends DataSource {
   /** 取新（インデックスリスト）取得時刻 */
   private _lastUpdateAt: number;
 
@@ -25,6 +27,9 @@ export abstract class TwoStepDataSource<K, S, V> extends DataSource {
 
   /** 検索条件 */
   private _criteria: Properties<Value>;
+
+  /** lazyモードでselectされた時点の検索条件 */
+  private _lazyCriteria: Properties<Value> | null;
 
   /** インデックスリスト */
   private _indexes: S[];
@@ -50,9 +55,11 @@ export abstract class TwoStepDataSource<K, S, V> extends DataSource {
     this._lastUpdateAt = 0;
     this._loaded = false;
     this._criteria = {};
+    this._lazyCriteria = null;
     this._indexes = [];
     this._readBlockSize = readBlockSize;
     this._entries = entries;
+    this.lazy = true;
   }
 
   /**
@@ -143,7 +150,9 @@ export abstract class TwoStepDataSource<K, S, V> extends DataSource {
     let indexRec: S = this._indexes[index];
     let key: K = this.getKeyFromIndex(indexRec);
     let value: V | undefined = this._entries.get(key);
-    if (value !== undefined) {
+    if (value === (AQUIRED as V)) {
+      return null;
+    } else if (value !== undefined) {
       //値がキャッシュ内にあれば、それを返却して終了
       return this.toDataRecord(indexRec, value);
     } else {
@@ -162,23 +171,34 @@ export abstract class TwoStepDataSource<K, S, V> extends DataSource {
     let readIndex = (index - Math.floor(readCount / 2) + count) % count;
     for (let i = 0; i < readCount; i++) {
       let readKey: K = this.getKeyAt(readIndex);
-      if (!this._entries.has(readKey)) {
+      if (this._entries.get(readKey) != (AQUIRED as V)) {
         requestKeys.add(readKey);
+        //取得中の値を設定
+        this._entries.put(readKey, AQUIRED as V);
       }
       readIndex = (readIndex + 1) % count;
     }
     let keys: K[] = [];
     requestKeys.forEach((k) => keys.push(k));
-    //値取得要求を発行
-    let values: V[] = await this.requestValues(keys);
-    //取得結果をキャッシュに格納
-    let delay = values.length * ESTIMATED_PROC_TIME_PER_REC;
-    for (let value of values) {
-      let key = this.getKeyFromValue(value);
-      this._entries.put(key, value, delay);
+    //キーが一つ以上
+    if (keys.length != 0) {
+      try {
+        this.clearError();
+        //値取得要求を発行
+        let values: V[] = await this.requestValues(keys);
+        //取得結果をキャッシュに格納
+        let delay = values.length * ESTIMATED_PROC_TIME_PER_REC;
+        for (let value of values) {
+          let key = this.getKeyFromValue(value);
+          this._entries.put(key, value, delay);
+        }
+        //データ更新通知を発行
+        this.fireDataChanged();
+      } catch (error) {
+        Logs.error('error occurred at requestValues');
+        this.setErrorCode(-1);
+      }
     }
-    //データ更新通知を発行
-    this.fireDataChanged();
   }
 
   /**
@@ -187,13 +207,34 @@ export abstract class TwoStepDataSource<K, S, V> extends DataSource {
    * @param criteria 検索条件
    */
   public select(criteria: Properties<Value>): void {
-    this.requestIndexes(criteria).then((indexes) => {
+    if (this.lazy) {
+      this._lazyCriteria = criteria;
+    } else {
+      this.selectNow(criteria);
+    }
+  }
+
+  private async selectNow(criteria: Properties<Value>): Promise<void> {
+    try {
+      this.clearError();
+      let indexes = await this.requestIndexes(criteria);
       this._criteria = criteria;
       this._indexes = indexes;
       this._lastUpdateAt = Date.now();
       this._loaded = true;
       this.fireDataChanged();
-    });
+    } catch (error) {
+      Logs.error('error occurred at requestIndexes');
+      this.setErrorCode(-1);
+    }
+  }
+
+  public wake(): void {
+    if (this.lazy && this._lazyCriteria != null) {
+      this.selectNow(this._lazyCriteria);
+      this._lazyCriteria = null;
+    }
+    this.lazy = false;
   }
 
   /**

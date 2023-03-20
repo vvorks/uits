@@ -1,6 +1,6 @@
-import { Strings } from '~/lib/lang/Strings';
 import { ConsoleLogger } from './ConsoleLogger';
 import { LogLevel } from './Logger';
+import { Strings } from '~/lib/lang/Strings';
 
 /**
  * ログ出力ユーティリティ（Facade）
@@ -51,6 +51,13 @@ export class Logs {
       Strings.vsprintf(format, args)
       //Logs.getCaller()
     );
+    let eol = message.indexOf('\n');
+    if (eol == -1) {
+      eol = 256;
+    }
+    if (message.length > eol) {
+      message = message.substring(0, eol);
+    }
     return message;
   }
 
@@ -86,6 +93,21 @@ export class Logs {
     const msg = Logs.message('V', format, args);
     for (const logger of Logs.LOGGERS) {
       logger.log(LogLevel.VERBOSE, msg);
+    }
+  }
+
+  public static trace(): void {
+    let stack = new Error().stack;
+    if (stack != undefined) {
+      const msg = Logs.message('V', 'STACK TRACE', []);
+      for (const logger of Logs.LOGGERS) {
+        logger.log(LogLevel.VERBOSE, msg);
+      }
+      for (let e of stack.split('\n')) {
+        for (const logger of Logs.LOGGERS) {
+          logger.log(LogLevel.VERBOSE, e);
+        }
+      }
     }
   }
 }

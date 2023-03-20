@@ -1,10 +1,10 @@
-import { CssLength } from '~/lib/ui/CssLength';
-import { Flags, Size, UiNode, UiNodeSetter } from '~/lib/ui/UiNode';
-import { TextAlign, VerticalAlign } from '~/lib/ui/UiStyle';
 import { Logs, Value } from '../lang';
+import { UiCanvas } from './UiCanvas';
+import { CssLength } from '~/lib/ui/CssLength';
 import type { UiApplication } from '~/lib/ui/UiApplication';
 import { HasSetter } from '~/lib/ui/UiBuilder';
-import { UiCanvas } from './UiCanvas';
+import { Flags, Size, UiNode, UiNodeSetter } from '~/lib/ui/UiNode';
+import { TextAlign, VerticalAlign } from '~/lib/ui/UiStyle';
 
 export class UiImageNodeSetter extends UiNodeSetter {
   public static readonly INSTANCE = new UiImageNodeSetter();
@@ -125,7 +125,7 @@ export class UiImageNode extends UiNode implements HasSetter<UiImageNodeSetter> 
 
   public set variable(on: boolean) {
     if (this.setFlag(Flags.VARIABLE, on)) {
-      //nop
+      this.floating = on;
     }
   }
 
@@ -195,8 +195,9 @@ export class UiImageNode extends UiNode implements HasSetter<UiImageNodeSetter> 
     const uiStyle = this.style.getEffectiveStyle(this);
     const valign: VerticalAlign = uiStyle.verticalAlign;
     if (this.variable) {
-      this.width = `${img.clientWidth}px`;
-      this.height = `${img.clientHeight}px`;
+      let bs = this.getBorderSize();
+      this.width = `${bs.left + img.clientWidth + bs.right}px`;
+      this.height = `${bs.top + img.clientHeight + bs.bottom}px`;
       cssStyle.left = '0px';
       cssStyle.top = '0px';
       cssStyle.width = `${img.clientWidth}px`;

@@ -1,4 +1,4 @@
-import { Logs, Properties, Types, Value, Values } from '~/lib/lang';
+import { Properties, Types, Value, Values } from '~/lib/lang';
 import { RecordHolder } from '~/lib/ui/RecordHolder';
 import type { UiApplication } from '~/lib/ui/UiApplication';
 import { UiImageNode } from '~/lib/ui/UiImageNode';
@@ -70,7 +70,6 @@ export class UiStylishImageField extends UiImageNode {
         if (key.startsWith(this.dataFieldName)) {
           let subkey = key.substring(this.dataFieldName.length);
           result[subkey] = Values.asString(value as Value);
-          Logs.debug('key %s value %s', key, value);
         }
       }
     }

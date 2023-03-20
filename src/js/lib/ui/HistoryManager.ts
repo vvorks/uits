@@ -75,6 +75,10 @@ export class HistoryState {
       return '#' + this._hashTag + ':' + this.encodeArguments(this._arguments);
     }
   }
+
+  public toString(): string {
+    return this.tag + JSON.stringify(this.arguments);
+  }
 }
 
 class PageHistory {
@@ -214,6 +218,14 @@ export class HistoryManager {
     this._index = this._nextIndex;
     if (this._index < this._hisotries.length) {
       result = this._hisotries[this._index].getPageStates();
+      let baseState = new HistoryState(hash);
+      for (let c of result) {
+        for (const [k, v] of Object.entries(baseState.arguments)) {
+          if (c.arguments[k] === undefined) {
+            c.arguments[k] = v;
+          }
+        }
+      }
     } else {
       this._hisotries.push(new PageHistory([new HistoryState(hash)]));
       this._index = this._hisotries.length - 1;

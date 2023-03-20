@@ -69,7 +69,7 @@ export class UiPageNode extends UiNode implements HasSetter<UiPageNodeSetter> {
     return UiPageNodeSetter.INSTANCE;
   }
 
-  public async preInitialize(): Promise<ErrorCode> {
+  public async preInitialize(state: HistoryState): Promise<ErrorCode> {
     // return new Promise<ErrorCode>((resolve) => {
     //   setTimeout(() => {
     //     resolve(null);
